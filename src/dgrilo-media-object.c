@@ -101,6 +101,37 @@ set_property (GObject *object,
   }
 }
 
+static gboolean
+send_name_property_cb (DBusGMethodInvocation *context)
+{
+  dbus_g_method_return (context, "seria la propiedad");
+
+  return FALSE;
+}
+
+static gboolean
+send_constant_cb (DBusGMethodInvocation *context)
+{
+  dbus_g_method_return (context, "constante");
+
+  return FALSE;
+}
+
+gboolean
+dgrilo_media_object_get (DGriloMediaObject *obj,
+                         const gchar *interface,
+                         const gchar *property,
+                         DBusGMethodInvocation *context,
+                         GError **error)
+{
+  if (g_strcmp0 (property, "DisplayName") == 0) {
+    g_idle_add ((GSourceFunc) send_name_property_cb, context);
+  } else {
+    g_idle_add ((GSourceFunc) send_constant_cb, context);
+  }
+  return TRUE;
+}
+
 static void
 dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
 {

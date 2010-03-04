@@ -72,5 +72,10 @@ struct _DGriloMediaObjectClass {
 
 GType dgrilo_media_object_get_type (void);
 DGriloMediaObject *dgrilo_media_object_new (const gchar *parent, const gchar *display_name);
+gboolean dgrilo_media_object_get (DGriloMediaObject *obj,
+                                  const gchar *interface,
+                                  const gchar *property,
+                                  DBusGMethodInvocation *context,
+                                  GError **error);
 
 #endif /* _DGRILO_MEDIA_OBJECT_H_ */

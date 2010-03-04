@@ -6,4 +6,12 @@
     <property name="Parent"      type="s" access="read"/>
     <property name="DisplayName" type="s" access="read"/>
   </interface>
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg name="interface" direction="in"  type="s"/>
+      <arg name="property"  direction="in"  type="s"/>
+      <arg name="value"     direction="out" type="v"/>
+    </method>
+  </interface>
 </node>
