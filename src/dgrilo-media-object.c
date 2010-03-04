@@ -22,7 +22,11 @@
  *
  */
 
+#include <dbus/dbus-glib.h>
 #include "dgrilo-media-object.h"
+#include "dgrilo-media-object-glue.h"
+
+#define DGRILO_PATH "/org/gnome/UPnP/MediaObject1/DGrilo"
 
 #define DGRILO_MEDIA_OBJECT_GET_PRIVATE(o)      \
   G_TYPE_INSTANCE_GET_PRIVATE((o), DGRILO_MEDIA_OBJECT_TYPE, DGriloMediaObjectPrivate)
@@ -123,6 +127,10 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
                                                         "Pretty name",
                                                         NULL,
                                                         G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+  /* Register introspection */
+  dbus_g_object_type_install_info (DGRILO_MEDIA_OBJECT_TYPE,
+                                   &dbus_glib_dgrilo_media_object_object_info);
 }
 
 static void
@@ -133,8 +141,27 @@ dgrilo_media_object_init (DGriloMediaObject *server)
 DGriloMediaObject *
 dgrilo_media_object_new (const gchar *parent, const gchar *display_name)
 {
-  return g_object_new (DGRILO_MEDIA_OBJECT_TYPE,
-                       "parent", parent,
-                       "display-name", display_name,
-                       NULL);
+  DBusGConnection *connection;
+  DGriloMediaObject *obj;
+
+  obj = g_object_new (DGRILO_MEDIA_OBJECT_TYPE,
+                      "parent", parent,
+                      "display-name", display_name,
+                      NULL);
+
+  /* Register in dbus */
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, NULL);
+  g_assert (connection);
+
+  if (parent) {
+    dbus_g_connection_register_g_object (connection,
+                                         DGRILO_PATH "/1",
+                                         G_OBJECT (obj));
+  } else {
+    dbus_g_connection_register_g_object (connection,
+                                         DGRILO_PATH,
+                                         G_OBJECT (obj));
+  }
+
+  return obj;
 }

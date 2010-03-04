@@ -3,7 +3,8 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "dgrilo-media-object.h"
-#include "dgrilo-media-object-glue.h"
+
+#define DGRILO_NAME "org.gnome.UPnP.MediaObject1.DGrilo"
 
 static void
 dbus_register_name (DBusGProxy *gproxy,
@@ -24,15 +25,12 @@ main (gint argc, gchar **argv)
 {
   DBusGConnection *connection;
   DBusGProxy *gproxy;
+  DGriloMediaObject *obj;
   GError *error = NULL;
 
   g_type_init ();
 
-  DGriloMediaObject *obj =
-    dgrilo_media_object_new ("my parent", "pretty title");
-
-  printf ("Created object at %p\n", obj);
-
+  /* Get DBus name */
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   g_assert (connection);
 
@@ -41,13 +39,13 @@ main (gint argc, gchar **argv)
                                       DBUS_PATH_DBUS,
                                       DBUS_INTERFACE_DBUS);
 
-  dbus_register_name (gproxy, "org.gnome.UPnP.MediaObject1.DGrilo");
-  dbus_g_object_type_install_info (DGRILO_MEDIA_OBJECT_TYPE,
-                                   &dbus_glib_dgrilo_media_object_object_info);
+  dbus_register_name (gproxy, DGRILO_NAME);
 
-  dbus_g_connection_register_g_object (connection,
-                                       "/org/gnome/UPnP/MediaObject1/DGrilo",
-                                       G_OBJECT (obj));
+  obj = dgrilo_media_object_new ("my parent", "pretty title");
+  printf ("Created object at %p\n", obj);
+
+  obj = dgrilo_media_object_new (NULL, "this should be the parent");
+  printf ("Created another object at %p\n", obj);
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }
