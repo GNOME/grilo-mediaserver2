@@ -46,10 +46,10 @@ typedef struct {
 G_DEFINE_TYPE (DGriloMediaObject, dgrilo_media_object, G_TYPE_OBJECT);
 
 static void
-get_property (GObject *object,
-              guint prop_id,
-              GValue *value,
-              GParamSpec *pspec)
+dgrilo_media_object_get_property (GObject *object,
+                                  guint prop_id,
+                                  GValue *value,
+                                  GParamSpec *pspec)
 {
   DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
   DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
@@ -68,22 +68,10 @@ get_property (GObject *object,
 }
 
 static void
-dispose (GObject *object)
-{
-  DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
-  DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
-
-  g_free (priv->parent);
-  g_free (priv->name);
-
-  G_OBJECT_CLASS (dgrilo_media_object_parent_class)->dispose (object);
-}
-
-static void
-set_property (GObject *object,
-              guint prop_id,
-              const GValue *value,
-              GParamSpec *pspec)
+dgrilo_media_object_set_property (GObject *object,
+                                  guint prop_id,
+                                  const GValue *value,
+                                  GParamSpec *pspec)
 {
   DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
   DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
@@ -99,6 +87,18 @@ set_property (GObject *object,
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     break;
   }
+}
+
+static void
+dgrilo_media_object_dispose (GObject *object)
+{
+  DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
+  DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
+
+  g_free (priv->parent);
+  g_free (priv->name);
+
+  G_OBJECT_CLASS (dgrilo_media_object_parent_class)->dispose (object);
 }
 
 static gboolean
@@ -139,9 +139,9 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
 
   g_type_class_add_private (klass, sizeof (DGriloMediaObjectPrivate));
 
-  object_class->get_property = get_property;
-  object_class->set_property = set_property;
-  object_class->dispose = dispose;
+  object_class->get_property = dgrilo_media_object_get_property;
+  object_class->set_property = dgrilo_media_object_set_property;
+  object_class->dispose = dgrilo_media_object_dispose;
 
   g_object_class_install_property (object_class,
                                    PROP_PARENT,
