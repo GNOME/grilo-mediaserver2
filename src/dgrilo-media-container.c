@@ -26,6 +26,8 @@
 #include "dgrilo-media-container.h"
 #include "dgrilo-media-container-glue.h"
 
+#define MAX_RESULTS 50
+
 #define DGRILO_PATH "/org/gnome/UPnP/MediaServer1/DGrilo"
 
 #define DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH                                \
@@ -33,6 +35,8 @@
 
 #define DGRILO_MEDIA_CONTAINER_GET_PRIVATE(o)                           \
   G_TYPE_INSTANCE_GET_PRIVATE((o), DGRILO_MEDIA_CONTAINER_TYPE, DGriloMediaContainerPrivate)
+
+typedef void (*RetryCb) (DGriloMediaContainer *obj, gchar *property, DBusGMethodInvocation *context);
 
 enum {
   PROP_0,
@@ -42,6 +46,13 @@ enum {
   PROP_CONTAINER_COUNT,
   LAST_PROP
 };
+
+typedef struct {
+  DGriloMediaContainer *container;
+  DBusGMethodInvocation *context;
+  RetryCb retry;
+  gchar *item;
+} BrowseData;
 
 typedef struct {
   guint item_count;
@@ -54,14 +65,126 @@ typedef struct {
 G_DEFINE_TYPE (DGriloMediaContainer, dgrilo_media_container, DGRILO_MEDIA_OBJECT_TYPE);
 
 static void
+retry_get (DGriloMediaContainer *obj,
+           gchar *property,
+           DBusGMethodInvocation *context)
+{
+  dgrilo_media_container_get (obj, NULL, property, context, NULL);
+}
+
+#if 0
+static void
+retry_get_all (DGriloMediaContainer *obj,
+               gchar *interface,
+               DBusGMethodInvocation *context)
+{
+  dgrilo_media_container_get_all (obj, interface, context, NULL);
+}
+#endif
+
+static void
+browse_result_cb (GrlMediaSource *source,
+                  guint browse_id,
+                  GrlMedia *media,
+                  guint remaining,
+                  gpointer user_data,
+                  const GError *error)
+{
+  BrowseData *bd = (BrowseData *) user_data;
+  DGriloMediaContainerPrivate *priv;
+  DGriloMediaContainer *container;
+
+  g_assert (!error);
+
+  priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (bd->container);
+  if (media) {
+    if (GRL_IS_MEDIA_BOX (media)) {
+      container =
+        dgrilo_media_container_new_with_parent (DGRILO_MEDIA_OBJECT (bd->container),
+                                                media);
+      priv->containers =
+        g_list_prepend (priv->containers,
+                        g_strdup (dgrilo_media_object_get_dbus_path (DGRILO_MEDIA_OBJECT (container))));
+      priv->container_count++;
+    }
+  }
+
+  if (!remaining) {
+    /* Send result */
+    priv->browsed = TRUE;
+    priv->containers = g_list_reverse (priv->containers);
+    priv->items = g_list_reverse (priv->items);
+    bd->retry (bd->container, bd->item, bd->context);
+    g_free (bd->item);
+    g_free (bd);
+  }
+}
+
+static void
+browse_grilo_media (BrowseData *bd)
+{
+  GList *keys;
+  GrlMedia *media;
+  GrlMediaSource *source;
+  GrlPluginRegistry *registry;
+
+  /* Get the source */
+  g_object_get (bd->container,
+                "grl-media", &media,
+                NULL);
+
+  registry = grl_plugin_registry_get_instance ();
+  source =
+    (GrlMediaSource *) grl_plugin_registry_lookup_source (registry,
+                                                          grl_media_get_source (media));
+
+  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
+                                    NULL);
+
+  grl_media_source_browse (source,
+                           media,
+                           keys,
+                           0,
+                           MAX_RESULTS,
+                           GRL_RESOLVE_FAST_ONLY,
+                           browse_result_cb,
+                           bd);
+}
+
+static GPtrArray *
+dgrilo_media_container_get_elements (GList *elements)
+{
+  GList *p;
+  GPtrArray *pelements = NULL;
+  gint size;
+
+  size = g_list_length (elements);
+  pelements = g_ptr_array_sized_new (size);
+  for (p = elements; p; p = g_list_next (p)) {
+    g_ptr_array_add (pelements, g_strdup (p->data));
+  }
+
+  return pelements;
+}
+
+static GPtrArray *
+dgrilo_media_container_get_items (DGriloMediaContainer *obj)
+{
+  return dgrilo_media_container_get_elements (DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->items);
+}
+
+static GPtrArray *
+dgrilo_media_container_get_containers (DGriloMediaContainer *obj)
+{
+  return dgrilo_media_container_get_elements (DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->containers);
+}
+
+static void
 dgrilo_media_container_get_property (GObject *object,
                                      guint prop_id,
                                      GValue *value,
                                      GParamSpec *pspec)
 {
-  GPtrArray *parray;
-  GList *p;
-  gint size;
   DGriloMediaContainer *self = DGRILO_MEDIA_CONTAINER (object);
   DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
@@ -73,20 +196,12 @@ dgrilo_media_container_get_property (GObject *object,
     g_value_set_uint (value, priv->container_count);
     break;
   case PROP_ITEMS:
-    size = g_list_length (priv->items);
-    parray = g_ptr_array_sized_new (size);
-    for (p = priv->items; p; p = g_list_next (p)) {
-      g_ptr_array_add (parray, g_strdup (p->data));
-    }
-    g_value_take_boxed (value, parray);
+    g_value_take_boxed (value,
+                        dgrilo_media_container_get_items (self));
     break;
   case PROP_CONTAINERS:
-    size = g_list_length (priv->containers);
-    parray = g_ptr_array_sized_new (size);
-    for (p = priv->containers; p; p = g_list_next (p)) {
-      g_ptr_array_add (parray, g_strdup (p->data));
-    }
-    g_value_take_boxed (value, parray);
+    g_value_take_boxed (value,
+                        dgrilo_media_container_get_containers (self));
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -122,7 +237,6 @@ dgrilo_media_container_dispose (GObject *object)
   G_OBJECT_CLASS (dgrilo_media_container_parent_class)->dispose (object);
 }
 
-
 gboolean
 dgrilo_media_container_get (DGriloMediaContainer *obj,
                             const gchar *interface,
@@ -130,13 +244,13 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
                             DBusGMethodInvocation *context,
                             GError **error)
 {
+  BrowseData *bd;
+  DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
   GValue val = { 0 };
   gchar *display_name = NULL;
   gchar *parent_path = NULL;
   guint container_count;
   guint item_count;
-  GPtrArray *items = NULL;
-  GPtrArray *containers = NULL;
 
   if (g_strcmp0 (property, "DisplayName") == 0) {
     g_object_get (obj, "display-name", &display_name, NULL);
@@ -147,28 +261,60 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
     g_value_init (&val, G_TYPE_STRING);
     g_value_take_string (&val, parent_path);
   } else if (g_strcmp0 (property, "ContainerCount") == 0) {
-    g_object_get (obj, "container-count", &container_count, NULL);
-    g_value_init (&val, G_TYPE_UINT);
-    g_value_set_uint (&val, container_count);
-  } else if (g_strcmp0 (property, "ItemCount") == 0) {
-    g_object_get (obj, "item-count", &item_count, NULL);
-    g_value_init (&val, G_TYPE_UINT);
-    g_value_set_uint (&val, item_count);
-  } else if (g_strcmp0 (property, "Items") == 0) {
-    if (DGRILO_MEDIA_CONTAINER_GET_PRIVATE(obj)->browsed) {
-      g_object_get (obj, "items", items, NULL);
-      g_value_init (&val, G_TYPE_BOXED);
-      g_value_take_boxed (&val, items);
+    if (priv->browsed) {
+      g_object_get (obj, "container-count", &container_count, NULL);
+      g_value_init (&val, G_TYPE_UINT);
+      g_value_set_uint (&val, container_count);
     } else {
-      return FALSE;
+      bd = g_new0 (BrowseData, 1);
+      bd->container = obj;
+      bd->context = context;
+      bd->retry = retry_get;
+      bd->item = g_strdup ("ContainerCount");
+      browse_grilo_media (bd);
+      return TRUE;
+    }
+  } else if (g_strcmp0 (property, "ItemCount") == 0) {
+    if (priv->browsed) {
+      g_object_get (obj, "item-count", &item_count, NULL);
+      g_value_init (&val, G_TYPE_UINT);
+      g_value_set_uint (&val, item_count);
+    } else {
+      bd = g_new0 (BrowseData, 1);
+      bd->container = obj;
+      bd->context = context;
+      bd->retry = retry_get;
+      bd->item = g_strdup ("ItemCount");
+      browse_grilo_media (bd);
+      return TRUE;
+    }
+  } else if (g_strcmp0 (property, "Items") == 0) {
+    if (priv->browsed) {
+      g_value_init (&val, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
+      g_value_take_boxed (&val,
+                          dgrilo_media_container_get_items (obj));
+    } else {
+      bd = g_new0 (BrowseData, 1);
+      bd->container = obj;
+      bd->context = context;
+      bd->retry = retry_get;
+      bd->item = g_strdup ("Items");
+      browse_grilo_media (bd);
+      return TRUE;
     }
   } else if (g_strcmp0 (property, "Containers") == 0) {
-    if (DGRILO_MEDIA_CONTAINER_GET_PRIVATE(obj)->browsed) {
-      g_object_get (obj, "containers", containers, NULL);
-      g_value_init (&val, G_TYPE_BOXED);
-      g_value_take_boxed (&val, containers);
+    if (priv->browsed) {
+      g_value_init (&val, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
+      g_value_take_boxed (&val,
+                          dgrilo_media_container_get_containers (obj));
     } else {
-      return FALSE;
+      bd = g_new0 (BrowseData, 1);
+      bd->container = obj;
+      bd->context = context;
+      bd->retry = retry_get;
+      bd->item = g_strdup ("Containers");
+      browse_grilo_media (bd);
+      return TRUE;
     }
   } else {
     return FALSE;
