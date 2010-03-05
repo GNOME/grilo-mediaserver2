@@ -23,7 +23,10 @@ test_SOURCES =				\
 	dgrilo-media-object.c		\
 	dgrilo-media-container-glue.h	\
 	dgrilo-media-container.h	\
-	dgrilo-media-container.c
+	dgrilo-media-container.c	\
+	dgrilo-media-item-glue.h	\
+	dgrilo-media-item.h		\
+	dgrilo-media-item.c
 
 test_CFLAGS =	\
 	-DPREFIX=$(prefix)

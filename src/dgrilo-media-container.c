@@ -25,6 +25,7 @@
 #include <dbus/dbus-glib.h>
 #include "dgrilo-media-container.h"
 #include "dgrilo-media-container-glue.h"
+#include "dgrilo-media-item.h"
 
 #define MAX_RESULTS 50
 
@@ -93,6 +94,7 @@ browse_result_cb (GrlMediaSource *source,
   BrowseData *bd = (BrowseData *) user_data;
   DGriloMediaContainerPrivate *priv;
   DGriloMediaContainer *container;
+  DGriloMediaItem *item;
 
   g_assert (!error);
 
@@ -106,6 +108,14 @@ browse_result_cb (GrlMediaSource *source,
         g_list_prepend (priv->containers,
                         g_strdup (dgrilo_media_object_get_dbus_path (DGRILO_MEDIA_OBJECT (container))));
       priv->container_count++;
+    } else {
+      item =
+        dgrilo_media_item_new_with_parent (DGRILO_MEDIA_OBJECT (bd->container),
+                                           media);
+      priv->items =
+        g_list_prepend (priv->items,
+                        g_strdup (dgrilo_media_object_get_dbus_path (DGRILO_MEDIA_OBJECT (item))));
+      priv->item_count++;
     }
   }
 

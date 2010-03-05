@@ -9,6 +9,7 @@ configdir = $(datadir)/dgrilo
 
 config_DATA =			\
 	media-container.xml	\
+	media-item.xml		\
 	media-object.xml
 
 EXTRA_DIST =	\
