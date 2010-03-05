@@ -127,6 +127,8 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
     g_object_get (obj, "item-count", &item_count, NULL);
     g_value_init (&val, G_TYPE_UINT);
     g_value_set_uint (&val, item_count);
+  } else {
+    return FALSE;
   }
 
   dbus_g_method_return (context, &val);
@@ -134,6 +136,63 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
 
   return TRUE;
 }
+
+gboolean
+dgrilo_media_container_get_all (DGriloMediaContainer *obj,
+                                const gchar *interface,
+                                DBusGMethodInvocation *context,
+                                GError **error)
+{
+  gchar *parent_path;
+  gchar *display_name;
+  guint item_count;
+  guint container_count;
+  GValue parent_value = { 0 };
+  GValue display_value = { 0 };
+  GValue itemc_value = { 0 };
+  GValue containerc_value = { 0 };
+  GHashTable *map;
+
+  map = g_hash_table_new_full (g_str_hash,
+                               g_str_equal,
+                               NULL,
+                               (GDestroyNotify) g_value_unset);
+
+  if (g_strcmp0 (interface, "org.gnome.UPnP.MediaObject1") == 0) {
+    g_object_get (obj,
+                  "parent", &parent_path,
+                  "display-name", &display_name,
+                  NULL);
+    g_value_init (&parent_value, G_TYPE_STRING);
+    g_value_init (&display_value, G_TYPE_STRING);
+    g_value_take_string (&parent_value, parent_path);
+    g_value_take_string (&display_value, display_name);
+
+    g_hash_table_insert (map, "Parent", &parent_value);
+    g_hash_table_insert (map, "DisplayName", &display_value);
+  } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
+    g_object_get (obj,
+                  "item-count", &item_count,
+                  "container_count", &container_count,
+                  NULL);
+    g_value_init (&itemc_value, G_TYPE_UINT);
+    g_value_init (&containerc_value, G_TYPE_UINT);
+    g_value_set_uint (&itemc_value, item_count);
+    g_value_set_uint (&containerc_value, container_count);
+
+    g_hash_table_insert (map, "ItemCount", &itemc_value);
+    g_hash_table_insert (map, "ContainerCount", &containerc_value);
+  } else {
+    g_hash_table_unref (map);
+    return FALSE;
+  }
+
+  dbus_g_method_return (context, map);
+  g_hash_table_unref (map);
+
+  return TRUE;
+}
+
 
 static void
 dgrilo_media_container_class_init (DGriloMediaContainerClass *klass)

@@ -46,9 +46,9 @@ main (gint argc, gchar **argv)
   c = dgrilo_media_container_new_with_dbus_path (DGRILO_PATH, NULL);
   printf ("Created object at %p\n", c);
 
-  /* c = dgrilo_media_container_new_with_parent (DGRILO_MEDIA_OBJECT (c), */
-  /*                                             NULL); */
-  /* printf ("Created antother object at %p\n", c); */
+  c = dgrilo_media_container_new_with_parent (DGRILO_MEDIA_OBJECT (c),
+                                              NULL);
+  printf ("Created antother object at %p\n", c);
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }

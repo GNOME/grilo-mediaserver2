@@ -18,5 +18,10 @@
       <arg name="property"  direction="in"  type="s"/>
       <arg name="value"     direction="out" type="v"/>
     </method>
+    <method name="GetAll">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg name="interface"   direction="in"  type="s"/>
+      <arg name="properties"  direction="out" type="a{sv}"/>
+    </method>
   </interface>
 </node>

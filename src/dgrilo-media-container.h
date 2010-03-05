@@ -77,10 +77,15 @@ GType dgrilo_media_container_get_type (void);
 DGriloMediaContainer *dgrilo_media_container_new (const gchar *parent, const gchar *display_name);
 
 gboolean dgrilo_media_container_get (DGriloMediaContainer *obj,
-                                  const gchar *interface,
-                                  const gchar *property,
-                                  DBusGMethodInvocation *context,
-                                  GError **error);
+                                     const gchar *interface,
+                                     const gchar *property,
+                                     DBusGMethodInvocation *context,
+                                     GError **error);
+
+gboolean dgrilo_media_container_get_all (DGriloMediaContainer *obj,
+                                         const gchar *interface,
+                                         DBusGMethodInvocation *context,
+                                         GError **error);
 
 DGriloMediaContainer *dgrilo_media_container_new_with_dbus_path (const gchar *dbus_path,
                                                                  GrlMedia *media);
