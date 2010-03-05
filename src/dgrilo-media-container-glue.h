@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* NONE:STRING,STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.6MF38U:1) */
+/* NONE:STRING,STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.HH9I9U:1) */
 extern void dbus_glib_marshal_dgrilo_media_container_VOID__STRING_STRING_POINTER (GClosure     *closure,
                                                                                   GValue       *return_value,
                                                                                   guint         n_param_values,
@@ -99,7 +99,7 @@ dbus_glib_marshal_dgrilo_media_container_VOID__STRING_STRING_POINTER (GClosure  
 }
 #define dbus_glib_marshal_dgrilo_media_container_NONE__STRING_STRING_POINTER	dbus_glib_marshal_dgrilo_media_container_VOID__STRING_STRING_POINTER
 
-/* NONE:STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.6MF38U:2) */
+/* NONE:STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.HH9I9U:2) */
 extern void dbus_glib_marshal_dgrilo_media_container_VOID__STRING_POINTER (GClosure     *closure,
                                                                            GValue       *return_value,
                                                                            guint         n_param_values,
@@ -159,6 +159,6 @@ const DBusGObjectInfo dbus_glib_dgrilo_media_container_object_info = {
   2,
 "org.freedesktop.DBus.Properties\0Get\0A\0interface\0I\0s\0property\0I\0s\0value\0O\0F\0N\0v\0\0org.freedesktop.DBus.Properties\0GetAll\0A\0interface\0I\0s\0properties\0O\0F\0N\0a{sv}\0\0\0",
 "\0",
-"org.gnome.UPnP.MediaContainer1\0ItemCount\0org.gnome.UPnP.MediaContainer1\0ContainerCount\0org.gnome.UPnP.MediaContainer1\0Test\0\0"
+"org.gnome.UPnP.MediaContainer1\0Items\0org.gnome.UPnP.MediaContainer1\0ItemCount\0org.gnome.UPnP.MediaContainer1\0Containers\0org.gnome.UPnP.MediaContainer1\0ContainerCount\0\0"
 };
 

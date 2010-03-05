@@ -5,9 +5,9 @@
   <!-- http://live.gnome.org/Rygel/MediaServerSpec -->
 
   <interface name="org.gnome.UPnP.MediaContainer1">
-    <!-- <property name="Items"          type="ao" access="read"/> -->
+    <property name="Items"          type="ao" access="read"/>
     <property name="ItemCount"      type="u"  access="read"/>
-    <!-- <property name="Containers"     type="ao" access="read"/> -->
+    <property name="Containers"     type="ao" access="read"/>
     <property name="ContainerCount" type="u"  access="read"/>
   </interface>
 

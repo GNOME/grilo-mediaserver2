@@ -28,12 +28,17 @@
 
 #define DGRILO_PATH "/org/gnome/UPnP/MediaServer1/DGrilo"
 
+#define DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH                                \
+  (dbus_g_type_get_collection ("GPtrArray", DBUS_TYPE_G_OBJECT_PATH))
+
 #define DGRILO_MEDIA_CONTAINER_GET_PRIVATE(o)                           \
   G_TYPE_INSTANCE_GET_PRIVATE((o), DGRILO_MEDIA_CONTAINER_TYPE, DGriloMediaContainerPrivate)
 
 enum {
   PROP_0,
+  PROP_ITEMS,
   PROP_ITEM_COUNT,
+  PROP_CONTAINERS,
   PROP_CONTAINER_COUNT,
   LAST_PROP
 };
@@ -43,6 +48,7 @@ typedef struct {
   guint container_count;
   GList *items;
   GList *containers;
+  gboolean browsed;
 } DGriloMediaContainerPrivate;
 
 G_DEFINE_TYPE (DGriloMediaContainer, dgrilo_media_container, DGRILO_MEDIA_OBJECT_TYPE);
@@ -53,6 +59,9 @@ dgrilo_media_container_get_property (GObject *object,
                                      GValue *value,
                                      GParamSpec *pspec)
 {
+  GPtrArray *parray;
+  GList *p;
+  gint size;
   DGriloMediaContainer *self = DGRILO_MEDIA_CONTAINER (object);
   DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
@@ -62,6 +71,22 @@ dgrilo_media_container_get_property (GObject *object,
     break;
   case PROP_CONTAINER_COUNT:
     g_value_set_uint (value, priv->container_count);
+    break;
+  case PROP_ITEMS:
+    size = g_list_length (priv->items);
+    parray = g_ptr_array_sized_new (size);
+    for (p = priv->items; p; p = g_list_next (p)) {
+      g_ptr_array_add (parray, g_strdup (p->data));
+    }
+    g_value_take_boxed (value, parray);
+    break;
+  case PROP_CONTAINERS:
+    size = g_list_length (priv->containers);
+    parray = g_ptr_array_sized_new (size);
+    for (p = priv->containers; p; p = g_list_next (p)) {
+      g_ptr_array_add (parray, g_strdup (p->data));
+    }
+    g_value_take_boxed (value, parray);
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -110,6 +135,8 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
   gchar *parent_path = NULL;
   guint container_count;
   guint item_count;
+  GPtrArray *items = NULL;
+  GPtrArray *containers = NULL;
 
   if (g_strcmp0 (property, "DisplayName") == 0) {
     g_object_get (obj, "display-name", &display_name, NULL);
@@ -127,6 +154,22 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
     g_object_get (obj, "item-count", &item_count, NULL);
     g_value_init (&val, G_TYPE_UINT);
     g_value_set_uint (&val, item_count);
+  } else if (g_strcmp0 (property, "Items") == 0) {
+    if (DGRILO_MEDIA_CONTAINER_GET_PRIVATE(obj)->browsed) {
+      g_object_get (obj, "items", items, NULL);
+      g_value_init (&val, G_TYPE_BOXED);
+      g_value_take_boxed (&val, items);
+    } else {
+      return FALSE;
+    }
+  } else if (g_strcmp0 (property, "Containers") == 0) {
+    if (DGRILO_MEDIA_CONTAINER_GET_PRIVATE(obj)->browsed) {
+      g_object_get (obj, "containers", containers, NULL);
+      g_value_init (&val, G_TYPE_BOXED);
+      g_value_take_boxed (&val, containers);
+    } else {
+      return FALSE;
+    }
   } else {
     return FALSE;
   }
@@ -173,7 +216,7 @@ dgrilo_media_container_get_all (DGriloMediaContainer *obj,
   } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
     g_object_get (obj,
                   "item-count", &item_count,
-                  "container_count", &container_count,
+                  "container-count", &container_count,
                   NULL);
     g_value_init (&itemc_value, G_TYPE_UINT);
     g_value_init (&containerc_value, G_TYPE_UINT);
@@ -206,12 +249,28 @@ dgrilo_media_container_class_init (DGriloMediaContainerClass *klass)
   object_class->dispose = dgrilo_media_container_dispose;
 
   g_object_class_install_property (object_class,
+                                   PROP_ITEMS,
+                                   g_param_spec_boxed ("items",
+                                                       "Items",
+                                                       "List of Items",
+                                                       DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH,
+                                                       G_PARAM_READABLE));
+
+  g_object_class_install_property (object_class,
                                    PROP_ITEM_COUNT,
                                    g_param_spec_uint ("item-count",
                                                       "ItemCount",
                                                       "Number of Items",
                                                       0, G_MAXUINT, 0,
                                                       G_PARAM_READABLE | G_PARAM_WRITABLE));
+
+  g_object_class_install_property (object_class,
+                                   PROP_CONTAINERS,
+                                   g_param_spec_boxed ("containers",
+                                                       "Containers",
+                                                       "List of Containers",
+                                                       DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH,
+                                                       G_PARAM_READABLE));
 
   g_object_class_install_property (object_class,
                                    PROP_CONTAINER_COUNT,
