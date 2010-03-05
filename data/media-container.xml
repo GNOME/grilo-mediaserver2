@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node>
+
+  <!-- http://live.gnome.org/Rygel/MediaServerSpec -->
+
+  <interface name="org.gnome.UPnP.MediaContainer1">
+    <!-- <property name="Items"          type="ao" access="read"/> -->
+    <property name="ItemCount"      type="u"  access="read"/>
+    <!-- <property name="Containers"     type="ao" access="read"/> -->
+    <property name="ContainerCount" type="u"  access="read"/>
+  </interface>
+
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg name="interface" direction="in"  type="s"/>
+      <arg name="property"  direction="in"  type="s"/>
+      <arg name="value"     direction="out" type="v"/>
+    </method>
+  </interface>
+</node>

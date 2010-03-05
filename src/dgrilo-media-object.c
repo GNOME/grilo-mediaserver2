@@ -35,15 +35,27 @@ enum {
   PROP_0,
   PROP_PARENT,
   PROP_DISPLAY_NAME,
+  PROP_DBUS_PATH,
+  PROP_GRL_MEDIA,
+  PROP_PARENT_MEDIA,
   LAST_PROP
 };
 
 typedef struct {
-  gchar *parent;
+  gchar *dbus_path;
+  gchar *parent_path;
+  DGriloMediaObject *parent_media;
+  GrlMedia *grl_media;
   gchar *name;
 } DGriloMediaObjectPrivate;
 
 G_DEFINE_TYPE (DGriloMediaObject, dgrilo_media_object, G_TYPE_OBJECT);
+
+const gchar *
+dgrilo_media_object_get_dbus_path (DGriloMediaObject *obj)
+{
+  return DGRILO_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
+}
 
 static void
 dgrilo_media_object_get_property (GObject *object,
@@ -56,10 +68,19 @@ dgrilo_media_object_get_property (GObject *object,
 
   switch (prop_id) {
   case PROP_PARENT:
-    g_value_set_string (value, priv->parent);
+    g_value_set_string (value, priv->parent_path);
     break;
   case PROP_DISPLAY_NAME:
     g_value_set_string (value, priv->name);
+    break;
+  case PROP_DBUS_PATH:
+    g_value_set_string (value, priv->dbus_path);
+    break;
+  case PROP_GRL_MEDIA:
+    g_value_set_object (value, priv->grl_media);
+    break;
+  case PROP_PARENT_MEDIA:
+    g_value_set_object (value, priv->parent_media);
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -78,10 +99,19 @@ dgrilo_media_object_set_property (GObject *object,
 
   switch (prop_id) {
   case PROP_PARENT:
-    priv->parent = g_value_dup_string (value);
+    priv->parent_path = g_value_dup_string (value);
     break;
   case PROP_DISPLAY_NAME:
     priv->name = g_value_dup_string (value);
+    break;
+  case PROP_DBUS_PATH:
+    priv->dbus_path = g_value_dup_string (value);
+    break;
+  case PROP_GRL_MEDIA:
+    priv->grl_media = g_value_get_object (value);
+    break;
+  case PROP_PARENT_MEDIA:
+    priv->parent_media = g_value_get_object (value);
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -95,8 +125,9 @@ dgrilo_media_object_dispose (GObject *object)
   DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
   DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
 
-  g_free (priv->parent);
-  g_free (priv->name);
+  g_free (priv->parent_path);
+  g_free (priv->dbus_path);
+  g_object_unref (priv->grl_media);
 
   G_OBJECT_CLASS (dgrilo_media_object_parent_class)->dispose (object);
 }
@@ -107,6 +138,8 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (DGriloMediaObjectPrivate));
+
+  klass->index = 1;
 
   object_class->get_property = dgrilo_media_object_get_property;
   object_class->set_property = dgrilo_media_object_set_property;
@@ -128,40 +161,97 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
                                                         NULL,
                                                         G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+  g_object_class_install_property (object_class,
+                                   PROP_DBUS_PATH,
+                                   g_param_spec_string ("dbus-path",
+                                                        "DBusPath",
+                                                        "DBus Path where object is registered",
+                                                        NULL,
+                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+  g_object_class_install_property (object_class,
+                                   PROP_GRL_MEDIA,
+                                   g_param_spec_object ("grl-media",
+                                                        "GrlMedia",
+                                                        "Grilo Media",
+                                                        GRL_TYPE_MEDIA,
+                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+  g_object_class_install_property (object_class,
+                                   PROP_PARENT_MEDIA,
+                                   g_param_spec_object ("parent-media",
+                                                        "ParentMedia",
+                                                        "MediaObject parent",
+                                                        DGRILO_MEDIA_OBJECT_TYPE,
+                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
   /* Register introspection */
   dbus_g_object_type_install_info (DGRILO_MEDIA_OBJECT_TYPE,
                                    &dbus_glib_dgrilo_media_object_object_info);
 }
 
 static void
-dgrilo_media_object_init (DGriloMediaObject *server)
+dgrilo_media_object_init (DGriloMediaObject *obj)
 {
 }
 
-DGriloMediaObject *
-dgrilo_media_object_new (const gchar *parent, const gchar *display_name)
+void
+dgrilo_media_object_dbus_register (DGriloMediaObject *obj)
 {
   DBusGConnection *connection;
-  DGriloMediaObject *obj;
+  DGriloMediaObjectPrivate *priv =
+    DGRILO_MEDIA_OBJECT_GET_PRIVATE (obj);
 
-  obj = g_object_new (DGRILO_MEDIA_OBJECT_TYPE,
-                      "parent", parent,
-                      "display-name", display_name,
-                      NULL);
-
-  /* Register in dbus */
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, NULL);
   g_assert (connection);
 
-  if (parent) {
-    dbus_g_connection_register_g_object (connection,
-                                         DGRILO_PATH "/1",
-                                         G_OBJECT (obj));
-  } else {
-    dbus_g_connection_register_g_object (connection,
-                                         DGRILO_PATH,
-                                         G_OBJECT (obj));
-  }
+  dbus_g_connection_register_g_object (connection,
+                                       priv->dbus_path,
+                                       G_OBJECT (obj));
+}
+
+DGriloMediaObject *
+dgrilo_media_object_new_with_dbus_path (const gchar *dbus_path,
+                                        GrlMedia *media)
+{
+  DGriloMediaObject *obj;
+
+  obj = g_object_new (DGRILO_MEDIA_OBJECT_TYPE,
+                      "parent", dbus_path,
+                      "display-name", media? grl_media_get_title (media): "Unknown",
+                      "dbus-path", dbus_path,
+                      "grl-media", media,
+                      NULL);
+
+  dgrilo_media_object_dbus_register (obj);
 
   return obj;
 }
+
+DGriloMediaObject *
+dgrilo_media_object_new_with_parent (DGriloMediaObject *parent,
+                                     GrlMedia *media)
+{
+  DGriloMediaObject *obj;
+  DGriloMediaObjectClass *klass;
+  gchar *dbus_path;
+
+  klass = DGRILO_MEDIA_OBJECT_GET_CLASS (parent);
+  dbus_path = g_strdup_printf ("%s/%u",
+                               dgrilo_media_object_get_dbus_path (parent),
+                               klass->index);
+
+  obj = g_object_new (DGRILO_MEDIA_OBJECT_TYPE,
+                      "parent", dgrilo_media_object_get_dbus_path (parent),
+                      "display-name", media? grl_media_get_title (media): "Unknown",
+                      "dbus-path", dbus_path,
+                      "grl-media", media,
+                      "parent-media", parent,
+                      NULL);
+  g_free (dbus_path);
+  klass->index++;
+  dgrilo_media_object_dbus_register (obj);
+
+  return obj;
+}
+

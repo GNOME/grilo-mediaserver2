@@ -3,8 +3,10 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "dgrilo-media-object.h"
+#include "dgrilo-media-container.h"
 
-#define DGRILO_NAME "org.gnome.UPnP.MediaObject1.DGrilo"
+#define DGRILO_NAME "org.gnome.UPnP.MediaServer1.DGrilo"
+#define DGRILO_PATH "/org/gnome/UPnP/MediaServer1/DGrilo"
 
 static void
 dbus_register_name (DBusGProxy *gproxy,
@@ -25,7 +27,7 @@ main (gint argc, gchar **argv)
 {
   DBusGConnection *connection;
   DBusGProxy *gproxy;
-  DGriloMediaObject *obj;
+  DGriloMediaContainer *c;
   GError *error = NULL;
 
   g_type_init ();
@@ -41,11 +43,12 @@ main (gint argc, gchar **argv)
 
   dbus_register_name (gproxy, DGRILO_NAME);
 
-  obj = dgrilo_media_object_new ("my parent", "pretty title");
-  printf ("Created object at %p\n", obj);
+  c = dgrilo_media_container_new_with_dbus_path (DGRILO_PATH, NULL);
+  printf ("Created object at %p\n", c);
 
-  obj = dgrilo_media_object_new (NULL, "this should be the parent");
-  printf ("Created another object at %p\n", obj);
+  /* c = dgrilo_media_container_new_with_parent (DGRILO_MEDIA_OBJECT (c), */
+  /*                                             NULL); */
+  /* printf ("Created antother object at %p\n", c); */
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }

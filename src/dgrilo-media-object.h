@@ -27,6 +27,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <grilo.h>
 
 #define DGRILO_MEDIA_OBJECT_TYPE                \
   (dgrilo_media_object_get_type ())
@@ -68,14 +69,20 @@ struct _DGriloMediaObjectClass {
 
   GObjectClass parent_class;
 
+  /*< private >*/
+  guint index;
 };
 
 GType dgrilo_media_object_get_type (void);
-DGriloMediaObject *dgrilo_media_object_new (const gchar *parent, const gchar *display_name);
-gboolean dgrilo_media_object_get (DGriloMediaObject *obj,
-                                  const gchar *interface,
-                                  const gchar *property,
-                                  DBusGMethodInvocation *context,
-                                  GError **error);
+
+void dgrilo_media_object_dbus_register (DGriloMediaObject *obj);
+
+const gchar *dgrilo_media_object_get_dbus_path (DGriloMediaObject *obj);
+
+DGriloMediaObject *dgrilo_media_object_new_with_dbus_path (const gchar *dbus_path,
+                                                           GrlMedia *media);
+
+DGriloMediaObject *dgrilo_media_object_new_with_parent (DGriloMediaObject *parent,
+                                                        GrlMedia *media);
 
 #endif /* _DGRILO_MEDIA_OBJECT_H_ */
