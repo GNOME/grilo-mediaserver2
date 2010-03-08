@@ -79,10 +79,4 @@ void dgrilo_media_object_dbus_register (DGriloMediaObject *obj);
 
 const gchar *dgrilo_media_object_get_dbus_path (DGriloMediaObject *obj);
 
-DGriloMediaObject *dgrilo_media_object_new_with_dbus_path (const gchar *dbus_path,
-                                                           GrlMedia *media);
-
-DGriloMediaObject *dgrilo_media_object_new_with_parent (DGriloMediaObject *parent,
-                                                        GrlMedia *media);
-
 #endif /* _DGRILO_MEDIA_OBJECT_H_ */

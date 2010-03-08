@@ -74,10 +74,7 @@ struct _DGriloMediaItemClass {
 
 GType dgrilo_media_item_get_type (void);
 
-DGriloMediaItem *dgrilo_media_item_new_with_dbus_path (const gchar *dbus_path,
-                                                       GrlMedia *media);
-
-DGriloMediaItem *dgrilo_media_item_new_with_parent (DGriloMediaObject *parent,
-                                                    GrlMedia *media);
+DGriloMediaItem *dgrilo_media_item_new (DGriloMediaObject *parent,
+                                        GrlMedia *media);
 
 #endif /* _DGRILO_MEDIA_ITEM_H_ */

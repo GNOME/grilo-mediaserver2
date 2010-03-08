@@ -229,26 +229,8 @@ dgrilo_media_item_init (DGriloMediaItem *obj)
 }
 
 DGriloMediaItem *
-dgrilo_media_item_new_with_dbus_path (const gchar *dbus_path,
-                                      GrlMedia *media)
-{
-  DGriloMediaItem *obj;
-
-  obj = g_object_new (DGRILO_MEDIA_ITEM_TYPE,
-                      "parent", dbus_path,
-                      "display-name", media? grl_media_get_title (media): "Unknown",
-                      "dbus-path", dbus_path,
-                      "grl-media", media,
-                      NULL);
-
-  dgrilo_media_object_dbus_register (DGRILO_MEDIA_OBJECT (obj));
-
-  return obj;
-}
-
-DGriloMediaItem *
-dgrilo_media_item_new_with_parent (DGriloMediaObject *parent,
-                                   GrlMedia *media)
+dgrilo_media_item_new (DGriloMediaObject *parent,
+                       GrlMedia *media)
 {
   DGriloMediaItem *obj;
   DGriloMediaObjectClass *klass;

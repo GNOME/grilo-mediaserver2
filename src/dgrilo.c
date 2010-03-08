@@ -53,7 +53,7 @@ get_root_cb (GrlMediaSource *source,
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);
 
-  c = dgrilo_media_container_new_with_dbus_path (dbus_path, media);
+  c = dgrilo_media_container_new_root (dbus_path, media);
   printf ("Created object at %p\n", c);
 
   g_free (dbus_path);
@@ -114,14 +114,6 @@ main (gint argc, gchar **argv)
                                     NULL);
 
   grl_media_source_metadata (jamendo, NULL, keys, GRL_RESOLVE_FAST_ONLY, get_root_cb, dbus_path);
-
-  /* c = dgrilo_media_container_new_with_dbus_path (dbus_path, NULL); */
-  /* printf ("Created object at %p\n", c); */
-  /* g_free (dbus_path); */
-
-  /* c = dgrilo_media_container_new_with_parent (DGRILO_MEDIA_OBJECT (c), */
-  /*                                             NULL); */
-  /* printf ("Created antother object at %p\n", c); */
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }

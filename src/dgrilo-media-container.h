@@ -87,8 +87,8 @@ gboolean dgrilo_media_container_get_all (DGriloMediaContainer *obj,
                                          DBusGMethodInvocation *context,
                                          GError **error);
 
-DGriloMediaContainer *dgrilo_media_container_new_with_dbus_path (const gchar *dbus_path,
-                                                                 GrlMedia *media);
+DGriloMediaContainer *dgrilo_media_container_new_root (const gchar *dbus_path,
+                                                       GrlMedia *media);
 
 DGriloMediaContainer *dgrilo_media_container_new_with_parent (DGriloMediaObject *parent,
                                                               GrlMedia *media);

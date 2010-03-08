@@ -108,8 +108,8 @@ browse_result_cb (GrlMediaSource *source,
       priv->container_count++;
     } else {
       item =
-        dgrilo_media_item_new_with_parent (DGRILO_MEDIA_OBJECT (bd->container),
-                                           media);
+        dgrilo_media_item_new (DGRILO_MEDIA_OBJECT (bd->container),
+                               media);
       priv->items =
         g_list_prepend (priv->items,
                         g_strdup (dgrilo_media_object_get_dbus_path (DGRILO_MEDIA_OBJECT (item))));
@@ -470,8 +470,8 @@ dgrilo_media_container_init (DGriloMediaContainer *server)
 }
 
 DGriloMediaContainer *
-dgrilo_media_container_new_with_dbus_path (const gchar *dbus_path,
-                                           GrlMedia *media)
+dgrilo_media_container_new_root (const gchar *dbus_path,
+                                 GrlMedia *media)
 {
   DGriloMediaContainer *obj;
 
