@@ -70,6 +70,8 @@ struct _DGriloMediaContainerClass {
 
   DGriloMediaObjectClass parent_class;
 
+  /*< private >*/
+  gint limit;
 };
 
 GType dgrilo_media_container_get_type (void);
@@ -88,7 +90,8 @@ gboolean dgrilo_media_container_get_all (DGriloMediaContainer *obj,
                                          GError **error);
 
 DGriloMediaContainer *dgrilo_media_container_new_root (const gchar *dbus_path,
-                                                       GrlMedia *media);
+                                                       GrlMedia *media,
+                                                       gint limit);
 
 DGriloMediaContainer *dgrilo_media_container_new_with_parent (DGriloMediaObject *parent,
                                                               GrlMedia *media);

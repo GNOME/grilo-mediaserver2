@@ -27,7 +27,7 @@
 #include "dgrilo-media-container-glue.h"
 #include "dgrilo-media-item.h"
 
-#define MAX_RESULTS 50
+#define DEFAULT_LIMIT 50
 
 #define DGRILO_PATH "/org/gnome/UPnP/MediaServer1/DGrilo"
 
@@ -135,6 +135,7 @@ browse_grilo_media (BrowseData *bd)
   GrlMedia *media;
   GrlMediaSource *source;
   GrlPluginRegistry *registry;
+  DGriloMediaContainerClass *klass = DGRILO_MEDIA_CONTAINER_CLASS (bd->container);
 
   /* Get the source */
   g_object_get (bd->container,
@@ -153,7 +154,7 @@ browse_grilo_media (BrowseData *bd)
                            media,
                            keys,
                            0,
-                           MAX_RESULTS,
+                           klass->limit,
                            GRL_RESOLVE_FAST_ONLY,
                            browse_result_cb,
                            bd);
@@ -459,6 +460,8 @@ dgrilo_media_container_class_init (DGriloMediaContainerClass *klass)
                                                       0, G_MAXUINT, 0,
                                                       G_PARAM_READABLE | G_PARAM_WRITABLE));
 
+  klass->limit = DEFAULT_LIMIT;
+
   /* Register introspection */
   dbus_g_object_type_install_info (DGRILO_MEDIA_CONTAINER_TYPE,
                                    &dbus_glib_dgrilo_media_container_object_info);
@@ -471,16 +474,19 @@ dgrilo_media_container_init (DGriloMediaContainer *server)
 
 DGriloMediaContainer *
 dgrilo_media_container_new_root (const gchar *dbus_path,
-                                 GrlMedia *media)
+                                 GrlMedia *media,
+                                 gint limit)
 {
   DGriloMediaContainer *obj;
+  DGriloMediaContainerClass *klass;
 
   obj = g_object_new (DGRILO_MEDIA_CONTAINER_TYPE,
                       "parent", dbus_path,
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       NULL);
-
+  klass = DGRILO_MEDIA_CONTAINER_CLASS (obj);
+  klass->limit = limit;
   dgrilo_media_object_dbus_register (DGRILO_MEDIA_OBJECT (obj));
 
   return obj;

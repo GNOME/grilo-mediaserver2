@@ -8,6 +8,8 @@
 #define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer1"
 #define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer1"
 
+#define DEFAULT_LIMIT 5
+
 static void
 dbus_register_name (DBusGProxy *gproxy,
                     const gchar *name)
@@ -53,7 +55,7 @@ get_root_cb (GrlMediaSource *source,
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);
 
-  c = dgrilo_media_container_new_root (dbus_path, media);
+  c = dgrilo_media_container_new_root (dbus_path, media, DEFAULT_LIMIT);
   printf ("Created object at %p\n", c);
 
   g_free (dbus_path);
