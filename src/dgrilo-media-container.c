@@ -135,7 +135,7 @@ browse_grilo_media (BrowseData *bd)
   GrlMedia *media;
   GrlMediaSource *source;
   GrlPluginRegistry *registry;
-  DGriloMediaContainerClass *klass = DGRILO_MEDIA_CONTAINER_CLASS (bd->container);
+  DGriloMediaContainerClass *klass = DGRILO_MEDIA_CONTAINER_GET_CLASS (bd->container);
 
   /* Get the source */
   g_object_get (bd->container,
@@ -485,7 +485,7 @@ dgrilo_media_container_new_root (const gchar *dbus_path,
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       NULL);
-  klass = DGRILO_MEDIA_CONTAINER_CLASS (obj);
+  klass = DGRILO_MEDIA_CONTAINER_GET_CLASS (obj);
   klass->limit = limit;
   dgrilo_media_object_dbus_register (DGRILO_MEDIA_OBJECT (obj));
 
