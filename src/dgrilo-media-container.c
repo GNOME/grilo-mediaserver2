@@ -477,7 +477,6 @@ dgrilo_media_container_new_root (const gchar *dbus_path,
 
   obj = g_object_new (DGRILO_MEDIA_CONTAINER_TYPE,
                       "parent", dbus_path,
-                      "display-name", media? grl_media_get_title (media): "Unknown",
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       NULL);
@@ -502,7 +501,6 @@ dgrilo_media_container_new_with_parent (DGriloMediaObject *parent,
 
   obj = g_object_new (DGRILO_MEDIA_CONTAINER_TYPE,
                       "parent", dgrilo_media_object_get_dbus_path (parent),
-                      "display-name", media? grl_media_get_title (media): "Unknown",
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       "parent-media", parent,

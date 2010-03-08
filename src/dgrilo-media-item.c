@@ -243,7 +243,6 @@ dgrilo_media_item_new (DGriloMediaObject *parent,
 
   obj = g_object_new (DGRILO_MEDIA_ITEM_TYPE,
                       "parent", dgrilo_media_object_get_dbus_path (parent),
-                      "display-name", media? grl_media_get_title (media): "Unknown",
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       "parent-media", parent,

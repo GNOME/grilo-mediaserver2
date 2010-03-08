@@ -46,7 +46,6 @@ typedef struct {
   gchar *parent_path;
   DGriloMediaObject *parent_media;
   GrlMedia *grl_media;
-  gchar *name;
 } DGriloMediaObjectPrivate;
 
 G_DEFINE_TYPE (DGriloMediaObject, dgrilo_media_object, G_TYPE_OBJECT);
@@ -65,13 +64,16 @@ dgrilo_media_object_get_property (GObject *object,
 {
   DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
   DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
+  const gchar *name;
 
   switch (prop_id) {
   case PROP_PARENT:
     g_value_set_string (value, priv->parent_path);
     break;
   case PROP_DISPLAY_NAME:
-    g_value_set_string (value, priv->name);
+    name = priv->grl_media? grl_media_get_title (priv->grl_media): "Unknown";
+    name = name? name: "Unknown";
+    g_value_set_string (value, name);
     break;
   case PROP_DBUS_PATH:
     g_value_set_string (value, priv->dbus_path);
@@ -100,9 +102,6 @@ dgrilo_media_object_set_property (GObject *object,
   switch (prop_id) {
   case PROP_PARENT:
     priv->parent_path = g_value_dup_string (value);
-    break;
-  case PROP_DISPLAY_NAME:
-    priv->name = g_value_dup_string (value);
     break;
   case PROP_DBUS_PATH:
     priv->dbus_path = g_value_dup_string (value);
@@ -159,7 +158,7 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
                                                         "DisplayName",
                                                         "Pretty name",
                                                         NULL,
-                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READABLE));
 
   g_object_class_install_property (object_class,
                                    PROP_DBUS_PATH,
