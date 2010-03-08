@@ -131,7 +131,7 @@ browse_result_cb (GrlMediaSource *source,
 static void
 browse_grilo_media (BrowseData *bd)
 {
-  GList *keys;
+  static GList *keys = NULL;
   GrlMedia *media;
   GrlMediaSource *source;
   GrlPluginRegistry *registry;
@@ -147,15 +147,26 @@ browse_grilo_media (BrowseData *bd)
     (GrlMediaSource *) grl_plugin_registry_lookup_source (registry,
                                                           grl_media_get_source (media));
 
-  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
-                                    NULL);
+  if (!keys) {
+    keys = grl_metadata_key_list_new (GRL_METADATA_KEY_ALBUM,
+                                      GRL_METADATA_KEY_ARTIST,
+                                      GRL_METADATA_KEY_BITRATE,
+                                      GRL_METADATA_KEY_DURATION,
+                                      GRL_METADATA_KEY_GENRE,
+                                      GRL_METADATA_KEY_HEIGHT,
+                                      GRL_METADATA_KEY_MIME,
+                                      GRL_METADATA_KEY_TITLE,
+                                      GRL_METADATA_KEY_URL,
+                                      GRL_METADATA_KEY_WIDTH,
+                                      NULL);
+  }
 
   grl_media_source_browse (source,
                            media,
                            keys,
                            0,
                            klass->limit,
-                           GRL_RESOLVE_FAST_ONLY,
+                           GRL_RESOLVE_FULL,
                            browse_result_cb,
                            bd);
 }

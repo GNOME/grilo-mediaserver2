@@ -56,6 +56,7 @@ dgrilo_media_item_get_property (GObject *object,
 {
   GPtrArray *pa;
   GrlMedia *media;
+  const gchar *url;
 
   g_object_get (object,
                 "grl-media", &media,
@@ -63,9 +64,13 @@ dgrilo_media_item_get_property (GObject *object,
 
   switch (prop_id) {
   case PROP_URLS:
-    pa = g_ptr_array_sized_new (1);
-    g_ptr_array_add (pa,
-                     g_strdup (grl_media_get_url (media)));
+    url = grl_media_get_url (media);
+    if (url) {
+      pa = g_ptr_array_sized_new (1);
+      g_ptr_array_add (pa, g_strdup (url));
+    } else {
+      pa = g_ptr_array_sized_new (0);
+    }
     g_value_take_boxed (value, pa);
     break;
   case PROP_MIME_TYPE:
