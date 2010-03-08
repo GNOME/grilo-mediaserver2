@@ -73,7 +73,6 @@ retry_get (DGriloMediaContainer *obj,
   dgrilo_media_container_get (obj, NULL, property, context, NULL);
 }
 
-#if 0
 static void
 retry_get_all (DGriloMediaContainer *obj,
                gchar *interface,
@@ -81,7 +80,6 @@ retry_get_all (DGriloMediaContainer *obj,
 {
   dgrilo_media_container_get_all (obj, interface, context, NULL);
 }
-#endif
 
 static void
 browse_result_cb (GrlMediaSource *source,
@@ -342,15 +340,21 @@ dgrilo_media_container_get_all (DGriloMediaContainer *obj,
                                 DBusGMethodInvocation *context,
                                 GError **error)
 {
-  gchar *parent_path;
-  gchar *display_name;
-  guint item_count;
-  guint container_count;
-  GValue parent_value = { 0 };
+  BrowseData *bd;
+  DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
+  GHashTable *map;
+  GPtrArray *containers;
+  GPtrArray *items;
+  GValue containerc_value = { 0 };
+  GValue containers_value = { 0 };
   GValue display_value = { 0 };
   GValue itemc_value = { 0 };
-  GValue containerc_value = { 0 };
-  GHashTable *map;
+  GValue items_value = { 0 };
+  GValue parent_value = { 0 };
+  gchar *display_name;
+  gchar *parent_path;
+  guint container_count;
+  guint item_count;
 
   map = g_hash_table_new_full (g_str_hash,
                                g_str_equal,
@@ -370,17 +374,36 @@ dgrilo_media_container_get_all (DGriloMediaContainer *obj,
     g_hash_table_insert (map, "Parent", &parent_value);
     g_hash_table_insert (map, "DisplayName", &display_value);
   } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
-    g_object_get (obj,
-                  "item-count", &item_count,
-                  "container-count", &container_count,
-                  NULL);
-    g_value_init (&itemc_value, G_TYPE_UINT);
-    g_value_init (&containerc_value, G_TYPE_UINT);
-    g_value_set_uint (&itemc_value, item_count);
-    g_value_set_uint (&containerc_value, container_count);
+    if (priv->browsed) {
+      g_object_get (obj,
+                    "item-count", &item_count,
+                    "items", &items,
+                    "container-count", &container_count,
+                    "containers", &containers,
+                    NULL);
+      g_value_init (&itemc_value, G_TYPE_UINT);
+      g_value_init (&items_value, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
+      g_value_init (&containerc_value, G_TYPE_UINT);
+      g_value_init (&containers_value, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
 
-    g_hash_table_insert (map, "ItemCount", &itemc_value);
-    g_hash_table_insert (map, "ContainerCount", &containerc_value);
+      g_value_set_uint (&itemc_value, item_count);
+      g_value_take_boxed (&items_value, items);
+      g_value_set_uint (&containerc_value, container_count);
+      g_value_take_boxed (&containers_value, containers);
+
+      g_hash_table_insert (map, "ItemCount", &itemc_value);
+      g_hash_table_insert (map, "Items", &items_value);
+      g_hash_table_insert (map, "ContainerCount", &containerc_value);
+      g_hash_table_insert (map, "Containers", &containers_value);
+    } else {
+      bd = g_new0 (BrowseData, 1);
+      bd->container = obj;
+      bd->context = context;
+      bd->retry = retry_get_all;
+      bd->item = g_strdup ("org.gnome.UPnP.MediaContainer1");
+      browse_grilo_media (bd);
+      return TRUE;
+    }
   } else {
     g_hash_table_unref (map);
     return FALSE;
