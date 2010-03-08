@@ -14,10 +14,10 @@ dgrilo-%-glue.h: $(top_srcdir)/data/%.xml
 	--prefix=dgrilo_$(subst -,_,$*)	\
 	$^
 
-bin_PROGRAMS = test
+bin_PROGRAMS = dgrilo
 
-test_SOURCES =				\
-	main.c				\
+dgrilo_SOURCES =			\
+	dgrilo.c			\
 	dgrilo-media-object-glue.h	\
 	dgrilo-media-object.h		\
 	dgrilo-media-object.c		\
@@ -28,10 +28,10 @@ test_SOURCES =				\
 	dgrilo-media-item.h		\
 	dgrilo-media-item.c
 
-test_CFLAGS =	\
+dgrilo_CFLAGS =	\
 	-DPREFIX=$(prefix)
 
-test_LDADD =		\
+dgrilo_LDADD =		\
 	-ldl -lpthread	\
 	@DEPS_LIBS@
 
