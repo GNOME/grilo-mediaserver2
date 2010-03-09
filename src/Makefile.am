@@ -7,7 +7,7 @@
 
 INCLUDES = @DEPS_CFLAGS@
 
-rygel-grilo-%-glue.h: $(top_srcdir)/data/%1.xml
+rygel-grilo-%-glue.h: $(top_srcdir)/data/%2.xml
 	$(DBUSBINDINGTOOL)			\
 	--mode=glib-server			\
 	--output=$@				\
@@ -16,17 +16,11 @@ rygel-grilo-%-glue.h: $(top_srcdir)/data/%1.xml
 
 bin_PROGRAMS = rygel-grilo
 
-rygel_grilo_SOURCES =				\
-	rygel-grilo.c				\
-	rygel-grilo-media-object-glue.h		\
-	rygel-grilo-media-object.h		\
-	rygel-grilo-media-object.c		\
-	rygel-grilo-media-container-glue.h	\
-	rygel-grilo-media-container.h		\
-	rygel-grilo-media-container.c		\
-	rygel-grilo-media-item-glue.h		\
-	rygel-grilo-media-item.h		\
-	rygel-grilo-media-item.c
+rygel_grilo_SOURCES =			\
+	rygel-grilo.c			\
+	rygel-grilo-media-server-glue.h	\
+	rygel-grilo-media-server.h	\
+	rygel-grilo-media-server.c
 
 rygel_grilo_CFLAGS =	\
 	-DPREFIX=$(prefix)

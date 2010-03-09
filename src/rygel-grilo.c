@@ -24,21 +24,14 @@
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
 
-#include "rygel-grilo-media-container.h"
+#include "rygel-grilo-media-server.h"
 
-#define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer1"
-#define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer1"
+#define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer2"
+#define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer2"
 
-#define DEFAULT_LIMIT 5
-
-static gint limit;
 static gchar **args;
 
 static GOptionEntry entries[] = {
-  { "limit", 'l', 0,
-    G_OPTION_ARG_INT, &limit,
-    "Limit max. results per container",
-    NULL },
   { G_OPTION_REMAINING, '\0', 0,
     G_OPTION_ARG_FILENAME_ARRAY, &args,
     "Grilo module to load",
@@ -91,7 +84,7 @@ get_root_cb (GrlMediaSource *source,
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);
 
-  rygel_grilo_media_container_new_root (dbus_path, media, limit);
+  rygel_grilo_media_server_new (dbus_path, media);
   g_debug ("Waiting for requests");
 
   g_free (dbus_path);
@@ -131,13 +124,6 @@ main (gint argc, gchar **argv)
 
   g_option_context_free (context);
 
-  /* Check limit */
-  if (limit == 0) {
-    limit = DEFAULT_LIMIT;
-  } else if (limit < 0) {
-    limit = G_MAXINT;
-  }
-
   /* Load grilo plugin */
   registry = grl_plugin_registry_get_instance ();
   grl_plugin_registry_load (registry, args[0]);
@@ -170,6 +156,7 @@ main (gint argc, gchar **argv)
   dbus_service = g_strconcat (ENTRY_POINT_SERVICE ".",
                               source_id,
                               NULL);
+
   dbus_path = g_strconcat (ENTRY_POINT_PATH "/",
                            source_id,
                            NULL);

@@ -7,10 +7,8 @@
 
 configdir = $(datadir)/rygel-grilo
 
-config_DATA =			\
-	media-container1.xml	\
-	media-item1.xml		\
-	media-object1.xml
+config_DATA =	\
+	media-server2.xml
 
 EXTRA_DIST =	\
 	$(config_DATA)

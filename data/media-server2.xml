@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<node>
+
+  <!-- http://live.gnome.org/Rygel/MediaServer2Spec -->
+
+  <interface name="org.gnome.UPnP.MediaServer2">
+    <method name="GetChildren">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg name="id"        direction="in" type="s"/>
+      <arg name="offset"    direction="in" type="u"/>
+      <arg name="max_count" direction="in" type="u"/>
+      <arg name="filter"    direction="in" type="as"/>
+    </method>
+
+    <method name="GetProperties">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg name="id"     direction="in" type="s"/>
+      <arg name="filter" direction="in" type="as"/>
+    </method>
+
+  </interface>
+</node>
