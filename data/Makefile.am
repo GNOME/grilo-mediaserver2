@@ -5,12 +5,12 @@
 #
 # Copyright (C) 2010 Igalia S.L. All rights reserved.
 
-configdir = $(datadir)/dgrilo
+configdir = $(datadir)/rygel-grilo
 
 config_DATA =			\
-	media-container.xml	\
-	media-item.xml		\
-	media-object.xml
+	media-container1.xml	\
+	media-item1.xml		\
+	media-object1.xml
 
 EXTRA_DIST =	\
 	$(config_DATA)

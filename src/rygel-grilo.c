@@ -1,9 +1,30 @@
+/*
+ * Copyright (C) 2010 Igalia S.L.
+ *
+ * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * as published by the Free Software Foundation; version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
+ */
+
 #include <stdio.h>
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
 
-#include "dgrilo-media-object.h"
-#include "dgrilo-media-container.h"
+#include "rygel-grilo-media-container.h"
 
 #define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer1"
 #define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer1"
@@ -70,7 +91,7 @@ get_root_cb (GrlMediaSource *source,
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);
 
-  dgrilo_media_container_new_root (dbus_path, media, limit);
+  rygel_grilo_media_container_new_root (dbus_path, media, limit);
   g_debug ("Waiting for requests");
 
   g_free (dbus_path);
@@ -123,7 +144,8 @@ main (gint argc, gchar **argv)
 
   /* Get source */
   sources = grl_plugin_registry_get_sources_by_capabilities (registry,
-                                                             GRL_OP_METADATA | GRL_OP_BROWSE,
+                                                             GRL_OP_METADATA |
+                                                             GRL_OP_BROWSE,
                                                              FALSE);
   if (!sources[0]) {
     g_printerr ("Did not found any browsable source");
@@ -141,7 +163,8 @@ main (gint argc, gchar **argv)
                                       DBUS_PATH_DBUS,
                                       DBUS_INTERFACE_DBUS);
 
-  source_id = g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (grilo_source)));
+  source_id =
+    g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (grilo_source)));
   sanitize (source_id);
 
   dbus_service = g_strconcat (ENTRY_POINT_SERVICE ".",
@@ -159,7 +182,12 @@ main (gint argc, gchar **argv)
   keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
                                     NULL);
 
-  grl_media_source_metadata (grilo_source, NULL, keys, GRL_RESOLVE_FAST_ONLY, get_root_cb, dbus_path);
+  grl_media_source_metadata (grilo_source,
+                             NULL,
+                             keys,
+                             GRL_RESOLVE_FAST_ONLY,
+                             get_root_cb,
+                             dbus_path);
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }

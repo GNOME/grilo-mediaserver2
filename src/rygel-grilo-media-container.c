@@ -1,8 +1,6 @@
 /*
  * Copyright (C) 2010 Igalia S.L.
  *
- * Contact: Iago Toral Quiroga <itoral@igalia.com>
- *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -23,21 +21,21 @@
  */
 
 #include <dbus/dbus-glib.h>
-#include "dgrilo-media-container.h"
-#include "dgrilo-media-container-glue.h"
-#include "dgrilo-media-item.h"
+#include "rygel-grilo-media-container.h"
+#include "rygel-grilo-media-container-glue.h"
+#include "rygel-grilo-media-item.h"
 
 #define DEFAULT_LIMIT 50
-
-#define DGRILO_PATH "/org/gnome/UPnP/MediaServer1/DGrilo"
 
 #define DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH                                \
   (dbus_g_type_get_collection ("GPtrArray", DBUS_TYPE_G_OBJECT_PATH))
 
-#define DGRILO_MEDIA_CONTAINER_GET_PRIVATE(o)                           \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), DGRILO_MEDIA_CONTAINER_TYPE, DGriloMediaContainerPrivate)
+#define RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE(o)                      \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), RYGEL_GRILO_MEDIA_CONTAINER_TYPE, RygelGriloMediaContainerPrivate)
 
-typedef void (*RetryCb) (DGriloMediaContainer *obj, gchar *property, DBusGMethodInvocation *context);
+typedef void (*RetryCb) (RygelGriloMediaContainer *obj,
+                         gchar *property,
+                         DBusGMethodInvocation *context);
 
 enum {
   PROP_0,
@@ -49,7 +47,7 @@ enum {
 };
 
 typedef struct {
-  DGriloMediaContainer *container;
+  RygelGriloMediaContainer *container;
   DBusGMethodInvocation *context;
   RetryCb retry;
   gchar *item;
@@ -61,24 +59,24 @@ typedef struct {
   GList *items;
   GList *containers;
   gboolean browsed;
-} DGriloMediaContainerPrivate;
+} RygelGriloMediaContainerPrivate;
 
-G_DEFINE_TYPE (DGriloMediaContainer, dgrilo_media_container, DGRILO_MEDIA_OBJECT_TYPE);
+G_DEFINE_TYPE (RygelGriloMediaContainer, rygel_grilo_media_container, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
 
 static void
-retry_get (DGriloMediaContainer *obj,
+retry_get (RygelGriloMediaContainer *obj,
            gchar *property,
            DBusGMethodInvocation *context)
 {
-  dgrilo_media_container_get (obj, NULL, property, context, NULL);
+  rygel_grilo_media_container_get (obj, NULL, property, context, NULL);
 }
 
 static void
-retry_get_all (DGriloMediaContainer *obj,
+retry_get_all (RygelGriloMediaContainer *obj,
                gchar *interface,
                DBusGMethodInvocation *context)
 {
-  dgrilo_media_container_get_all (obj, interface, context, NULL);
+  rygel_grilo_media_container_get_all (obj, interface, context, NULL);
 }
 
 static void
@@ -90,29 +88,29 @@ browse_result_cb (GrlMediaSource *source,
                   const GError *error)
 {
   BrowseData *bd = (BrowseData *) user_data;
-  DGriloMediaContainerPrivate *priv;
-  DGriloMediaContainer *container;
-  DGriloMediaItem *item;
+  RygelGriloMediaContainerPrivate *priv;
+  RygelGriloMediaContainer *container;
+  RygelGriloMediaItem *item;
 
   g_assert (!error);
 
-  priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (bd->container);
+  priv = RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (bd->container);
   if (media) {
     if (GRL_IS_MEDIA_BOX (media)) {
       container =
-        dgrilo_media_container_new_with_parent (DGRILO_MEDIA_OBJECT (bd->container),
-                                                media);
+        rygel_grilo_media_container_new_with_parent (RYGEL_GRILO_MEDIA_OBJECT (bd->container),
+                                                     media);
       priv->containers =
         g_list_prepend (priv->containers,
-                        g_strdup (dgrilo_media_object_get_dbus_path (DGRILO_MEDIA_OBJECT (container))));
+                        g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (container))));
       priv->container_count++;
     } else {
       item =
-        dgrilo_media_item_new (DGRILO_MEDIA_OBJECT (bd->container),
-                               media);
+        rygel_grilo_media_item_new (RYGEL_GRILO_MEDIA_OBJECT (bd->container),
+                                    media);
       priv->items =
         g_list_prepend (priv->items,
-                        g_strdup (dgrilo_media_object_get_dbus_path (DGRILO_MEDIA_OBJECT (item))));
+                        g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (item))));
       priv->item_count++;
     }
   }
@@ -135,7 +133,8 @@ browse_grilo_media (BrowseData *bd)
   GrlMedia *media;
   GrlMediaSource *source;
   GrlPluginRegistry *registry;
-  DGriloMediaContainerClass *klass = DGRILO_MEDIA_CONTAINER_GET_CLASS (bd->container);
+  RygelGriloMediaContainerClass *klass =
+    RYGEL_GRILO_MEDIA_CONTAINER_GET_CLASS (bd->container);
 
   /* Get the source */
   g_object_get (bd->container,
@@ -172,7 +171,7 @@ browse_grilo_media (BrowseData *bd)
 }
 
 static GPtrArray *
-dgrilo_media_container_get_elements (GList *elements)
+rygel_grilo_media_container_get_elements (GList *elements)
 {
   GList *p;
   GPtrArray *pelements = NULL;
@@ -188,25 +187,27 @@ dgrilo_media_container_get_elements (GList *elements)
 }
 
 static GPtrArray *
-dgrilo_media_container_get_items (DGriloMediaContainer *obj)
+rygel_grilo_media_container_get_items (RygelGriloMediaContainer *obj)
 {
-  return dgrilo_media_container_get_elements (DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->items);
+  return rygel_grilo_media_container_get_elements (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->items);
 }
 
 static GPtrArray *
-dgrilo_media_container_get_containers (DGriloMediaContainer *obj)
+rygel_grilo_media_container_get_containers (RygelGriloMediaContainer *obj)
 {
-  return dgrilo_media_container_get_elements (DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->containers);
+  return rygel_grilo_media_container_get_elements (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->containers);
 }
 
 static void
-dgrilo_media_container_get_property (GObject *object,
-                                     guint prop_id,
-                                     GValue *value,
-                                     GParamSpec *pspec)
+rygel_grilo_media_container_get_property (GObject *object,
+                                          guint prop_id,
+                                          GValue *value,
+                                          GParamSpec *pspec)
 {
-  DGriloMediaContainer *self = DGRILO_MEDIA_CONTAINER (object);
-  DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
+  RygelGriloMediaContainer *self =
+    RYGEL_GRILO_MEDIA_CONTAINER (object);
+  RygelGriloMediaContainerPrivate *priv =
+    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
   switch (prop_id) {
   case PROP_ITEM_COUNT:
@@ -217,11 +218,11 @@ dgrilo_media_container_get_property (GObject *object,
     break;
   case PROP_ITEMS:
     g_value_take_boxed (value,
-                        dgrilo_media_container_get_items (self));
+                        rygel_grilo_media_container_get_items (self));
     break;
   case PROP_CONTAINERS:
     g_value_take_boxed (value,
-                        dgrilo_media_container_get_containers (self));
+                        rygel_grilo_media_container_get_containers (self));
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -230,13 +231,15 @@ dgrilo_media_container_get_property (GObject *object,
 }
 
 static void
-dgrilo_media_container_set_property (GObject *object,
-                                     guint prop_id,
-                                     const GValue *value,
-                                     GParamSpec *pspec)
+rygel_grilo_media_container_set_property (GObject *object,
+                                          guint prop_id,
+                                          const GValue *value,
+                                          GParamSpec *pspec)
 {
-  DGriloMediaContainer *self = DGRILO_MEDIA_CONTAINER (object);
-  DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
+  RygelGriloMediaContainer *self =
+    RYGEL_GRILO_MEDIA_CONTAINER (object);
+  RygelGriloMediaContainerPrivate *priv =
+    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
   switch (prop_id) {
   case PROP_ITEM_COUNT:
@@ -252,20 +255,21 @@ dgrilo_media_container_set_property (GObject *object,
 }
 
 static void
-dgrilo_media_container_dispose (GObject *object)
+rygel_grilo_media_container_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (dgrilo_media_container_parent_class)->dispose (object);
+  G_OBJECT_CLASS (rygel_grilo_media_container_parent_class)->dispose (object);
 }
 
 gboolean
-dgrilo_media_container_get (DGriloMediaContainer *obj,
-                            const gchar *interface,
-                            const gchar *property,
-                            DBusGMethodInvocation *context,
-                            GError **error)
+rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
+                                 const gchar *interface,
+                                 const gchar *property,
+                                 DBusGMethodInvocation *context,
+                                 GError **error)
 {
   BrowseData *bd;
-  DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
+  RygelGriloMediaContainerPrivate *priv =
+    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
   GValue val = { 0 };
   gchar *display_name = NULL;
   gchar *parent_path = NULL;
@@ -312,7 +316,7 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
     if (priv->browsed) {
       g_value_init (&val, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
       g_value_take_boxed (&val,
-                          dgrilo_media_container_get_items (obj));
+                          rygel_grilo_media_container_get_items (obj));
     } else {
       bd = g_new0 (BrowseData, 1);
       bd->container = obj;
@@ -326,7 +330,7 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
     if (priv->browsed) {
       g_value_init (&val, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
       g_value_take_boxed (&val,
-                          dgrilo_media_container_get_containers (obj));
+                          rygel_grilo_media_container_get_containers (obj));
     } else {
       bd = g_new0 (BrowseData, 1);
       bd->container = obj;
@@ -347,13 +351,14 @@ dgrilo_media_container_get (DGriloMediaContainer *obj,
 }
 
 gboolean
-dgrilo_media_container_get_all (DGriloMediaContainer *obj,
-                                const gchar *interface,
-                                DBusGMethodInvocation *context,
-                                GError **error)
+rygel_grilo_media_container_get_all (RygelGriloMediaContainer *obj,
+                                     const gchar *interface,
+                                     DBusGMethodInvocation *context,
+                                     GError **error)
 {
   BrowseData *bd;
-  DGriloMediaContainerPrivate *priv = DGRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
+  RygelGriloMediaContainerPrivate *priv =
+    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
   GHashTable *map;
   GPtrArray *containers;
   GPtrArray *items;
@@ -429,15 +434,15 @@ dgrilo_media_container_get_all (DGriloMediaContainer *obj,
 
 
 static void
-dgrilo_media_container_class_init (DGriloMediaContainerClass *klass)
+rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (DGriloMediaContainerPrivate));
+  g_type_class_add_private (klass, sizeof (RygelGriloMediaContainerPrivate));
 
-  object_class->get_property = dgrilo_media_container_get_property;
-  object_class->set_property = dgrilo_media_container_set_property;
-  object_class->dispose = dgrilo_media_container_dispose;
+  object_class->get_property = rygel_grilo_media_container_get_property;
+  object_class->set_property = rygel_grilo_media_container_set_property;
+  object_class->dispose = rygel_grilo_media_container_dispose;
 
   g_object_class_install_property (object_class,
                                    PROP_ITEMS,
@@ -453,7 +458,8 @@ dgrilo_media_container_class_init (DGriloMediaContainerClass *klass)
                                                       "ItemCount",
                                                       "Number of Items",
                                                       0, G_MAXUINT, 0,
-                                                      G_PARAM_READABLE | G_PARAM_WRITABLE));
+                                                      G_PARAM_READABLE |
+                                                      G_PARAM_WRITABLE));
 
   g_object_class_install_property (object_class,
                                    PROP_CONTAINERS,
@@ -469,63 +475,65 @@ dgrilo_media_container_class_init (DGriloMediaContainerClass *klass)
                                                       "ContainerCount",
                                                       "Number of Containers",
                                                       0, G_MAXUINT, 0,
-                                                      G_PARAM_READABLE | G_PARAM_WRITABLE));
+                                                      G_PARAM_READABLE |
+                                                      G_PARAM_WRITABLE));
 
   klass->limit = DEFAULT_LIMIT;
 
   /* Register introspection */
-  dbus_g_object_type_install_info (DGRILO_MEDIA_CONTAINER_TYPE,
-                                   &dbus_glib_dgrilo_media_container_object_info);
+  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
+                                   &dbus_glib_rygel_grilo_media_container_object_info);
 }
 
 static void
-dgrilo_media_container_init (DGriloMediaContainer *server)
+rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
 {
 }
 
-DGriloMediaContainer *
-dgrilo_media_container_new_root (const gchar *dbus_path,
-                                 GrlMedia *media,
-                                 gint limit)
+RygelGriloMediaContainer *
+rygel_grilo_media_container_new_root (const gchar *dbus_path,
+                                      GrlMedia *media,
+                                      gint limit)
 {
-  DGriloMediaContainer *obj;
-  DGriloMediaContainerClass *klass;
+  RygelGriloMediaContainer *obj;
+  RygelGriloMediaContainerClass *klass;
 
-  obj = g_object_new (DGRILO_MEDIA_CONTAINER_TYPE,
+  obj = g_object_new (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
                       "parent", dbus_path,
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       NULL);
-  klass = DGRILO_MEDIA_CONTAINER_GET_CLASS (obj);
+  klass = RYGEL_GRILO_MEDIA_CONTAINER_GET_CLASS (obj);
   klass->limit = limit;
-  dgrilo_media_object_dbus_register (DGRILO_MEDIA_OBJECT (obj));
+  rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj));
 
   return obj;
 }
 
-DGriloMediaContainer *
-dgrilo_media_container_new_with_parent (DGriloMediaObject *parent,
-                                        GrlMedia *media)
+RygelGriloMediaContainer *
+rygel_grilo_media_container_new_with_parent (RygelGriloMediaObject *parent,
+                                             GrlMedia *media)
 {
-  DGriloMediaContainer *obj;
-  DGriloMediaObjectClass *klass;
+  RygelGriloMediaContainer *obj;
+  RygelGriloMediaObjectClass *klass;
   gchar *dbus_path;
 
-  klass = DGRILO_MEDIA_OBJECT_GET_CLASS (parent);
+  klass = RYGEL_GRILO_MEDIA_OBJECT_GET_CLASS (parent);
   dbus_path = g_strdup_printf ("%s/%u",
-                               dgrilo_media_object_get_dbus_path (parent),
+                               rygel_grilo_media_object_get_dbus_path (parent),
                                klass->index);
 
-  obj = g_object_new (DGRILO_MEDIA_CONTAINER_TYPE,
-                      "parent", dgrilo_media_object_get_dbus_path (parent),
-                      "dbus-path", dbus_path,
-                      "grl-media", media,
-                      "parent-media", parent,
-                      NULL);
+  obj =
+    g_object_new (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
+                  "parent", rygel_grilo_media_object_get_dbus_path (parent),
+                  "dbus-path", dbus_path,
+                  "grl-media", media,
+                  "parent-media", parent,
+                  NULL);
 
   g_free (dbus_path);
   klass->index++;
-  dgrilo_media_object_dbus_register (DGRILO_MEDIA_OBJECT (obj));
+  rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj));
 
   return obj;
 }

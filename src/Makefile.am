@@ -1,37 +1,37 @@
 #
 # Makefile.am
 #
-# Author: Iago Toral <itoral@igalia.com>
+# Author: Juan A. Suarez Romero <jasuarez@igalia.com>
 #
 # Copyright (C) 2010 Igalia S.L.
 
 INCLUDES = @DEPS_CFLAGS@
 
-dgrilo-%-glue.h: $(top_srcdir)/data/%.xml
-	$(DBUSBINDINGTOOL)		\
-	--mode=glib-server		\
-	--output=$@			\
-	--prefix=dgrilo_$(subst -,_,$*)	\
+rygel-grilo-%-glue.h: $(top_srcdir)/data/%1.xml
+	$(DBUSBINDINGTOOL)			\
+	--mode=glib-server			\
+	--output=$@				\
+	--prefix=rygel_grilo_$(subst -,_,$*)	\
 	$^
 
-bin_PROGRAMS = dgrilo
+bin_PROGRAMS = rygel-grilo
 
-dgrilo_SOURCES =			\
-	dgrilo.c			\
-	dgrilo-media-object-glue.h	\
-	dgrilo-media-object.h		\
-	dgrilo-media-object.c		\
-	dgrilo-media-container-glue.h	\
-	dgrilo-media-container.h	\
-	dgrilo-media-container.c	\
-	dgrilo-media-item-glue.h	\
-	dgrilo-media-item.h		\
-	dgrilo-media-item.c
+rygel_grilo_SOURCES =				\
+	rygel-grilo.c				\
+	rygel-grilo-media-object-glue.h		\
+	rygel-grilo-media-object.h		\
+	rygel-grilo-media-object.c		\
+	rygel-grilo-media-container-glue.h	\
+	rygel-grilo-media-container.h		\
+	rygel-grilo-media-container.c		\
+	rygel-grilo-media-item-glue.h		\
+	rygel-grilo-media-item.h		\
+	rygel-grilo-media-item.c
 
-dgrilo_CFLAGS =	\
+rygel_grilo_CFLAGS =	\
 	-DPREFIX=$(prefix)
 
-dgrilo_LDADD =		\
+rygel_grilo_LDADD =	\
 	-ldl -lpthread	\
 	@DEPS_LIBS@
 

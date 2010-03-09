@@ -1,8 +1,6 @@
 /*
  * Copyright (C) 2010 Igalia S.L.
  *
- * Contact: Iago Toral Quiroga <itoral@igalia.com>
- *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -23,13 +21,11 @@
  */
 
 #include <dbus/dbus-glib.h>
-#include "dgrilo-media-object.h"
-#include "dgrilo-media-object-glue.h"
+#include "rygel-grilo-media-object.h"
+#include "rygel-grilo-media-object-glue.h"
 
-#define DGRILO_PATH "/org/gnome/UPnP/MediaObject1/DGrilo"
-
-#define DGRILO_MEDIA_OBJECT_GET_PRIVATE(o)      \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), DGRILO_MEDIA_OBJECT_TYPE, DGriloMediaObjectPrivate)
+#define RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE(o)                         \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), RYGEL_GRILO_MEDIA_OBJECT_TYPE, RygelGriloMediaObjectPrivate)
 
 enum {
   PROP_0,
@@ -44,26 +40,28 @@ enum {
 typedef struct {
   gchar *dbus_path;
   gchar *parent_path;
-  DGriloMediaObject *parent_media;
+  RygelGriloMediaObject *parent_media;
   GrlMedia *grl_media;
-} DGriloMediaObjectPrivate;
+} RygelGriloMediaObjectPrivate;
 
-G_DEFINE_TYPE (DGriloMediaObject, dgrilo_media_object, G_TYPE_OBJECT);
+G_DEFINE_TYPE (RygelGriloMediaObject, rygel_grilo_media_object, G_TYPE_OBJECT);
 
 const gchar *
-dgrilo_media_object_get_dbus_path (DGriloMediaObject *obj)
+rygel_grilo_media_object_get_dbus_path (RygelGriloMediaObject *obj)
 {
-  return DGRILO_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
+  return RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
 }
 
 static void
-dgrilo_media_object_get_property (GObject *object,
-                                  guint prop_id,
-                                  GValue *value,
-                                  GParamSpec *pspec)
+rygel_grilo_media_object_get_property (GObject *object,
+                                       guint prop_id,
+                                       GValue *value,
+                                       GParamSpec *pspec)
 {
-  DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
-  DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
+  RygelGriloMediaObject *self =
+    RYGEL_GRILO_MEDIA_OBJECT (object);
+  RygelGriloMediaObjectPrivate *priv =
+    RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (self);
   const gchar *name;
 
   switch (prop_id) {
@@ -91,13 +89,15 @@ dgrilo_media_object_get_property (GObject *object,
 }
 
 static void
-dgrilo_media_object_set_property (GObject *object,
-                                  guint prop_id,
-                                  const GValue *value,
-                                  GParamSpec *pspec)
+rygel_grilo_media_object_set_property (GObject *object,
+                                       guint prop_id,
+                                       const GValue *value,
+                                       GParamSpec *pspec)
 {
-  DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
-  DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
+  RygelGriloMediaObject *self =
+    RYGEL_GRILO_MEDIA_OBJECT (object);
+  RygelGriloMediaObjectPrivate *priv =
+    RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (self);
 
   switch (prop_id) {
   case PROP_PARENT:
@@ -119,30 +119,32 @@ dgrilo_media_object_set_property (GObject *object,
 }
 
 static void
-dgrilo_media_object_dispose (GObject *object)
+rygel_grilo_media_object_dispose (GObject *object)
 {
-  DGriloMediaObject *self = DGRILO_MEDIA_OBJECT (object);
-  DGriloMediaObjectPrivate *priv = DGRILO_MEDIA_OBJECT_GET_PRIVATE (self);
+  RygelGriloMediaObject *self =
+    RYGEL_GRILO_MEDIA_OBJECT (object);
+  RygelGriloMediaObjectPrivate *priv =
+    RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (self);
 
   g_free (priv->parent_path);
   g_free (priv->dbus_path);
   g_object_unref (priv->grl_media);
 
-  G_OBJECT_CLASS (dgrilo_media_object_parent_class)->dispose (object);
+  G_OBJECT_CLASS (rygel_grilo_media_object_parent_class)->dispose (object);
 }
 
 static void
-dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
+rygel_grilo_media_object_class_init (RygelGriloMediaObjectClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (DGriloMediaObjectPrivate));
+  g_type_class_add_private (klass, sizeof (RygelGriloMediaObjectPrivate));
 
   klass->index = 1;
 
-  object_class->get_property = dgrilo_media_object_get_property;
-  object_class->set_property = dgrilo_media_object_set_property;
-  object_class->dispose = dgrilo_media_object_dispose;
+  object_class->get_property = rygel_grilo_media_object_get_property;
+  object_class->set_property = rygel_grilo_media_object_set_property;
+  object_class->dispose = rygel_grilo_media_object_dispose;
 
   g_object_class_install_property (object_class,
                                    PROP_PARENT,
@@ -150,7 +152,9 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
                                                         "Parent",
                                                         "Parent",
                                                         NULL,
-                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READABLE |
+                                                        G_PARAM_WRITABLE |
+                                                        G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class,
                                    PROP_DISPLAY_NAME,
@@ -166,7 +170,9 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
                                                         "DBusPath",
                                                         "DBus Path where object is registered",
                                                         NULL,
-                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READABLE |
+                                                        G_PARAM_WRITABLE |
+                                                        G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class,
                                    PROP_GRL_MEDIA,
@@ -174,32 +180,36 @@ dgrilo_media_object_class_init (DGriloMediaObjectClass *klass)
                                                         "GrlMedia",
                                                         "Grilo Media",
                                                         GRL_TYPE_MEDIA,
-                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                                                        G_PARAM_READABLE |
+                                                        G_PARAM_WRITABLE |
+                                                        G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class,
                                    PROP_PARENT_MEDIA,
                                    g_param_spec_object ("parent-media",
                                                         "ParentMedia",
                                                         "MediaObject parent",
-                                                        DGRILO_MEDIA_OBJECT_TYPE,
-                                                        G_PARAM_READABLE | G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+                                                        RYGEL_GRILO_MEDIA_OBJECT_TYPE,
+                                                        G_PARAM_READABLE |
+                                                        G_PARAM_WRITABLE |
+                                                        G_PARAM_CONSTRUCT_ONLY));
 
   /* Register introspection */
-  dbus_g_object_type_install_info (DGRILO_MEDIA_OBJECT_TYPE,
-                                   &dbus_glib_dgrilo_media_object_object_info);
+  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_OBJECT_TYPE,
+                                   &dbus_glib_rygel_grilo_media_object_object_info);
 }
 
 static void
-dgrilo_media_object_init (DGriloMediaObject *obj)
+rygel_grilo_media_object_init (RygelGriloMediaObject *obj)
 {
 }
 
 void
-dgrilo_media_object_dbus_register (DGriloMediaObject *obj)
+rygel_grilo_media_object_dbus_register (RygelGriloMediaObject *obj)
 {
   DBusGConnection *connection;
-  DGriloMediaObjectPrivate *priv =
-    DGRILO_MEDIA_OBJECT_GET_PRIVATE (obj);
+  RygelGriloMediaObjectPrivate *priv =
+    RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj);
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, NULL);
   g_assert (connection);
