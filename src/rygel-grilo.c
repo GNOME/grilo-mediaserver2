@@ -144,7 +144,7 @@ main (gint argc, gchar **argv)
 
   dbus_register_name (gproxy, dbus_service);
 
-  rygel_grilo_media_server_new (dbus_path);
+  rygel_grilo_media_server_new (dbus_path, grilo_source);
 
   g_free (dbus_service);
   g_free (dbus_path);

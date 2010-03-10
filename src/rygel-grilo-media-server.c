@@ -43,6 +43,13 @@
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
 
+#define RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE(o)                         \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), RYGEL_GRILO_MEDIA_SERVER_TYPE, RygelGriloMediaServerPrivate)
+
+typedef struct {
+  GrlMediaSource *grl_source;
+} RygelGriloMediaServerPrivate;
+
 G_DEFINE_TYPE (RygelGriloMediaServer, rygel_grilo_media_server, G_TYPE_OBJECT);
 
 static void
@@ -62,6 +69,13 @@ rygel_grilo_media_server_dbus_register (RygelGriloMediaServer *obj,
 static void
 rygel_grilo_media_server_dispose (GObject *object)
 {
+  RygelGriloMediaServer *self;
+  RygelGriloMediaServerPrivate *priv;
+
+  self = RYGEL_GRILO_MEDIA_SERVER (object);
+  priv = RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE (self);
+  g_object_unref (priv->grl_source);
+
   G_OBJECT_CLASS (rygel_grilo_media_server_parent_class)->dispose (object);
 }
 
@@ -69,6 +83,8 @@ static void
 rygel_grilo_media_server_class_init (RygelGriloMediaServerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  g_type_class_add_private (klass, sizeof (RygelGriloMediaServerPrivate));
 
   object_class->dispose = rygel_grilo_media_server_dispose;
 
@@ -101,15 +117,22 @@ rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
                                        DBusGMethodInvocation *context,
                                        GError **error)
 {
+
   return TRUE;
 }
 
 RygelGriloMediaServer *
-rygel_grilo_media_server_new (const gchar *dbus_path)
+rygel_grilo_media_server_new (const gchar *dbus_path,
+                              GrlMediaSource *source)
 {
   RygelGriloMediaServer *obj;
+  RygelGriloMediaServerPrivate *priv;
 
   obj = g_object_new (RYGEL_GRILO_MEDIA_SERVER_TYPE, NULL);
+  priv = RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE (obj);
+
+  priv->grl_source = source;
+  g_object_ref (priv->grl_source);
 
   rygel_grilo_media_server_dbus_register (obj, dbus_path);
 

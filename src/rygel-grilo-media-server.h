@@ -83,6 +83,7 @@ gboolean rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
                                                 DBusGMethodInvocation *context,
                                                 GError **error);
 
-RygelGriloMediaServer *rygel_grilo_media_server_new (const gchar *dbus_path);
+RygelGriloMediaServer *rygel_grilo_media_server_new (const gchar *dbus_path,
+                                                     GrlMediaSource *source);
 
 #endif /* _RYGEL_GRILO_MEDIA_SERVER_H_ */
