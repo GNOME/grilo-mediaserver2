@@ -53,11 +53,15 @@
                               RYGEL_GRILO_MEDIA_SERVER_TYPE,    \
                               RygelGriloMediaServerClass))
 
-typedef struct _RygelGriloMediaServer RygelGriloMediaServer;
+typedef struct _RygelGriloMediaServer        RygelGriloMediaServer;
+typedef struct _RygelGriloMediaServerPrivate RygelGriloMediaServerPrivate;
 
 struct _RygelGriloMediaServer {
 
   GObject parent;
+
+  /*< private >*/
+  RygelGriloMediaServerPrivate *priv;
 };
 
 typedef struct _RygelGriloMediaServerClass RygelGriloMediaServerClass;
@@ -71,7 +75,7 @@ GType rygel_grilo_media_server_get_type (void);
 
 gboolean rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
                                                   const gchar *id,
-                                                  GPtrArray *filter,
+                                                  const gchar **filter,
                                                   DBusGMethodInvocation *context,
                                                   GError **error);
 
