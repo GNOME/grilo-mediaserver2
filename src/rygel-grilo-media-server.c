@@ -36,17 +36,17 @@
 
 #define MS_PROP_ALBUM        "album"
 #define MS_PROP_ARTIST       "artist"
+#define MS_PROP_BITRATE      "bitrate"
 #define MS_PROP_CHILD_COUNT  "child-count"
 #define MS_PROP_DISPLAY_NAME "display-name"
+#define MS_PROP_DURATION     "duration"
 #define MS_PROP_GENRE        "genre"
+#define MS_PROP_HEIGHT       "height"
 #define MS_PROP_MIME_TYPE    "mime-type"
 #define MS_PROP_TYPE         "type"
 #define MS_PROP_URLS         "URLs"
-/* #define MS_PROP_BITRATE      "bitrate" */
-/* #define MS_PROP_DURATION     "duration" */
-/* #define MS_PROP_HEIGHT       "height" */
+#define MS_PROP_WIDTH        "width"
 /* #define MS_PROP_PARENT       "parent" */
-/* #define MS_PROP_WIDTH        "width" */
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -195,6 +195,18 @@ rygel_grilo_media_server_get_keys (const gchar **ms_keys)
     } else if (g_strcmp0 (ms_keys[i], MS_PROP_URLS) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_URL));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_BITRATE) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_BITRATE));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_DURATION) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_DURATION));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_HEIGHT) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_HEIGHT));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_WIDTH) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
     }
   }
 
@@ -279,6 +291,20 @@ get_value_string (const gchar *s)
 }
 
 static GValue *
+get_value_int (gint i)
+{
+  GValue *val;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_INT);
+  g_value_set_int (val,
+                   i? i: MS_INT_VALUE_UNKNOWN);
+
+  return val;
+}
+
+
+static GValue *
 get_display_name (GrlMedia *media)
 {
   return get_value_string (grl_media_get_title (media));
@@ -310,6 +336,34 @@ get_mime_type (GrlMedia *media)
 {
   return get_value_string (grl_data_get_string (GRL_DATA (media),
                                                 GRL_METADATA_KEY_MIME));
+}
+
+static GValue *
+get_bitrate (GrlMedia *media)
+{
+  return get_value_int (grl_data_get_int (GRL_DATA (media),
+                                          GRL_METADATA_KEY_BITRATE));
+}
+
+static GValue *
+get_duration (GrlMedia *media)
+{
+  return get_value_int (grl_data_get_int (GRL_DATA (media),
+                                          GRL_METADATA_KEY_DURATION));
+}
+
+static GValue *
+get_height (GrlMedia *media)
+{
+  return get_value_int (grl_data_get_int (GRL_DATA (media),
+                                          GRL_METADATA_KEY_HEIGHT));
+}
+
+static GValue *
+get_width (GrlMedia *media)
+{
+  return get_value_int (grl_data_get_int (GRL_DATA (media),
+                                          GRL_METADATA_KEY_WIDTH));
 }
 
 static void
@@ -350,6 +404,18 @@ get_properties_cb (GrlMediaSource *source,
     } else if (g_strcmp0 (data->filter[i], MS_PROP_URLS) == 0) {
       g_ptr_array_add (prop_values,
                        get_urls (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_BITRATE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_bitrate (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_DURATION) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_duration (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_HEIGHT) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_height (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_WIDTH) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_width (media));
     }
   }
 
