@@ -34,17 +34,17 @@
 #define MS_TYPE_IMAGE     "image"
 #define MS_TYPE_VIDEO     "video"
 
+#define MS_PROP_ALBUM        "album"
+#define MS_PROP_ARTIST       "artist"
 #define MS_PROP_CHILD_COUNT  "child-count"
 #define MS_PROP_DISPLAY_NAME "display-name"
+#define MS_PROP_GENRE        "genre"
+#define MS_PROP_MIME_TYPE    "mime-type"
 #define MS_PROP_TYPE         "type"
 #define MS_PROP_URLS         "URLs"
-/* #define MS_PROP_ALBUM        "album" */
-/* #define MS_PROP_ARTIST       "artist" */
 /* #define MS_PROP_BITRATE      "bitrate" */
 /* #define MS_PROP_DURATION     "duration" */
-/* #define MS_PROP_GENRE        "genre" */
 /* #define MS_PROP_HEIGHT       "height" */
-/* #define MS_PROP_MIME_TYPE    "mime-type" */
 /* #define MS_PROP_PARENT       "parent" */
 /* #define MS_PROP_WIDTH        "width" */
 
@@ -177,6 +177,18 @@ rygel_grilo_media_server_get_keys (const gchar **ms_keys)
     if (g_strcmp0 (ms_keys[i], MS_PROP_DISPLAY_NAME) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_TITLE));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_ALBUM) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ALBUM));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_ARTIST) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ARTIST));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_GENRE) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_GENRE));
+    } else if (g_strcmp0 (ms_keys[i], MS_PROP_MIME_TYPE) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_MIME));
     } else if (g_strcmp0 (ms_keys[i], MS_PROP_CHILD_COUNT) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_CHILDCOUNT));
@@ -189,6 +201,117 @@ rygel_grilo_media_server_get_keys (const gchar **ms_keys)
   return grl_keys;
 }
 
+static GValue *
+get_type (GrlMedia *media)
+{
+  GValue *val;
+  gchar *type;
+
+  if (GRL_IS_MEDIA_BOX (media)) {
+    type = MS_TYPE_CONTAINER;
+  } else if (GRL_IS_MEDIA_AUDIO (media)) {
+    type = MS_TYPE_AUDIO;
+  } else if (GRL_IS_MEDIA_VIDEO (media)) {
+    type = MS_TYPE_VIDEO;
+  } else if (GRL_IS_MEDIA_IMAGE (media)) {
+    type = MS_TYPE_IMAGE;
+  } else {
+    type = MS_STR_VALUE_UNKNOWN;
+  }
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_STRING);
+  g_value_set_string (val, type);
+
+  return val;
+}
+
+static GValue *
+get_urls (GrlMedia *media)
+{
+  GPtrArray *urls;
+  GValue *val;
+  const gchar *url;
+
+  url = grl_media_get_url (media);
+  urls = g_ptr_array_sized_new (1);
+  g_ptr_array_add (urls,
+                   url? g_strdup (url): g_strdup (MS_STR_VALUE_UNKNOWN));
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, DBUS_TYPE_G_ARRAY_OF_STRING);
+  g_value_take_boxed (val, urls);
+
+  return val;
+}
+
+static GValue *
+get_child_count (GrlMedia *media)
+{
+  GValue *val;
+  gint childcount = MS_INT_VALUE_UNKNOWN;
+
+  if (GRL_IS_MEDIA_BOX (media)) {
+    childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
+    if (childcount == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
+      childcount = MS_INT_VALUE_UNKNOWN;
+    }
+  }
+
+  val = g_new0 (GValue, 1);
+  val = g_value_init (val, G_TYPE_INT);
+  g_value_set_int (val, childcount);
+
+  return val;
+}
+
+static GValue *
+get_value_string (const gchar *s)
+{
+  GValue *val;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_STRING);
+  g_value_set_string (val,
+                      s? s: MS_STR_VALUE_UNKNOWN);
+
+  return val;
+}
+
+static GValue *
+get_display_name (GrlMedia *media)
+{
+  return get_value_string (grl_media_get_title (media));
+}
+
+static GValue *
+get_album (GrlMedia *media)
+{
+  return get_value_string (grl_data_get_string (GRL_DATA (media),
+                                                GRL_METADATA_KEY_ALBUM));
+}
+
+static GValue *
+get_artist (GrlMedia *media)
+{
+  return get_value_string (grl_data_get_string (GRL_DATA (media),
+                                                GRL_METADATA_KEY_ARTIST));
+}
+
+static GValue *
+get_genre (GrlMedia *media)
+{
+  return get_value_string (grl_data_get_string (GRL_DATA (media),
+                                                GRL_METADATA_KEY_GENRE));
+}
+
+static GValue *
+get_mime_type (GrlMedia *media)
+{
+  return get_value_string (grl_data_get_string (GRL_DATA (media),
+                                                GRL_METADATA_KEY_MIME));
+}
+
 static void
 get_properties_cb (GrlMediaSource *source,
                    GrlMedia *media,
@@ -196,66 +319,37 @@ get_properties_cb (GrlMediaSource *source,
                    const GError *error)
 {
   GPtrArray *prop_values;
-  GPtrArray *urls;
-  GValue *val;
   GetPropertiesData *data = (GetPropertiesData *) user_data;
-  const gchar *title;
-  gchar *type;
-  gint childcount;
   gint i;
-  const gchar *url;
 
   g_assert (media);
 
   prop_values = g_ptr_array_sized_new (g_strv_length (data->filter));
   for (i = 0; data->filter[i]; i++) {
     if (g_strcmp0 (data->filter[i], MS_PROP_DISPLAY_NAME) == 0) {
-      title = grl_media_get_title (media);
-      if (!title) {
-        title = MS_STR_VALUE_UNKNOWN;
-      }
-      val = g_new0 (GValue, 1);
-      g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, title);
-      g_ptr_array_add (prop_values, val);
+      g_ptr_array_add (prop_values,
+                       get_display_name (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_ALBUM) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_album (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_ARTIST) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_artist (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_GENRE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_genre (media));
+    } else if (g_strcmp0 (data->filter[i], MS_PROP_MIME_TYPE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_mime_type (media));
     } else if (g_strcmp0 (data->filter[i], MS_PROP_TYPE) == 0) {
-      if (GRL_IS_MEDIA_BOX (media)) {
-        type = MS_TYPE_CONTAINER;
-      } else if (GRL_IS_MEDIA_AUDIO (media)) {
-        type = MS_TYPE_AUDIO;
-      } else if (GRL_IS_MEDIA_VIDEO (media)) {
-        type = MS_TYPE_VIDEO;
-      } else if (GRL_IS_MEDIA_IMAGE (media)) {
-        type = MS_TYPE_IMAGE;
-      } else {
-        type = MS_STR_VALUE_UNKNOWN;
-      }
-      val = g_new0 (GValue, 1);
-      g_value_init (val, G_TYPE_STRING);
-      g_value_set_string (val, type);
-      g_ptr_array_add (prop_values, val);
+      g_ptr_array_add (prop_values,
+                       get_type (media));
     } else if (g_strcmp0 (data->filter[i], MS_PROP_CHILD_COUNT) == 0) {
-      if (GRL_IS_MEDIA_BOX (media)) {
-        childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
-        if (childcount == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
-          childcount = MS_INT_VALUE_UNKNOWN;
-        }
-      } else {
-        childcount = MS_INT_VALUE_UNKNOWN;
-      }
-      val = g_new0 (GValue, 1);
-      val = g_value_init (val, G_TYPE_INT);
-      g_value_set_int (val, childcount);
-      g_ptr_array_add (prop_values, val);
+      g_ptr_array_add (prop_values,
+                       get_child_count (media));
     } else if (g_strcmp0 (data->filter[i], MS_PROP_URLS) == 0) {
-      url = grl_media_get_url (media);
-      urls = g_ptr_array_sized_new (1);
-      g_ptr_array_add (urls,
-                       url? g_strdup (url): g_strdup (MS_STR_VALUE_UNKNOWN));
-      val = g_new0 (GValue, 1);
-      g_value_init (val, DBUS_TYPE_G_ARRAY_OF_STRING);
-      g_value_take_boxed (val, urls);
-      g_ptr_array_add (prop_values, val);
+      g_ptr_array_add (prop_values,
+                       get_urls (media));
     }
   }
 
