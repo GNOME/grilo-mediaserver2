@@ -66,11 +66,24 @@ typedef struct {
   DBusGMethodInvocation *context;
 } GetPropertiesData;
 
+typedef struct {
+  gchar **filter;
+  DBusGMethodInvocation *context;
+  GHashTable *result;
+} GetChildrenData;
+
 struct _RygelGriloMediaServerPrivate {
   GrlMediaSource *grl_source;
 };
 
 G_DEFINE_TYPE (RygelGriloMediaServer, rygel_grilo_media_server, G_TYPE_OBJECT);
+
+static void
+free_property_array (GPtrArray *p)
+{
+  g_ptr_array_foreach (p, (GFunc) g_value_unset, NULL);
+  g_ptr_array_free (p, TRUE);
+}
 
 static GetPropertiesData *
 get_properties_data_new (const gchar **filter,
@@ -84,10 +97,32 @@ get_properties_data_new (const gchar **filter,
   return data;
 }
 
+static GetChildrenData *
+get_children_data_new (const gchar **filter,
+                       DBusGMethodInvocation *context)
+{
+  GetChildrenData *data = g_new (GetChildrenData, 1);
+  data->filter = g_strdupv ((gchar **) filter);
+  data->context = context;
+  data->result = g_hash_table_new_full (g_str_hash,
+                                        g_str_equal,
+                                        g_free,
+                                        (GDestroyNotify) free_property_array);
+
+  return data;
+}
+
 static void
 get_properties_data_free (GetPropertiesData *data)
 {
   g_strfreev (data->filter);
+  g_free (data);
+}
+
+static void
+get_children_data_free (GetChildrenData *data) {
+  g_strfreev (data->filter);
+  g_hash_table_unref (data->result);
   g_free (data);
 }
 
@@ -366,6 +401,57 @@ get_width (GrlMedia *media)
                                           GRL_METADATA_KEY_WIDTH));
 }
 
+static GPtrArray *
+get_property_values (GrlMedia *media,
+                     gchar **filter)
+{
+  GPtrArray *prop_values;
+  gint i;
+
+  prop_values = g_ptr_array_sized_new (g_strv_length (filter));
+  for (i = 0; filter[i]; i++) {
+    if (g_strcmp0 (filter[i], MS_PROP_DISPLAY_NAME) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_display_name (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_ALBUM) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_album (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_ARTIST) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_artist (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_GENRE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_genre (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_MIME_TYPE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_mime_type (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_TYPE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_type (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_CHILD_COUNT) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_child_count (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_URLS) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_urls (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_BITRATE) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_bitrate (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_DURATION) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_duration (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_HEIGHT) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_height (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_WIDTH) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_width (media));
+    }
+  }
+
+  return prop_values;
+}
+
 static void
 get_properties_cb (GrlMediaSource *source,
                    GrlMedia *media,
@@ -374,55 +460,14 @@ get_properties_cb (GrlMediaSource *source,
 {
   GPtrArray *prop_values;
   GetPropertiesData *data = (GetPropertiesData *) user_data;
-  gint i;
 
   g_assert (media);
 
-  prop_values = g_ptr_array_sized_new (g_strv_length (data->filter));
-  for (i = 0; data->filter[i]; i++) {
-    if (g_strcmp0 (data->filter[i], MS_PROP_DISPLAY_NAME) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_display_name (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_ALBUM) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_album (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_ARTIST) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_artist (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_GENRE) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_genre (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_MIME_TYPE) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_mime_type (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_TYPE) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_type (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_CHILD_COUNT) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_child_count (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_URLS) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_urls (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_BITRATE) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_bitrate (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_DURATION) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_duration (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_HEIGHT) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_height (media));
-    } else if (g_strcmp0 (data->filter[i], MS_PROP_WIDTH) == 0) {
-      g_ptr_array_add (prop_values,
-                       get_width (media));
-    }
-  }
-
+  prop_values = get_property_values (media, data->filter);
   dbus_g_method_return (data->context, prop_values);
-  g_ptr_array_foreach (prop_values, (GFunc) g_value_unset, NULL);
-  g_ptr_array_free (prop_values, TRUE);
+  free_property_array (prop_values);
   get_properties_data_free (data);
+  g_object_unref (media);
 }
 
 gboolean
@@ -446,19 +491,63 @@ rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
                              GRL_RESOLVE_FULL,
                              get_properties_cb,
                              data);
+  g_list_free (keys);
 
   return TRUE;
+}
+
+static void
+get_children_cb (GrlMediaSource *source,
+                 guint browse_id,
+                 GrlMedia *media,
+                 guint remaining,
+                 gpointer user_data,
+                 const GError *error)
+{
+  GetChildrenData *data = (GetChildrenData *) user_data;
+
+  g_assert (!error);
+
+  if (media) {
+    g_hash_table_insert (data->result,
+                         g_strdup (grl_media_get_id (media)),
+                         get_property_values (media, data->filter));
+  }
+
+  if (!remaining) {
+    dbus_g_method_return (data->context, data->result);
+    get_children_data_free (data);
+  }
 }
 
 gboolean
 rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
                                        const gchar *id,
                                        guint offset,
-                                       guint max_count,
-                                       GPtrArray *filter,
+                                       gint max_count,
+                                       const gchar **filter,
                                        DBusGMethodInvocation *context,
                                        GError **error)
+
 {
+  GList *keys;
+  GetChildrenData *data;
+  GrlMedia *media;
+
+  media = rygel_grilo_media_server_build_media (server, id, TYPE_BOX);
+  keys = rygel_grilo_media_server_get_keys (filter);
+  data = get_children_data_new (filter, context);
+
+  grl_media_source_browse (server->priv->grl_source,
+                           media,
+                           keys,
+                           offset,
+                           max_count < 0? G_MAXINT: max_count,
+                           GRL_RESOLVE_FULL,
+                           get_children_cb,
+                           data);
+  g_object_unref (media);
+  g_list_free (keys);
 
   return TRUE;
 }

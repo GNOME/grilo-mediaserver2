@@ -82,8 +82,8 @@ gboolean rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
 gboolean rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
                                                 const gchar *id,
                                                 guint offset,
-                                                guint max_count,
-                                                GPtrArray *filter,
+                                                gint max_count,
+                                                const gchar **filter,
                                                 DBusGMethodInvocation *context,
                                                 GError **error);
 
