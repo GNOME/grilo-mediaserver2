@@ -71,32 +71,12 @@ sanitize (gchar *string)
   }
 }
 
-static void
-get_root_cb (GrlMediaSource *source,
-             GrlMedia *media,
-             gpointer user_data,
-             const GError *error)
-{
-  gchar *dbus_path = (gchar *) user_data;
-
-  g_assert (media);
-
-  /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
-  g_object_ref (media);
-
-  rygel_grilo_media_server_new (dbus_path, media);
-  g_debug ("Waiting for requests");
-
-  g_free (dbus_path);
-}
-
 gint
 main (gint argc, gchar **argv)
 {
   DBusGConnection *connection;
   DBusGProxy *gproxy;
   GError *error = NULL;
-  GList *keys;
   GOptionContext *context = NULL;
   GrlMediaPlugin **sources;
   GrlMediaSource *grilo_source;
@@ -163,18 +143,11 @@ main (gint argc, gchar **argv)
   g_free (source_id);
 
   dbus_register_name (gproxy, dbus_service);
+
+  rygel_grilo_media_server_new (dbus_path);
+
   g_free (dbus_service);
-
-  /* Get root */
-  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
-                                    NULL);
-
-  grl_media_source_metadata (grilo_source,
-                             NULL,
-                             keys,
-                             GRL_RESOLVE_FAST_ONLY,
-                             get_root_cb,
-                             dbus_path);
+  g_free (dbus_path);
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }

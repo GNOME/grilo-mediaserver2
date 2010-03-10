@@ -11,12 +11,14 @@
       <arg name="offset"    direction="in" type="u"/>
       <arg name="max_count" direction="in" type="u"/>
       <arg name="filter"    direction="in" type="as"/>
+      <arg name="children"  direction="out" type="a{sav}"/>
     </method>
 
     <method name="GetProperties">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
-      <arg name="id"     direction="in" type="s"/>
-      <arg name="filter" direction="in" type="as"/>
+      <arg name="id"         direction="in"  type="s"/>
+      <arg name="filter"     direction="in"  type="as"/>
+      <arg name="properties" direction="out" type="av"/>
     </method>
 
   </interface>
