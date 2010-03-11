@@ -58,11 +58,14 @@ rygel_grilo_media_object_get_property (GObject *object,
                                        GValue *value,
                                        GParamSpec *pspec)
 {
+  GrlMediaPlugin *source;
+  GrlPluginRegistry *registry;
   RygelGriloMediaObject *self =
     RYGEL_GRILO_MEDIA_OBJECT (object);
   RygelGriloMediaObjectPrivate *priv =
     RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (self);
   const gchar *name;
+  const gchar *source_id;
 
   switch (prop_id) {
   case PROP_PARENT:
@@ -73,7 +76,10 @@ rygel_grilo_media_object_get_property (GObject *object,
 
     /* Use source name if it has no title */
     if (!name) {
-      name = grl_media_get_source (priv->grl_media);
+      source_id = grl_media_get_source (priv->grl_media);
+      registry = grl_plugin_registry_get_instance ();
+      source = grl_plugin_registry_lookup_source (registry, source_id);
+      name = grl_metadata_source_get_name (GRL_METADATA_SOURCE (source));
     }
 
     /* If still does not have a name, use "Unknown" */
