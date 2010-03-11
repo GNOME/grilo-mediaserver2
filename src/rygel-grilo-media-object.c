@@ -69,8 +69,18 @@ rygel_grilo_media_object_get_property (GObject *object,
     g_value_set_string (value, priv->parent_path);
     break;
   case PROP_DISPLAY_NAME:
-    name = priv->grl_media? grl_media_get_title (priv->grl_media): "Unknown";
-    name = name? name: "Unknown";
+    name = grl_media_get_title (priv->grl_media);
+
+    /* Use source name if it has no title */
+    if (!name) {
+      name = grl_media_get_source (priv->grl_media);
+    }
+
+    /* If still does not have a name, use "Unknown" */
+    if (!name) {
+      name =  "Unknown";
+    }
+
     g_value_set_string (value, name);
     break;
   case PROP_DBUS_PATH:
