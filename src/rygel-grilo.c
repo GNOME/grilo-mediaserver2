@@ -33,6 +33,7 @@
 
 static gint limit;
 static gchar **args;
+static DBusGProxy *gproxy = NULL;
 
 static GOptionEntry entries[] = {
   { "limit", 'l', 0,
@@ -48,8 +49,7 @@ static GOptionEntry entries[] = {
 
 
 static void
-dbus_register_name (DBusGProxy *gproxy,
-                    const gchar *name)
+dbus_register_name (const gchar *name)
 {
   GError *error = NULL;
   guint request_name_result;
@@ -58,7 +58,6 @@ dbus_register_name (DBusGProxy *gproxy,
                                               DBUS_NAME_FLAG_DO_NOT_QUEUE,
                                               &request_name_result,
                                               &error));
-  g_assert(request_name_result == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER);
 }
 
 static void
@@ -71,6 +70,7 @@ sanitize (gchar *string)
   while (string[i]) {
     switch (string[i]) {
     case '-':
+    case ':':
       string[i] = '_';
       break;
     }
@@ -92,44 +92,75 @@ get_root_cb (GrlMediaSource *source,
   g_object_ref (media);
 
   rygel_grilo_media_container_new_root (dbus_path, media, limit);
-  g_debug ("Waiting for requests");
 
   g_free (dbus_path);
+}
+
+static void
+source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
+{
+  GList *keys;
+  GrlSupportedOps supported_ops;
+  gchar *dbus_path;
+  gchar *dbus_service;
+  gchar *source_id;
+
+  /* Only sources that implement browse and metadata are of interest */
+  supported_ops =
+    grl_metadata_source_supported_operations (GRL_METADATA_SOURCE (user_data));
+  if (supported_ops & GRL_OP_BROWSE &&
+      supported_ops & GRL_OP_METADATA) {
+    /* Register a new service name */
+    source_id =
+      g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+
+    g_debug ("Registering %s source", source_id);
+
+    sanitize (source_id);
+    dbus_service = g_strconcat (ENTRY_POINT_SERVICE ".", source_id, NULL);
+    dbus_path = g_strconcat (ENTRY_POINT_PATH "/", source_id, NULL);
+    g_free (source_id);
+    dbus_register_name (dbus_service);
+    g_free (dbus_service);
+
+    /* Get root to put in dbus */
+    keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE, NULL);
+
+    grl_media_source_metadata (GRL_MEDIA_SOURCE (user_data),
+                               NULL,
+                               keys,
+                               GRL_RESOLVE_FULL,
+                               get_root_cb,
+                               dbus_path);
+
+    g_list_free (keys);
+  } else {
+    g_debug ("%s source does not support either browse or metadata",
+             grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+  }
 }
 
 gint
 main (gint argc, gchar **argv)
 {
   DBusGConnection *connection;
-  DBusGProxy *gproxy;
   GError *error = NULL;
-  GList *keys;
   GOptionContext *context = NULL;
-  GrlMediaPlugin **sources;
-  GrlMediaSource *grilo_source;
   GrlPluginRegistry *registry;
-  gchar *dbus_path;
-  gchar *dbus_service;
-  gchar *source_id;
+  gint i;
 
   g_type_init ();
 
   context = g_option_context_new ("- run Grilo plugin as UPnP service");
   g_option_context_add_main_entries (context, entries, NULL);
   g_option_context_parse (context, &argc, &argv, &error);
+  g_option_context_free (context);
 
   if (error) {
     g_printerr ("Invalid arguments, %s\n", error->message);
     g_clear_error (&error);
     return -1;
   }
-
-  if (!args || !args[0]) {
-    g_print ("%s\n", g_option_context_get_help (context, FALSE, NULL));
-    return -1;
-  }
-
-  g_option_context_free (context);
 
   /* Check limit */
   if (limit == 0) {
@@ -138,23 +169,7 @@ main (gint argc, gchar **argv)
     limit = G_MAXINT;
   }
 
-  /* Load grilo plugin */
-  registry = grl_plugin_registry_get_instance ();
-  grl_plugin_registry_load (registry, args[0]);
-
-  /* Get source */
-  sources = grl_plugin_registry_get_sources_by_capabilities (registry,
-                                                             GRL_OP_METADATA |
-                                                             GRL_OP_BROWSE,
-                                                             FALSE);
-  if (!sources[0]) {
-    g_printerr ("Did not found any browsable source");
-    return -1;
-  }
-
-  grilo_source = GRL_MEDIA_SOURCE (sources[0]);
-
-  /* Get DBus name */
+  /* Get DBus */
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   g_assert (connection);
 
@@ -163,31 +178,19 @@ main (gint argc, gchar **argv)
                                       DBUS_PATH_DBUS,
                                       DBUS_INTERFACE_DBUS);
 
-  source_id =
-    g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (grilo_source)));
-  sanitize (source_id);
+  /* Load grilo plugins */
+  registry = grl_plugin_registry_get_instance ();
 
-  dbus_service = g_strconcat (ENTRY_POINT_SERVICE ".",
-                              source_id,
-                              NULL);
-  dbus_path = g_strconcat (ENTRY_POINT_PATH "/",
-                           source_id,
-                           NULL);
-  g_free (source_id);
+  g_signal_connect (registry, "source-added",
+                    G_CALLBACK (source_added_cb), NULL);
 
-  dbus_register_name (gproxy, dbus_service);
-  g_free (dbus_service);
-
-  /* Get root */
-  keys = grl_metadata_key_list_new (GRL_METADATA_KEY_TITLE,
-                                    NULL);
-
-  grl_media_source_metadata (grilo_source,
-                             NULL,
-                             keys,
-                             GRL_RESOLVE_FAST_ONLY,
-                             get_root_cb,
-                             dbus_path);
+  if (!args || !args[0]) {
+    grl_plugin_registry_load_all (registry);
+  } else {
+    for (i = 0; args[i]; i++) {
+      grl_plugin_registry_load (registry, args[i]);
+    }
+  }
 
   g_main_loop_run (g_main_loop_new (NULL, FALSE));
 }
