@@ -156,7 +156,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     grl_media_source_metadata (GRL_MEDIA_SOURCE (user_data),
                                NULL,
                                keys,
-                               GRL_RESOLVE_FULL,
+                               GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                                get_root_cb,
                                dbus_path);
 

@@ -187,7 +187,7 @@ browse_grilo_media (BrowseData *bd)
                            keys,
                            0,
                            klass->limit,
-                           GRL_RESOLVE_FULL,
+                           GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                            browse_result_cb,
                            bd);
 }
