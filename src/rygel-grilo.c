@@ -34,6 +34,7 @@
 static gint limit;
 static gchar **args;
 static DBusGProxy *gproxy = NULL;
+static GHashTable *registered_sources = NULL;
 
 static GOptionEntry entries[] = {
   { "limit", 'l', 0,
@@ -53,11 +54,34 @@ dbus_register_name (const gchar *name)
 {
   GError *error = NULL;
   guint request_name_result;
-  g_assert(org_freedesktop_DBus_request_name (gproxy,
-                                              name,
-                                              DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                                              &request_name_result,
-                                              &error));
+
+  if (!org_freedesktop_DBus_request_name (gproxy,
+                                          name,
+                                          DBUS_NAME_FLAG_DO_NOT_QUEUE,
+                                          &request_name_result,
+                                          &error)) {
+    g_warning ("Unable to register \"%s\" name in dbus: %s",
+               name,
+               error->message);
+    g_error_free (error);
+  }
+}
+
+static void
+dbus_unregister_name (const gchar *name)
+{
+  GError *error = NULL;
+  guint request_name_result;
+
+  if(!org_freedesktop_DBus_release_name (gproxy,
+                                         name,
+                                         &request_name_result,
+                                         &error)) {
+    g_debug ("Unable to unregister \"%s\" name in dbus: %s",
+             name,
+             error->message);
+    g_error_free (error);
+  }
 }
 
 static void
@@ -91,9 +115,11 @@ get_root_cb (GrlMediaSource *source,
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);
 
-  rygel_grilo_media_container_new_root (dbus_path, media, limit);
-
-  g_free (dbus_path);
+  g_hash_table_insert (registered_sources,
+                       dbus_path,
+                       rygel_grilo_media_container_new_root (dbus_path,
+                                                             media,
+                                                             limit));
 }
 
 static void
@@ -110,6 +136,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     grl_metadata_source_supported_operations (GRL_METADATA_SOURCE (user_data));
   if (supported_ops & GRL_OP_BROWSE &&
       supported_ops & GRL_OP_METADATA) {
+
     /* Register a new service name */
     source_id =
       g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
@@ -138,6 +165,27 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     g_debug ("%s source does not support either browse or metadata",
              grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
   }
+}
+
+static void
+source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
+{
+  gchar *dbus_name;
+  gchar *dbus_path;
+  gchar *source_id;
+
+  source_id =
+    g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+  sanitize (source_id);
+
+  dbus_name = g_strconcat (ENTRY_POINT_SERVICE ".", source_id, NULL);
+  dbus_unregister_name (dbus_name);
+  g_free (dbus_name);
+
+  /* Remove source */
+  dbus_path = g_strconcat (ENTRY_POINT_PATH "/", source_id, NULL);
+  g_hash_table_remove (registered_sources, dbus_path);
+  g_free (dbus_path);
 }
 
 gint
@@ -178,11 +226,19 @@ main (gint argc, gchar **argv)
                                       DBUS_PATH_DBUS,
                                       DBUS_INTERFACE_DBUS);
 
+  /* Initialize registered sources table */
+  registered_sources = g_hash_table_new_full (g_str_hash,
+                                              g_str_equal,
+                                              g_free,
+                                              g_object_unref);
+
   /* Load grilo plugins */
   registry = grl_plugin_registry_get_instance ();
 
   g_signal_connect (registry, "source-added",
                     G_CALLBACK (source_added_cb), NULL);
+  g_signal_connect (registry, "source-removed",
+                    G_CALLBACK (source_removed_cb), NULL);
 
   if (!args || !args[0]) {
     grl_plugin_registry_load_all (registry);

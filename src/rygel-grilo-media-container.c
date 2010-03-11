@@ -64,6 +64,28 @@ typedef struct {
 G_DEFINE_TYPE (RygelGriloMediaContainer, rygel_grilo_media_container, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
 
 static void
+free_child (gchar *dbus_path)
+{
+  GError *error = NULL;
+  static DBusGConnection *connection = NULL;
+
+  if (!connection) {
+    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+    if (error) {
+      g_warning ("Unable to get dbus connection, %s", error->message);
+      g_error_free (error);
+    }
+  }
+
+  if (connection) {
+    g_object_unref (dbus_g_connection_lookup_g_object (connection,
+                                                       dbus_path));
+  }
+
+  g_free (dbus_path);
+}
+
+static void
 retry_get (RygelGriloMediaContainer *obj,
            gchar *property,
            DBusGMethodInvocation *context)
@@ -257,6 +279,18 @@ rygel_grilo_media_container_set_property (GObject *object,
 static void
 rygel_grilo_media_container_dispose (GObject *object)
 {
+  RygelGriloMediaContainer *self =
+    RYGEL_GRILO_MEDIA_CONTAINER (object);
+  RygelGriloMediaContainerPrivate *priv =
+    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
+
+  /* Free children */
+  g_list_foreach (priv->containers, (GFunc) free_child, NULL);
+  g_list_free (priv->containers);
+
+  g_list_foreach (priv->items, (GFunc) free_child, NULL);
+  g_list_free (priv->items);
+
   G_OBJECT_CLASS (rygel_grilo_media_container_parent_class)->dispose (object);
 }
 
