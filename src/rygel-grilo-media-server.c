@@ -569,7 +569,7 @@ rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
   grl_media_source_metadata (server->priv->grl_source,
                              media,
                              keys,
-                             GRL_RESOLVE_FULL,
+                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                              get_properties_cb,
                              data);
   g_list_free (keys);
@@ -626,7 +626,7 @@ rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
                            keys,
                            offset,
                            max_count < 0? G_MAXINT: max_count,
-                           GRL_RESOLVE_FULL,
+                           GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                            get_children_cb,
                            data);
   g_object_unref (media);
