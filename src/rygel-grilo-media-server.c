@@ -64,7 +64,7 @@ typedef struct {
   gchar **filter;
   DBusGMethodInvocation *context;
   GHashTable *result;
-} GetFooData;
+} GetData;
 
 struct _RygelGriloMediaServerPrivate {
   GrlMediaSource *grl_source;
@@ -79,12 +79,12 @@ free_property_array (GPtrArray *p)
   g_ptr_array_free (p, TRUE);
 }
 
-static GetFooData *
-get_foo_data_new_properties (const gchar *ms_id,
-                             const gchar **filter,
-                             DBusGMethodInvocation *context)
+static GetData *
+get_data_new_properties (const gchar *ms_id,
+                         const gchar **filter,
+                         DBusGMethodInvocation *context)
 {
-  GetFooData *data = g_new0 (GetFooData, 1);
+  GetData *data = g_new0 (GetData, 1);
 
   data->ms_id = g_strdup (ms_id);
   data->filter = g_strdupv ((gchar **) filter);
@@ -93,14 +93,14 @@ get_foo_data_new_properties (const gchar *ms_id,
   return data;
 }
 
-static GetFooData *
-get_foo_data_new_children (const gchar *ms_id,
-                           const gchar **filter,
-                           DBusGMethodInvocation *context)
+static GetData *
+get_data_new_children (const gchar *ms_id,
+                       const gchar **filter,
+                       DBusGMethodInvocation *context)
 {
-  GetFooData *data;
+  GetData *data;
 
-  data = get_foo_data_new_properties (ms_id, filter, context);
+  data = get_data_new_properties (ms_id, filter, context);
   data->result = g_hash_table_new_full (g_str_hash,
                                         g_str_equal,
                                         g_free,
@@ -110,7 +110,7 @@ get_foo_data_new_children (const gchar *ms_id,
 }
 
 static void
-get_foo_data_free (GetFooData *data) {
+get_data_free (GetData *data) {
   g_free (data->ms_id);
   g_strfreev (data->filter);
   if (data->result) {
@@ -540,14 +540,14 @@ get_properties_cb (GrlMediaSource *source,
                    const GError *error)
 {
   GPtrArray *prop_values;
-  GetFooData *data = (GetFooData *) user_data;
+  GetData *data = (GetData *) user_data;
 
   g_assert (media);
 
   prop_values = get_property_values (data->ms_id, media, data->filter);
   dbus_g_method_return (data->context, prop_values);
   free_property_array (prop_values);
-  get_foo_data_free (data);
+  get_data_free (data);
   g_object_unref (media);
 }
 
@@ -559,12 +559,12 @@ rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
                                          GError **error)
 {
   GList *keys;
-  GetFooData *data;
+  GetData *data;
   GrlMedia *media;
 
   media = rygel_grilo_media_server_build_media (server, id);
   keys = rygel_grilo_media_server_get_keys (filter);
-  data = get_foo_data_new_properties (id, filter, context);
+  data = get_data_new_properties (id, filter, context);
 
   grl_media_source_metadata (server->priv->grl_source,
                              media,
@@ -585,7 +585,7 @@ get_children_cb (GrlMediaSource *source,
                  gpointer user_data,
                  const GError *error)
 {
-  GetFooData *data = (GetFooData *) user_data;
+  GetData *data = (GetData *) user_data;
   gchar *child_id;
 
   g_assert (!error);
@@ -599,7 +599,7 @@ get_children_cb (GrlMediaSource *source,
 
   if (!remaining) {
     dbus_g_method_return (data->context, data->result);
-    get_foo_data_free (data);
+    get_data_free (data);
   }
 }
 
@@ -614,12 +614,12 @@ rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
 
 {
   GList *keys;
-  GetFooData *data;
+  GetData *data;
   GrlMedia *media;
 
   media = rygel_grilo_media_server_build_media (server, id);
   keys = rygel_grilo_media_server_get_keys (filter);
-  data = get_foo_data_new_children (id, filter, context);
+  data = get_data_new_children (id, filter, context);
 
   grl_media_source_browse (server->priv->grl_source,
                            media,
