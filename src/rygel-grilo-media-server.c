@@ -24,14 +24,12 @@
 #include "rygel-grilo-media-server.h"
 #include "rygel-grilo-media-server-glue.h"
 
-#define ROOT_PARENT_ID "0"
-
-#define ID_PREFIX_CONTAINER "grc://"
 #define ID_PREFIX_AUDIO     "gra://"
-#define ID_PREFIX_VIDEO     "grv://"
+#define ID_PREFIX_CONTAINER "grc://"
 #define ID_PREFIX_IMAGE     "gri://"
-
-#define ID_SEPARATOR "/"
+#define ID_PREFIX_VIDEO     "grv://"
+#define ID_ROOT             "0"
+#define ID_SEPARATOR        "/"
 
 #define MS_INT_VALUE_UNKNOWN -1
 #define MS_STR_VALUE_UNKNOWN ""
@@ -50,10 +48,10 @@
 #define MS_PROP_GENRE        "genre"
 #define MS_PROP_HEIGHT       "height"
 #define MS_PROP_MIME_TYPE    "mime-type"
+#define MS_PROP_PARENT       "parent"
 #define MS_PROP_TYPE         "type"
 #define MS_PROP_URLS         "URLs"
 #define MS_PROP_WIDTH        "width"
-/* #define MS_PROP_PARENT       "parent" */
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -61,24 +59,12 @@
 #define RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE(o)                         \
   G_TYPE_INSTANCE_GET_PRIVATE((o), RYGEL_GRILO_MEDIA_SERVER_TYPE, RygelGriloMediaServerPrivate)
 
-typedef enum {
-  TYPE_BOX,
-  TYPE_AUDIO,
-  TYPE_VIDEO,
-  TYPE_IMAGE
-} MediaType;
-
-typedef struct {
-  gchar **filter;
-  DBusGMethodInvocation *context;
-} GetPropertiesData;
-
 typedef struct {
   gchar *ms_id;
   gchar **filter;
   DBusGMethodInvocation *context;
   GHashTable *result;
-} GetChildrenData;
+} GetFooData;
 
 struct _RygelGriloMediaServerPrivate {
   GrlMediaSource *grl_source;
@@ -93,28 +79,28 @@ free_property_array (GPtrArray *p)
   g_ptr_array_free (p, TRUE);
 }
 
-static GetPropertiesData *
-get_properties_data_new (const gchar **filter,
-                         DBusGMethodInvocation *context)
+static GetFooData *
+get_foo_data_new_properties (const gchar *ms_id,
+                             const gchar **filter,
+                             DBusGMethodInvocation *context)
 {
-  GetPropertiesData *data = g_new (GetPropertiesData, 1);
+  GetFooData *data = g_new0 (GetFooData, 1);
 
+  data->ms_id = g_strdup (ms_id);
   data->filter = g_strdupv ((gchar **) filter);
   data->context = context;
 
   return data;
 }
 
-static GetChildrenData *
-get_children_data_new (const gchar *ms_id,
-                       const gchar **filter,
-                       DBusGMethodInvocation *context)
+static GetFooData *
+get_foo_data_new_children (const gchar *ms_id,
+                           const gchar **filter,
+                           DBusGMethodInvocation *context)
 {
-  GetChildrenData *data = g_new (GetChildrenData, 1);
+  GetFooData *data;
 
-  data->ms_id = g_strdup (ms_id);
-  data->filter = g_strdupv ((gchar **) filter);
-  data->context = context;
+  data = get_foo_data_new_properties (ms_id, filter, context);
   data->result = g_hash_table_new_full (g_str_hash,
                                         g_str_equal,
                                         g_free,
@@ -124,17 +110,12 @@ get_children_data_new (const gchar *ms_id,
 }
 
 static void
-get_properties_data_free (GetPropertiesData *data)
-{
-  g_strfreev (data->filter);
-  g_free (data);
-}
-
-static void
-get_children_data_free (GetChildrenData *data) {
+get_foo_data_free (GetFooData *data) {
   g_free (data->ms_id);
   g_strfreev (data->filter);
-  g_hash_table_unref (data->result);
+  if (data->result) {
+    g_hash_table_unref (data->result);
+  }
   g_free (data);
 }
 
@@ -189,7 +170,7 @@ extract_grl_id (const gchar *ms_id)
   gchar **offspring;
   gchar *grl_id;
 
-  if (g_strcmp0 (ms_id, ROOT_PARENT_ID) == 0) {
+  if (g_strcmp0 (ms_id, ID_ROOT) == 0) {
     return NULL;
   }
 
@@ -214,7 +195,7 @@ rygel_grilo_media_server_build_media (RygelGriloMediaServer *server,
   GrlMedia *media = NULL;
   gchar *grl_id;
 
-  if (g_strcmp0 (id, ROOT_PARENT_ID) == 0 ||
+  if (g_strcmp0 (id, ID_ROOT) == 0 ||
       g_str_has_prefix (id, ID_PREFIX_CONTAINER)) {
     media = grl_media_box_new ();
   } else if (g_str_has_prefix (id, ID_PREFIX_AUDIO)) {
@@ -318,7 +299,7 @@ build_ms_id (const gchar *parent_id,
 
   escaped_id = g_uri_escape_string (grl_media_get_id (media), NULL, TRUE);
 
-  if (g_strcmp0 (parent_id, ROOT_PARENT_ID) == 0) {
+  if (g_strcmp0 (parent_id, ID_ROOT) == 0) {
     ms_id = g_strconcat (ID_PREFIX_CONTAINER, escaped_id, NULL);
   } else {
     ms_id = g_strconcat (parent_id, ID_SEPARATOR, escaped_id, NULL);
@@ -465,8 +446,41 @@ get_width (GrlMedia *media)
                                           GRL_METADATA_KEY_WIDTH));
 }
 
+static GValue *
+get_parent_id (const gchar *child_id)
+{
+  GValue *val;
+  gchar *parent_end;
+  gchar *parent_id;
+  gsize bytes_to_copy;
+
+  if (g_strcmp0 (child_id, ID_ROOT) == 0) {
+    return get_value_string ("-1");
+  }
+
+  parent_end = g_strrstr (child_id, ID_SEPARATOR);
+  bytes_to_copy = parent_end - child_id;
+
+  /* Check if parent is a root */
+  if (bytes_to_copy < 6) {
+    return get_value_string (ID_ROOT);
+  }
+
+  /* Save parent id */
+  parent_id = g_strndup (child_id, bytes_to_copy);
+
+  /* Parent should be always a container */
+  parent_id[2] = 'c';
+
+  val = get_value_string (parent_id);
+  g_free (parent_id);
+
+  return val;
+}
+
 static GPtrArray *
-get_property_values (GrlMedia *media,
+get_property_values (const gchar *ms_media_id,
+                     GrlMedia *media,
                      gchar **filter)
 {
   GPtrArray *prop_values;
@@ -510,6 +524,9 @@ get_property_values (GrlMedia *media,
     } else if (g_strcmp0 (filter[i], MS_PROP_WIDTH) == 0) {
       g_ptr_array_add (prop_values,
                        get_width (media));
+    } else if (g_strcmp0 (filter[i], MS_PROP_PARENT) == 0) {
+      g_ptr_array_add (prop_values,
+                       get_parent_id (ms_media_id));
     }
   }
 
@@ -523,14 +540,14 @@ get_properties_cb (GrlMediaSource *source,
                    const GError *error)
 {
   GPtrArray *prop_values;
-  GetPropertiesData *data = (GetPropertiesData *) user_data;
+  GetFooData *data = (GetFooData *) user_data;
 
   g_assert (media);
 
-  prop_values = get_property_values (media, data->filter);
+  prop_values = get_property_values (data->ms_id, media, data->filter);
   dbus_g_method_return (data->context, prop_values);
   free_property_array (prop_values);
-  get_properties_data_free (data);
+  get_foo_data_free (data);
   g_object_unref (media);
 }
 
@@ -542,12 +559,12 @@ rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
                                          GError **error)
 {
   GList *keys;
-  GetPropertiesData *data;
+  GetFooData *data;
   GrlMedia *media;
 
   media = rygel_grilo_media_server_build_media (server, id);
   keys = rygel_grilo_media_server_get_keys (filter);
-  data = get_properties_data_new (filter, context);
+  data = get_foo_data_new_properties (id, filter, context);
 
   grl_media_source_metadata (server->priv->grl_source,
                              media,
@@ -568,19 +585,21 @@ get_children_cb (GrlMediaSource *source,
                  gpointer user_data,
                  const GError *error)
 {
-  GetChildrenData *data = (GetChildrenData *) user_data;
+  GetFooData *data = (GetFooData *) user_data;
+  gchar *child_id;
 
   g_assert (!error);
 
   if (media) {
+    child_id = build_ms_id (data->ms_id, media);
     g_hash_table_insert (data->result,
-                         build_ms_id (data->ms_id, media),
-                         get_property_values (media, data->filter));
+                         child_id,
+                         get_property_values (child_id, media, data->filter));
   }
 
   if (!remaining) {
     dbus_g_method_return (data->context, data->result);
-    get_children_data_free (data);
+    get_foo_data_free (data);
   }
 }
 
@@ -595,12 +614,12 @@ rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
 
 {
   GList *keys;
-  GetChildrenData *data;
+  GetFooData *data;
   GrlMedia *media;
 
   media = rygel_grilo_media_server_build_media (server, id);
   keys = rygel_grilo_media_server_get_keys (filter);
-  data = get_children_data_new (id, filter, context);
+  data = get_foo_data_new_children (id, filter, context);
 
   grl_media_source_browse (server->priv->grl_source,
                            media,
