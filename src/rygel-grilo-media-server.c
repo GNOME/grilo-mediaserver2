@@ -26,6 +26,13 @@
 
 #define ROOT_PARENT_ID "0"
 
+#define ID_PREFIX_CONTAINER "grc://"
+#define ID_PREFIX_AUDIO     "gra://"
+#define ID_PREFIX_VIDEO     "grv://"
+#define ID_PREFIX_IMAGE     "gri://"
+
+#define ID_SEPARATOR "/"
+
 #define MS_INT_VALUE_UNKNOWN -1
 #define MS_STR_VALUE_UNKNOWN ""
 
@@ -67,6 +74,7 @@ typedef struct {
 } GetPropertiesData;
 
 typedef struct {
+  gchar *ms_id;
   gchar **filter;
   DBusGMethodInvocation *context;
   GHashTable *result;
@@ -98,10 +106,13 @@ get_properties_data_new (const gchar **filter,
 }
 
 static GetChildrenData *
-get_children_data_new (const gchar **filter,
+get_children_data_new (const gchar *ms_id,
+                       const gchar **filter,
                        DBusGMethodInvocation *context)
 {
   GetChildrenData *data = g_new (GetChildrenData, 1);
+
+  data->ms_id = g_strdup (ms_id);
   data->filter = g_strdupv ((gchar **) filter);
   data->context = context;
   data->result = g_hash_table_new_full (g_str_hash,
@@ -121,6 +132,7 @@ get_properties_data_free (GetPropertiesData *data)
 
 static void
 get_children_data_free (GetChildrenData *data) {
+  g_free (data->ms_id);
   g_strfreev (data->filter);
   g_hash_table_unref (data->result);
   g_free (data);
@@ -171,32 +183,56 @@ rygel_grilo_media_server_init (RygelGriloMediaServer *server)
   server->priv = RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE (server);
 }
 
+static gchar *
+extract_grl_id (const gchar *ms_id)
+{
+  gchar **offspring;
+  gchar *grl_id;
+
+  if (g_strcmp0 (ms_id, ROOT_PARENT_ID) == 0) {
+    return NULL;
+  }
+
+  /* Skip gr?:// prefix */
+  ms_id += 6;
+
+  offspring = g_strsplit (ms_id, ID_SEPARATOR, -1);
+
+  /* Last token is the searched id; first tokens are the family */
+  grl_id = g_uri_unescape_string (offspring[g_strv_length (offspring) - 1],
+                                  NULL);
+
+  g_strfreev (offspring);
+
+  return grl_id;
+}
+
 static GrlMedia *
 rygel_grilo_media_server_build_media (RygelGriloMediaServer *server,
-                                      const gchar *id,
-                                      MediaType mtype)
+                                      const gchar *id)
 {
-  GrlMedia *media;
+  GrlMedia *media = NULL;
+  gchar *grl_id;
 
-  switch (mtype) {
-  case TYPE_BOX:
+  if (g_strcmp0 (id, ROOT_PARENT_ID) == 0 ||
+      g_str_has_prefix (id, ID_PREFIX_CONTAINER)) {
     media = grl_media_box_new ();
-    break;
-  case TYPE_AUDIO:
+  } else if (g_str_has_prefix (id, ID_PREFIX_AUDIO)) {
     media = grl_media_audio_new ();
-    break;
-  case TYPE_VIDEO:
+  } else if (g_str_has_prefix (id, ID_PREFIX_VIDEO)) {
     media = grl_media_video_new ();
-    break;
-  case TYPE_IMAGE:
+  } else if (g_str_has_prefix (id, ID_PREFIX_IMAGE)) {
     media = grl_media_image_new ();
-    break;
   }
 
   grl_media_set_source (media,
                         grl_metadata_source_get_id (GRL_METADATA_SOURCE (server->priv->grl_source)));
-  if (g_strcmp0 (id, ROOT_PARENT_ID) != 0) {
-    grl_media_set_id (media, id);
+
+
+  grl_id = extract_grl_id (id);
+  if (grl_id) {
+    grl_media_set_id (media, grl_id);
+    g_free (grl_id);
   }
 
   return media;
@@ -273,6 +309,35 @@ get_type (GrlMedia *media)
   return val;
 }
 
+static gchar *
+build_ms_id (const gchar *parent_id,
+             GrlMedia *media)
+{
+  gchar *escaped_id;
+  gchar *ms_id;
+
+  escaped_id = g_uri_escape_string (grl_media_get_id (media), NULL, TRUE);
+
+  if (g_strcmp0 (parent_id, ROOT_PARENT_ID) == 0) {
+    ms_id = g_strconcat (ID_PREFIX_CONTAINER, escaped_id, NULL);
+  } else {
+    ms_id = g_strconcat (parent_id, ID_SEPARATOR, escaped_id, NULL);
+  }
+
+  g_free (escaped_id);
+
+  /* Parent id should be of grc:// type; adjust the prefix to the new content */
+  if (GRL_IS_MEDIA_AUDIO (media)) {
+    ms_id[2] = 'a';
+  } else if (GRL_IS_MEDIA_VIDEO (media)) {
+    ms_id[2] = 'v';
+  } else if (GRL_IS_MEDIA_IMAGE (media)) {
+    ms_id[2] = 'i';
+  }
+
+  return ms_id;
+}
+
 static GValue *
 get_urls (GrlMedia *media)
 {
@@ -337,7 +402,6 @@ get_value_int (gint i)
 
   return val;
 }
-
 
 static GValue *
 get_display_name (GrlMedia *media)
@@ -481,7 +545,7 @@ rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
   GetPropertiesData *data;
   GrlMedia *media;
 
-  media = rygel_grilo_media_server_build_media (server, id, TYPE_BOX);
+  media = rygel_grilo_media_server_build_media (server, id);
   keys = rygel_grilo_media_server_get_keys (filter);
   data = get_properties_data_new (filter, context);
 
@@ -510,7 +574,7 @@ get_children_cb (GrlMediaSource *source,
 
   if (media) {
     g_hash_table_insert (data->result,
-                         g_strdup (grl_media_get_id (media)),
+                         build_ms_id (data->ms_id, media),
                          get_property_values (media, data->filter));
   }
 
@@ -534,9 +598,9 @@ rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
   GetChildrenData *data;
   GrlMedia *media;
 
-  media = rygel_grilo_media_server_build_media (server, id, TYPE_BOX);
+  media = rygel_grilo_media_server_build_media (server, id);
   keys = rygel_grilo_media_server_get_keys (filter);
-  data = get_children_data_new (filter, context);
+  data = get_children_data_new (id, filter, context);
 
   grl_media_source_browse (server->priv->grl_source,
                            media,
