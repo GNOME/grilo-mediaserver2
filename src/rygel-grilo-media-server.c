@@ -455,7 +455,7 @@ get_parent_id (const gchar *child_id)
   gsize bytes_to_copy;
 
   if (g_strcmp0 (child_id, ID_ROOT) == 0) {
-    return get_value_string ("-1");
+    return get_value_string (NULL);
   }
 
   parent_end = g_strrstr (child_id, ID_SEPARATOR);
