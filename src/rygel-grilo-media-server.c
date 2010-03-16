@@ -66,12 +66,17 @@ typedef struct {
   GHashTable *result;
 } GetData;
 
+/*
+ * Private RygelGriloMediaServer structure
+ *   grl_source: grilo source being wrapped
+ */
 struct _RygelGriloMediaServerPrivate {
   GrlMediaSource *grl_source;
 };
 
 G_DEFINE_TYPE (RygelGriloMediaServer, rygel_grilo_media_server, G_TYPE_OBJECT);
 
+/* Frees an array of gvalues */
 static void
 free_property_array (GPtrArray *p)
 {
@@ -79,6 +84,7 @@ free_property_array (GPtrArray *p)
   g_ptr_array_free (p, TRUE);
 }
 
+/* Returns a new GetData used when requesting a property */
 static GetData *
 get_data_new_properties (const gchar *ms_id,
                          const gchar **filter,
@@ -93,6 +99,7 @@ get_data_new_properties (const gchar *ms_id,
   return data;
 }
 
+/* Returns a new GetDAta used when requesting for children */
 static GetData *
 get_data_new_children (const gchar *ms_id,
                        const gchar **filter,
@@ -109,6 +116,7 @@ get_data_new_children (const gchar *ms_id,
   return data;
 }
 
+/* Frees GetData and used resources */
 static void
 get_data_free (GetData *data) {
   g_free (data->ms_id);
@@ -119,6 +127,7 @@ get_data_free (GetData *data) {
   g_free (data);
 }
 
+/* Registers the RygelGriloMediaServer object in dbus */
 static void
 rygel_grilo_media_server_dbus_register (RygelGriloMediaServer *obj,
                                         const gchar *dbus_path)
@@ -133,6 +142,7 @@ rygel_grilo_media_server_dbus_register (RygelGriloMediaServer *obj,
                                        G_OBJECT (obj));
 }
 
+/* Dispose an object */
 static void
 rygel_grilo_media_server_dispose (GObject *object)
 {
@@ -144,6 +154,7 @@ rygel_grilo_media_server_dispose (GObject *object)
   G_OBJECT_CLASS (rygel_grilo_media_server_parent_class)->dispose (object);
 }
 
+/* Class init function */
 static void
 rygel_grilo_media_server_class_init (RygelGriloMediaServerClass *klass)
 {
@@ -158,12 +169,16 @@ rygel_grilo_media_server_class_init (RygelGriloMediaServerClass *klass)
                                    &dbus_glib_rygel_grilo_media_server_object_info);
 }
 
+/* Object init function */
 static void
 rygel_grilo_media_server_init (RygelGriloMediaServer *server)
 {
   server->priv = RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE (server);
 }
 
+/* Given a rygel-grilo id, returns the id of grilo media that it is being
+   wrapped; as rygel-grilo ids are formed by concatenating hierarchy of all
+   grilo media ids, the searched id is the last token */
 static gchar *
 extract_grl_id (const gchar *ms_id)
 {
@@ -188,6 +203,8 @@ extract_grl_id (const gchar *ms_id)
   return grl_id;
 }
 
+/* Given a Rygel GriloMediaServer, builds a new grilo media object represented
+   by the rygel-grilo id */
 static GrlMedia *
 rygel_grilo_media_server_build_media (RygelGriloMediaServer *server,
                                       const gchar *id)
@@ -219,6 +236,8 @@ rygel_grilo_media_server_build_media (RygelGriloMediaServer *server,
   return media;
 }
 
+/* Given a null-terminated array of MediaServerSpec2 properties, returns a list
+   with the corresponding Grilo metadata keys */
 static GList *
 rygel_grilo_media_server_get_keys (const gchar **ms_keys)
 {
@@ -265,6 +284,7 @@ rygel_grilo_media_server_get_keys (const gchar **ms_keys)
   return grl_keys;
 }
 
+/* Return the type of a grilo media (audio, video, imae, container or unknown */
 static GValue *
 get_type (GrlMedia *media)
 {
@@ -290,6 +310,8 @@ get_type (GrlMedia *media)
   return val;
 }
 
+/* Given the rygel-grilo parent id, and a media, builds the rygel-grilo id for
+   the media */
 static gchar *
 build_ms_id (const gchar *parent_id,
              GrlMedia *media)
@@ -319,6 +341,7 @@ build_ms_id (const gchar *parent_id,
   return ms_id;
 }
 
+/* Returns the list of URLs for the grilo media */
 static GValue *
 get_urls (GrlMedia *media)
 {
@@ -338,6 +361,7 @@ get_urls (GrlMedia *media)
   return val;
 }
 
+/* Get childcount value for grilo-media */
 static GValue *
 get_child_count (GrlMedia *media)
 {
@@ -358,6 +382,7 @@ get_child_count (GrlMedia *media)
   return val;
 }
 
+/* Returns a gvalue containing the string, or default case if it is null */
 static GValue *
 get_value_string (const gchar *s)
 {
@@ -371,6 +396,7 @@ get_value_string (const gchar *s)
   return val;
 }
 
+/* Returns a gvalue containing the integer, or default value it is 0 */
 static GValue *
 get_value_int (gint i)
 {
@@ -384,12 +410,14 @@ get_value_int (gint i)
   return val;
 }
 
+/* Returns the title of a media */
 static GValue *
 get_display_name (GrlMedia *media)
 {
   return get_value_string (grl_media_get_title (media));
 }
 
+/* Returns the album of a media */
 static GValue *
 get_album (GrlMedia *media)
 {
@@ -397,6 +425,7 @@ get_album (GrlMedia *media)
                                                 GRL_METADATA_KEY_ALBUM));
 }
 
+/* Returns the artist of a media */
 static GValue *
 get_artist (GrlMedia *media)
 {
@@ -404,6 +433,7 @@ get_artist (GrlMedia *media)
                                                 GRL_METADATA_KEY_ARTIST));
 }
 
+/* Returns the genre of a media */
 static GValue *
 get_genre (GrlMedia *media)
 {
@@ -411,6 +441,7 @@ get_genre (GrlMedia *media)
                                                 GRL_METADATA_KEY_GENRE));
 }
 
+/* Returns the mime type of a media */
 static GValue *
 get_mime_type (GrlMedia *media)
 {
@@ -418,6 +449,7 @@ get_mime_type (GrlMedia *media)
                                                 GRL_METADATA_KEY_MIME));
 }
 
+/* Returns the bitrate of a media */
 static GValue *
 get_bitrate (GrlMedia *media)
 {
@@ -425,6 +457,7 @@ get_bitrate (GrlMedia *media)
                                           GRL_METADATA_KEY_BITRATE));
 }
 
+/* Returns the duration of a media */
 static GValue *
 get_duration (GrlMedia *media)
 {
@@ -432,6 +465,7 @@ get_duration (GrlMedia *media)
                                           GRL_METADATA_KEY_DURATION));
 }
 
+/* Returns the height of a media */
 static GValue *
 get_height (GrlMedia *media)
 {
@@ -439,6 +473,7 @@ get_height (GrlMedia *media)
                                           GRL_METADATA_KEY_HEIGHT));
 }
 
+/* Returns the width of a media */
 static GValue *
 get_width (GrlMedia *media)
 {
@@ -446,6 +481,7 @@ get_width (GrlMedia *media)
                                           GRL_METADATA_KEY_WIDTH));
 }
 
+/* Returns the rygel-grilo parent id of the child */
 static GValue *
 get_parent_id (const gchar *child_id)
 {
@@ -478,6 +514,7 @@ get_parent_id (const gchar *child_id)
   return val;
 }
 
+/* Returns an array with gvalues of properties in filter for the media */
 static GPtrArray *
 get_property_values (const gchar *ms_media_id,
                      GrlMedia *media,
@@ -533,6 +570,7 @@ get_property_values (const gchar *ms_media_id,
   return prop_values;
 }
 
+/* Callback with the metadata of a Grilo media */
 static void
 get_properties_cb (GrlMediaSource *source,
                    GrlMedia *media,
@@ -551,32 +589,7 @@ get_properties_cb (GrlMediaSource *source,
   g_object_unref (media);
 }
 
-gboolean
-rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
-                                         const gchar *id,
-                                         const gchar **filter,
-                                         DBusGMethodInvocation *context,
-                                         GError **error)
-{
-  GList *keys;
-  GetData *data;
-  GrlMedia *media;
-
-  media = rygel_grilo_media_server_build_media (server, id);
-  keys = rygel_grilo_media_server_get_keys (filter);
-  data = get_data_new_properties (id, filter, context);
-
-  grl_media_source_metadata (server->priv->grl_source,
-                             media,
-                             keys,
-                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
-                             get_properties_cb,
-                             data);
-  g_list_free (keys);
-
-  return TRUE;
-}
-
+/* Callback with the results of a browse */
 static void
 get_children_cb (GrlMediaSource *source,
                  guint browse_id,
@@ -603,6 +616,58 @@ get_children_cb (GrlMediaSource *source,
   }
 }
 
+/**
+ * rygel_grilo_media_server_get_properties:
+ * @server: a RygelGriloMediaServer wrapping a source
+ * @id: the id used to identify a Grilo media
+ * @filter: list of MediaServerSpec2 properties
+ * @context: dbus method context to send the reply
+ * @error: error if something is wrong
+ *
+ * Sends through dbus an array with gvalues of properties in filter for element identified with id.
+ *
+ * Returns: @TRUE if values can be sent
+ **/
+gboolean
+rygel_grilo_media_server_get_properties (RygelGriloMediaServer *server,
+                                         const gchar *id,
+                                         const gchar **filter,
+                                         DBusGMethodInvocation *context,
+                                         GError **error)
+{
+  GList *keys;
+  GetData *data;
+  GrlMedia *media;
+
+  media = rygel_grilo_media_server_build_media (server, id);
+  keys = rygel_grilo_media_server_get_keys (filter);
+  data = get_data_new_properties (id, filter, context);
+
+  grl_media_source_metadata (server->priv->grl_source,
+                             media,
+                             keys,
+                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                             get_properties_cb,
+                             data);
+  g_list_free (keys);
+
+  return TRUE;
+}
+
+/**
+ * rygel_grilo_media_server_get_children:
+ * @server: a RygelGriloMediaServer wrapping a source
+ * @id: the id used to identify a Grilo media
+ * @offset: how many elements should be skipped
+ * @max_count: how many elements should be sent
+ * @filter: list of MediaServerSpec2 properties
+ * @context: dbus method context to send the reply
+ * @error: error if something is wrong
+ *
+ * Send through dbus a dictionary with children id and their properties values, specified in filter.
+ *
+ * Returns: @TRUE if values can be sent
+ **/
 gboolean
 rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
                                        const gchar *id,
@@ -635,6 +700,15 @@ rygel_grilo_media_server_get_children (RygelGriloMediaServer *server,
   return TRUE;
 }
 
+/**
+ * rygel_grilo_media_server_new:
+ * @dbus_path: dbus path where object will be registered
+ * @source: a grilo source being wrapped.
+ *
+ * Creates a new RygelGriloMediaServer wrapping a grilo source and registered in dbus
+ *
+ * Returns: a new RygelGriloMediaServer
+ **/
 RygelGriloMediaServer *
 rygel_grilo_media_server_new (const gchar *dbus_path,
                               GrlMediaSource *source)

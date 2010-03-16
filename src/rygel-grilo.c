@@ -41,7 +41,7 @@ static GOptionEntry entries[] = {
   { NULL }
 };
 
-
+/* Request and register a name in dbus */
 static void
 dbus_register_name (const gchar *name)
 {
@@ -60,6 +60,7 @@ dbus_register_name (const gchar *name)
   }
 }
 
+/* Release a name in dbus */
 static void
 dbus_unregister_name (const gchar *name)
 {
@@ -77,6 +78,7 @@ dbus_unregister_name (const gchar *name)
   }
 }
 
+/* Fix invalid characters so string can be used in a dbus name */
 static void
 sanitize (gchar *string)
 {
@@ -95,6 +97,7 @@ sanitize (gchar *string)
   }
 }
 
+/* Callback invoked whenever a new source comes up */
 static void
 source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
@@ -131,6 +134,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
   }
 }
 
+/* Callback invoked whenever a new source goes away */
 static void
 source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
@@ -152,6 +156,7 @@ source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
   g_free (dbus_path);
 }
 
+/* Main program */
 gint
 main (gint argc, gchar **argv)
 {
