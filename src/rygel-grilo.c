@@ -49,6 +49,7 @@ static GOptionEntry entries[] = {
 };
 
 
+/* Request & register a name in dbus */
 static void
 dbus_register_name (const gchar *name)
 {
@@ -67,6 +68,7 @@ dbus_register_name (const gchar *name)
   }
 }
 
+/* Release a name in dbus */
 static void
 dbus_unregister_name (const gchar *name)
 {
@@ -84,6 +86,7 @@ dbus_unregister_name (const gchar *name)
   }
 }
 
+/* Change unallowed characters so the string can be used as a name in dbus */
 static void
 sanitize (gchar *string)
 {
@@ -102,6 +105,7 @@ sanitize (gchar *string)
   }
 }
 
+/* Callback to receive metadata from root category */
 static void
 get_root_cb (GrlMediaSource *source,
              GrlMedia *media,
@@ -122,6 +126,7 @@ get_root_cb (GrlMediaSource *source,
                                                              limit));
 }
 
+/* Callback invoked whenever a new source comes up */
 static void
 source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
@@ -167,6 +172,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
   }
 }
 
+/* Callback invoked whenever a source goes away */
 static void
 source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
@@ -188,6 +194,7 @@ source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
   g_free (dbus_path);
 }
 
+/* Main program */
 gint
 main (gint argc, gchar **argv)
 {

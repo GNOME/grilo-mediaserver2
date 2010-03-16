@@ -68,6 +68,8 @@ struct _RygelGriloMediaObjectClass {
   GObjectClass parent_class;
 
   /*< private >*/
+  /* A unique number used to form the dbus path name where object is
+     registered */
   guint index;
 };
 

@@ -44,6 +44,7 @@ enum {
 
 G_DEFINE_TYPE (RygelGriloMediaItem, rygel_grilo_media_item, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
 
+/* Gets the a property */
 static void
 rygel_grilo_media_item_get_property (GObject *object,
                                      guint prop_id,
@@ -124,12 +125,14 @@ rygel_grilo_media_item_get_property (GObject *object,
   }
 }
 
+/* Dispose a RygelGriloMediaItem object */
 static void
 rygel_grilo_media_item_dispose (GObject *object)
 {
   G_OBJECT_CLASS (rygel_grilo_media_item_parent_class)->dispose (object);
 }
 
+/* Class init function */
 static void
 rygel_grilo_media_item_class_init (RygelGriloMediaItemClass *klass)
 {
@@ -224,11 +227,22 @@ rygel_grilo_media_item_class_init (RygelGriloMediaItemClass *klass)
                                    &dbus_glib_rygel_grilo_media_item_object_info);
 }
 
+/* Object init function */
 static void
 rygel_grilo_media_item_init (RygelGriloMediaItem *obj)
 {
 }
 
+/**
+ * rygel_grilo_media_item_new:
+ * @parent: the parent
+ * @media: the grilo media element that is being wrapped
+ *
+ * Creates a new RygelGriloMediaItem that wraps the grilo media, and register it
+ * in dbus.
+ *
+ * Returns: a new RygelGriloMediaItem
+ **/
 RygelGriloMediaItem *
 rygel_grilo_media_item_new (RygelGriloMediaObject *parent,
                             GrlMedia *media)
@@ -256,4 +270,3 @@ rygel_grilo_media_item_new (RygelGriloMediaObject *parent,
 
   return obj;
 }
-

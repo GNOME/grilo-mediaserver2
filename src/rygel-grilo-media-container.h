@@ -69,6 +69,7 @@ struct _RygelGriloMediaContainerClass {
   RygelGriloMediaObjectClass parent_class;
 
   /*< private >*/
+  /* How many elements will be requested per category */
   gint limit;
 };
 

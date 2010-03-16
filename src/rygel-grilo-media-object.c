@@ -37,6 +37,13 @@ enum {
   LAST_PROP
 };
 
+/*
+ * Private RygelGriloMediaObject
+ *   dbus_path...: dbus path name where object is registered
+ *   parent_path.: dbus path name where parent object is registered
+ *   parent_media: parent object
+ *   grl_media...: grilo media object being wrapped
+ */
 typedef struct {
   gchar *dbus_path;
   gchar *parent_path;
@@ -46,12 +53,7 @@ typedef struct {
 
 G_DEFINE_TYPE (RygelGriloMediaObject, rygel_grilo_media_object, G_TYPE_OBJECT);
 
-const gchar *
-rygel_grilo_media_object_get_dbus_path (RygelGriloMediaObject *obj)
-{
-  return RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
-}
-
+/* Function to get a property from a RygelGriloMediaObject object */
 static void
 rygel_grilo_media_object_get_property (GObject *object,
                                        guint prop_id,
@@ -104,6 +106,7 @@ rygel_grilo_media_object_get_property (GObject *object,
   }
 }
 
+/* Function to set a property from a RygelGriloMediaObject object */
 static void
 rygel_grilo_media_object_set_property (GObject *object,
                                        guint prop_id,
@@ -134,6 +137,7 @@ rygel_grilo_media_object_set_property (GObject *object,
   }
 }
 
+/* Dispose a RygelGriloMediaObject and its resources */
 static void
 rygel_grilo_media_object_dispose (GObject *object)
 {
@@ -149,6 +153,7 @@ rygel_grilo_media_object_dispose (GObject *object)
   G_OBJECT_CLASS (rygel_grilo_media_object_parent_class)->dispose (object);
 }
 
+/* Class init function */
 static void
 rygel_grilo_media_object_class_init (RygelGriloMediaObjectClass *klass)
 {
@@ -215,11 +220,32 @@ rygel_grilo_media_object_class_init (RygelGriloMediaObjectClass *klass)
                                    &dbus_glib_rygel_grilo_media_object_object_info);
 }
 
+/* Object init function */
 static void
 rygel_grilo_media_object_init (RygelGriloMediaObject *obj)
 {
 }
 
+/**
+ * rygel_grilo_media_object_get_dbus_path:
+ * @obj: a RygelGrilo object
+ *
+ * Returns the path where the object is registered in dbus. Value shouldn't be modified.
+ *
+ * Returns: a dbus_path
+ **/
+const gchar *
+rygel_grilo_media_object_get_dbus_path (RygelGriloMediaObject *obj)
+{
+  return RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
+}
+
+/**
+ * rygel_grilo_media_object_dbus_register:
+ * @obj: a RygelGrilo object
+ *
+ * Registers the object in dbus.
+ **/
 void
 rygel_grilo_media_object_dbus_register (RygelGriloMediaObject *obj)
 {

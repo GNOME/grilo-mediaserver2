@@ -1,5 +1,4 @@
-/*
- * Copyright (C) 2010 Igalia S.L.
+/* (C) 2010 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -53,6 +52,14 @@ typedef struct {
   gchar *item;
 } BrowseData;
 
+/*
+ * Private RygelGriloMediaCointainer structure
+ *   item_count: number of children items of this container
+ *   container_count: number of children containers of this container
+ *   items: list of RygelGriloMediaItem children
+ *   containers: list of RygelGriloMediaContainer children
+ *   browsed: @TRUE if previous fields have right values
+ */
 typedef struct {
   guint item_count;
   guint container_count;
@@ -63,6 +70,7 @@ typedef struct {
 
 G_DEFINE_TYPE (RygelGriloMediaContainer, rygel_grilo_media_container, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
 
+/* Frees a RygelGrilo object registered in dbus_path */
 static void
 free_child (gchar *dbus_path)
 {
@@ -85,6 +93,8 @@ free_child (gchar *dbus_path)
   g_free (dbus_path);
 }
 
+/* Reinvokes rygel_grilo_media_container_get() function. Used when a browse has
+   finished */
 static void
 retry_get (RygelGriloMediaContainer *obj,
            gchar *property,
@@ -93,6 +103,8 @@ retry_get (RygelGriloMediaContainer *obj,
   rygel_grilo_media_container_get (obj, NULL, property, context, NULL);
 }
 
+/* Reinvokes rygel_grilo_media_container_get_all() function. Used when a browse
+   has finished */
 static void
 retry_get_all (RygelGriloMediaContainer *obj,
                gchar *interface,
@@ -101,6 +113,7 @@ retry_get_all (RygelGriloMediaContainer *obj,
   rygel_grilo_media_container_get_all (obj, interface, context, NULL);
 }
 
+/* Callback with the results of a grilo browse() operation */
 static void
 browse_result_cb (GrlMediaSource *source,
                   guint browse_id,
@@ -148,6 +161,7 @@ browse_result_cb (GrlMediaSource *source,
   }
 }
 
+/* Performs a browse in from the grilo media that is wrapped */
 static void
 browse_grilo_media (BrowseData *bd)
 {
@@ -192,6 +206,7 @@ browse_grilo_media (BrowseData *bd)
                            bd);
 }
 
+/* Convert a GList in a GPtrArray */
 static GPtrArray *
 rygel_grilo_media_container_get_elements (GList *elements)
 {
@@ -208,18 +223,21 @@ rygel_grilo_media_container_get_elements (GList *elements)
   return pelements;
 }
 
+/* Returns an array with the RygelGriloMediaItem children */
 static GPtrArray *
 rygel_grilo_media_container_get_items (RygelGriloMediaContainer *obj)
 {
   return rygel_grilo_media_container_get_elements (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->items);
 }
 
+/* Returns an array with the RygelGriloMediaContainer children */
 static GPtrArray *
 rygel_grilo_media_container_get_containers (RygelGriloMediaContainer *obj)
 {
   return rygel_grilo_media_container_get_elements (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->containers);
 }
 
+/* Gets a property value */
 static void
 rygel_grilo_media_container_get_property (GObject *object,
                                           guint prop_id,
@@ -252,6 +270,7 @@ rygel_grilo_media_container_get_property (GObject *object,
   }
 }
 
+/* Sets a property */
 static void
 rygel_grilo_media_container_set_property (GObject *object,
                                           guint prop_id,
@@ -276,6 +295,7 @@ rygel_grilo_media_container_set_property (GObject *object,
   }
 }
 
+/* Dispose a RygelGriloMediaContainer, freeing also the children */
 static void
 rygel_grilo_media_container_dispose (GObject *object)
 {
@@ -294,6 +314,79 @@ rygel_grilo_media_container_dispose (GObject *object)
   G_OBJECT_CLASS (rygel_grilo_media_container_parent_class)->dispose (object);
 }
 
+/* Class init function */
+static void
+rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  g_type_class_add_private (klass, sizeof (RygelGriloMediaContainerPrivate));
+
+  object_class->get_property = rygel_grilo_media_container_get_property;
+  object_class->set_property = rygel_grilo_media_container_set_property;
+  object_class->dispose = rygel_grilo_media_container_dispose;
+
+  g_object_class_install_property (object_class,
+                                   PROP_ITEMS,
+                                   g_param_spec_boxed ("items",
+                                                       "Items",
+                                                       "List of Items",
+                                                       DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH,
+                                                       G_PARAM_READABLE));
+
+  g_object_class_install_property (object_class,
+                                   PROP_ITEM_COUNT,
+                                   g_param_spec_uint ("item-count",
+                                                      "ItemCount",
+                                                      "Number of Items",
+                                                      0, G_MAXUINT, 0,
+                                                      G_PARAM_READABLE |
+                                                      G_PARAM_WRITABLE));
+
+  g_object_class_install_property (object_class,
+                                   PROP_CONTAINERS,
+                                   g_param_spec_boxed ("containers",
+                                                       "Containers",
+                                                       "List of Containers",
+                                                       DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH,
+                                                       G_PARAM_READABLE));
+
+  g_object_class_install_property (object_class,
+                                   PROP_CONTAINER_COUNT,
+                                   g_param_spec_uint ("container-count",
+                                                      "ContainerCount",
+                                                      "Number of Containers",
+                                                      0, G_MAXUINT, 0,
+                                                      G_PARAM_READABLE |
+                                                      G_PARAM_WRITABLE));
+
+  klass->limit = DEFAULT_LIMIT;
+
+  /* Register introspection */
+  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
+                                   &dbus_glib_rygel_grilo_media_container_object_info);
+}
+
+/* Object init function */
+static void
+rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
+{
+}
+
+/**
+ * rygel_grilo_media_container_get:
+ * @obj: a RygelGriloMediaContainer
+ * @interface: dbus interface used to query the object
+ * @property: property queried
+ * @context: dbus method context to send the reply
+ * @error: error if something is wrong
+ *
+ * Send the value of a property through dbus. If property refers to some
+ * children, the current container is browsed previously to get children, an
+ * then the function is invoked again to send the values.
+ *
+ * Returns: @TRUE if the property can be sent
+ **/
 gboolean
 rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
                                  const gchar *interface,
@@ -384,6 +477,19 @@ rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
   return TRUE;
 }
 
+/**
+ * rygel_grilo_media_container_get_all:
+ * @obj: a RygelGriloMediacontainer
+ * @interface: dbus interface used to query the object
+ * @context: dbus method context to send the reply
+ * @error: error if something is wrong
+ *
+ * Send the value of all properties in the interface. If interface refers to
+ * "org.gnome.UPnP.MediaObject then a browse is performed to get the children,
+ * and then values are returned.
+ *
+ * Returns: @TRUE if property can be sent
+ **/
 gboolean
 rygel_grilo_media_container_get_all (RygelGriloMediaContainer *obj,
                                      const gchar *interface,
@@ -466,64 +572,17 @@ rygel_grilo_media_container_get_all (RygelGriloMediaContainer *obj,
   return TRUE;
 }
 
-
-static void
-rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
-{
-  GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-  g_type_class_add_private (klass, sizeof (RygelGriloMediaContainerPrivate));
-
-  object_class->get_property = rygel_grilo_media_container_get_property;
-  object_class->set_property = rygel_grilo_media_container_set_property;
-  object_class->dispose = rygel_grilo_media_container_dispose;
-
-  g_object_class_install_property (object_class,
-                                   PROP_ITEMS,
-                                   g_param_spec_boxed ("items",
-                                                       "Items",
-                                                       "List of Items",
-                                                       DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH,
-                                                       G_PARAM_READABLE));
-
-  g_object_class_install_property (object_class,
-                                   PROP_ITEM_COUNT,
-                                   g_param_spec_uint ("item-count",
-                                                      "ItemCount",
-                                                      "Number of Items",
-                                                      0, G_MAXUINT, 0,
-                                                      G_PARAM_READABLE |
-                                                      G_PARAM_WRITABLE));
-
-  g_object_class_install_property (object_class,
-                                   PROP_CONTAINERS,
-                                   g_param_spec_boxed ("containers",
-                                                       "Containers",
-                                                       "List of Containers",
-                                                       DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH,
-                                                       G_PARAM_READABLE));
-
-  g_object_class_install_property (object_class,
-                                   PROP_CONTAINER_COUNT,
-                                   g_param_spec_uint ("container-count",
-                                                      "ContainerCount",
-                                                      "Number of Containers",
-                                                      0, G_MAXUINT, 0,
-                                                      G_PARAM_READABLE |
-                                                      G_PARAM_WRITABLE));
-
-  klass->limit = DEFAULT_LIMIT;
-
-  /* Register introspection */
-  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
-                                   &dbus_glib_rygel_grilo_media_container_object_info);
-}
-
-static void
-rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
-{
-}
-
+/**
+ * rygel_grilo_media_container_new_root:
+ * @dbus_path: dbus path where object is registered
+ * @media: grilo media object being wrapped
+ * @limit: up to how many children each container will have
+ *
+ * Creates a new container that will be the root of all containers. Usually it
+ * wraps the root of a grilo source.
+ *
+ * Returns: a new RygelGriloMediaContainer
+ **/
 RygelGriloMediaContainer *
 rygel_grilo_media_container_new_root (const gchar *dbus_path,
                                       GrlMedia *media,
@@ -544,6 +603,16 @@ rygel_grilo_media_container_new_root (const gchar *dbus_path,
   return obj;
 }
 
+
+/**
+ * rygel_grilo_media_container_new_with_parent:
+ * @parent: parent object
+ * @media: grilo media object to be wrapped
+ *
+ * Creates a new container that is child of another container.
+ *
+ * Returns: a new RygelGriloMediaContainer
+ **/
 RygelGriloMediaContainer *
 rygel_grilo_media_container_new_with_parent (RygelGriloMediaObject *parent,
                                              GrlMedia *media)
