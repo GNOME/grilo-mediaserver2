@@ -585,15 +585,29 @@ get_properties_cb (GrlMediaSource *source,
                    const GError *error)
 {
   GPtrArray *prop_values;
+  GError *rg_error = NULL;
   GetData *data = (GetData *) user_data;
 
-  g_assert (media);
-
-  prop_values = get_property_values (data->ms_id, media, data->filter);
-  dbus_g_method_return (data->context, prop_values);
-  free_property_array (prop_values);
-  get_data_free (data);
-  g_object_unref (media);
+  if (!media) {
+    if (error && error->message) {
+      rg_error = g_error_new_literal (RYGEL_GRILO_ERROR,
+                                      RYGEL_GRILO_ERROR_GENERAL,
+                                      error->message);
+    } else {
+      rg_error = g_error_new (RYGEL_GRILO_ERROR,
+                              RYGEL_GRILO_ERROR_GENERAL,
+                              "Unable to resolve %s",
+                              data->ms_id);
+    }
+    dbus_g_method_return_error (data->context, rg_error);
+    g_error_free (rg_error);
+  } else {
+    prop_values = get_property_values (data->ms_id, media, data->filter);
+    dbus_g_method_return (data->context, prop_values);
+    free_property_array (prop_values);
+    get_data_free (data);
+    g_object_unref (media);
+  }
 }
 
 /* Callback with the results of a browse */
@@ -607,8 +621,6 @@ get_children_cb (GrlMediaSource *source,
 {
   GetData *data = (GetData *) user_data;
   gchar *child_id;
-
-  g_assert (!error);
 
   if (media) {
     child_id = build_ms_id (data->ms_id, media);

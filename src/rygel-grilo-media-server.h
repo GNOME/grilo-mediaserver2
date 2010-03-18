@@ -27,6 +27,9 @@
 #include <glib-object.h>
 #include <grilo.h>
 
+#define RYGEL_GRILO_ERROR                               \
+  g_quark_from_static_string("rygel_grilo_error")
+
 #define RYGEL_GRILO_MEDIA_SERVER_TYPE           \
   (rygel_grilo_media_server_get_type ())
 
@@ -70,6 +73,10 @@ struct _RygelGriloMediaServerClass {
 
   GObjectClass parent_class;
 };
+
+typedef enum {
+  RYGEL_GRILO_ERROR_GENERAL = 1
+} RygelGriloError;
 
 GType rygel_grilo_media_server_get_type (void);
 
