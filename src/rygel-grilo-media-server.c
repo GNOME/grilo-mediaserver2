@@ -128,18 +128,25 @@ get_data_free (GetData *data) {
 }
 
 /* Registers the RygelGriloMediaServer object in dbus */
-static void
+static gboolean
 rygel_grilo_media_server_dbus_register (RygelGriloMediaServer *obj,
                                         const gchar *dbus_path)
 {
   DBusGConnection *connection;
+  GError *error = NULL;
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, NULL);
-  g_assert (connection);
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_clear_error (&error);
+    return FALSE;
+  }
 
   dbus_g_connection_register_g_object (connection,
                                        dbus_path,
                                        G_OBJECT (obj));
+
+  return TRUE;
 }
 
 /* Dispose an object */
@@ -720,7 +727,10 @@ rygel_grilo_media_server_new (const gchar *dbus_path,
   obj->priv->grl_source = source;
   g_object_ref (obj->priv->grl_source);
 
-  rygel_grilo_media_server_dbus_register (obj, dbus_path);
-
-  return obj;
+  if (!rygel_grilo_media_server_dbus_register (obj, dbus_path)) {
+    g_object_unref (obj);
+    return NULL;
+  } else {
+    return obj;
+  }
 }

@@ -102,6 +102,7 @@ static void
 source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
   GrlSupportedOps supported_ops;
+  RygelGriloMediaServer *server;
   gchar *dbus_path;
   gchar *dbus_service;
   gchar *source_id;
@@ -124,10 +125,14 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     g_free (source_id);
     dbus_register_name (dbus_service);
     g_free (dbus_service);
-    g_hash_table_insert (registered_sources,
-                         dbus_path,
-                         rygel_grilo_media_server_new (dbus_path,
-                                                       GRL_MEDIA_SOURCE (user_data)));
+
+    server = rygel_grilo_media_server_new (dbus_path,
+                                           GRL_MEDIA_SOURCE (user_data));
+    if (!server) {
+      g_warning ("Cannot register %s", source_id);
+    } else {
+      g_hash_table_insert (registered_sources, dbus_path, server);
+    }
   } else {
     g_debug ("%s source does not support either browse or metadata",
              grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
@@ -181,7 +186,11 @@ main (gint argc, gchar **argv)
 
   /* Get DBus */
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-  g_assert (connection);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_clear_error (&error);
+    return -1;
+  }
 
   gproxy = dbus_g_proxy_new_for_name (connection,
                                       DBUS_SERVICE_DBUS,
