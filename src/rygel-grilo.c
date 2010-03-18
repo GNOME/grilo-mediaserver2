@@ -116,7 +116,11 @@ get_root_cb (GrlMediaSource *source,
   const gchar *name;
   gchar *dbus_path = (gchar *) user_data;
 
-  g_assert (media);
+  if (!media) {
+    name = grl_metadata_source_get_name (GRL_METADATA_SOURCE (source));
+    g_warning ("Cannot get root container for %s, %s", name, error->message);
+    return;
+  }
 
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);

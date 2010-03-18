@@ -127,8 +127,6 @@ browse_result_cb (GrlMediaSource *source,
   RygelGriloMediaContainer *container;
   RygelGriloMediaItem *item;
 
-  g_assert (!error);
-
   priv = RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (bd->container);
   if (media) {
     if (GRL_IS_MEDIA_BOX (media)) {
