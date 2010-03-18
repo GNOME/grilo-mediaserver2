@@ -241,7 +241,7 @@ rygel_grilo_media_item_init (RygelGriloMediaItem *obj)
  * Creates a new RygelGriloMediaItem that wraps the grilo media, and register it
  * in dbus.
  *
- * Returns: a new RygelGriloMediaItem
+ * Returns: a new RygelGriloMediaItem registered on dbus, or @NULL otherwise
  **/
 RygelGriloMediaItem *
 rygel_grilo_media_item_new (RygelGriloMediaObject *parent,
@@ -265,8 +265,11 @@ rygel_grilo_media_item_new (RygelGriloMediaObject *parent,
                   NULL);
 
   g_free (dbus_path);
-  klass->index++;
-  rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj));
-
-  return obj;
+  if (rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj))) {
+    klass->index++;
+    return obj;
+  } else {
+    g_object_unref (obj);
+    return NULL;
+  }
 }

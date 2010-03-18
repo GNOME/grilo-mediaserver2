@@ -135,18 +135,22 @@ browse_result_cb (GrlMediaSource *source,
       container =
         rygel_grilo_media_container_new_with_parent (RYGEL_GRILO_MEDIA_OBJECT (bd->container),
                                                      media);
-      priv->containers =
-        g_list_prepend (priv->containers,
-                        g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (container))));
-      priv->container_count++;
+      if (container) {
+        priv->containers =
+          g_list_prepend (priv->containers,
+                          g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (container))));
+        priv->container_count++;
+      }
     } else {
       item =
         rygel_grilo_media_item_new (RYGEL_GRILO_MEDIA_OBJECT (bd->container),
                                     media);
-      priv->items =
-        g_list_prepend (priv->items,
-                        g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (item))));
-      priv->item_count++;
+      if (item) {
+        priv->items =
+          g_list_prepend (priv->items,
+                          g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (item))));
+        priv->item_count++;
+      }
     }
   }
 
@@ -598,9 +602,13 @@ rygel_grilo_media_container_new_root (const gchar *dbus_path,
                       NULL);
   klass = RYGEL_GRILO_MEDIA_CONTAINER_GET_CLASS (obj);
   klass->limit = limit;
-  rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj));
 
-  return obj;
+  if (rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj))) {
+    return obj;
+  } else {
+    g_object_unref (obj);
+    return NULL;
+  }
 }
 
 
@@ -611,7 +619,8 @@ rygel_grilo_media_container_new_root (const gchar *dbus_path,
  *
  * Creates a new container that is child of another container.
  *
- * Returns: a new RygelGriloMediaContainer
+ * Returns: a new RygelGriloMediaContainer registered on dbus, or @NULL
+ * otherwise
  **/
 RygelGriloMediaContainer *
 rygel_grilo_media_container_new_with_parent (RygelGriloMediaObject *parent,
@@ -635,8 +644,11 @@ rygel_grilo_media_container_new_with_parent (RygelGriloMediaObject *parent,
                   NULL);
 
   g_free (dbus_path);
-  klass->index++;
-  rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj));
-
-  return obj;
+  if (rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj))) {
+    klass->index++;
+    return obj;
+  } else {
+    g_object_unref (obj);
+    return NULL;
+  }
 }

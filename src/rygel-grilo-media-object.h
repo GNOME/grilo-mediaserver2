@@ -75,7 +75,7 @@ struct _RygelGriloMediaObjectClass {
 
 GType rygel_grilo_media_object_get_type (void);
 
-void rygel_grilo_media_object_dbus_register (RygelGriloMediaObject *obj);
+gboolean rygel_grilo_media_object_dbus_register (RygelGriloMediaObject *obj);
 
 const gchar *rygel_grilo_media_object_get_dbus_path (RygelGriloMediaObject *obj);
 

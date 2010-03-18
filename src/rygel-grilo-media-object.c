@@ -245,19 +245,28 @@ rygel_grilo_media_object_get_dbus_path (RygelGriloMediaObject *obj)
  * @obj: a RygelGrilo object
  *
  * Registers the object in dbus.
+ *
+ * Returns: @TRUE if object was registered
  **/
-void
+gboolean
 rygel_grilo_media_object_dbus_register (RygelGriloMediaObject *obj)
 {
   DBusGConnection *connection;
+  GError *error = NULL;
   RygelGriloMediaObjectPrivate *priv =
     RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj);
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, NULL);
-  g_assert (connection);
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_clear_error (&error);
+    return FALSE;
+  }
 
   dbus_g_connection_register_g_object (connection,
                                        priv->dbus_path,
                                        G_OBJECT (obj));
+
+  return TRUE;
 }
 

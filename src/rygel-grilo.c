@@ -112,6 +112,8 @@ get_root_cb (GrlMediaSource *source,
              gpointer user_data,
              const GError *error)
 {
+  RygelGriloMediaContainer *rg;
+  const gchar *name;
   gchar *dbus_path = (gchar *) user_data;
 
   g_assert (media);
@@ -119,11 +121,16 @@ get_root_cb (GrlMediaSource *source,
   /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
   g_object_ref (media);
 
-  g_hash_table_insert (registered_sources,
-                       dbus_path,
-                       rygel_grilo_media_container_new_root (dbus_path,
-                                                             media,
-                                                             limit));
+  rg = rygel_grilo_media_container_new_root (dbus_path, media, limit);
+  if (!rg) {
+    name = grl_media_get_title (media);
+    if (!name) {
+      name = grl_media_get_id (media);
+    }
+    g_warning ("Cannot register %s\n",  name);
+  } else {
+    g_hash_table_insert (registered_sources, dbus_path, rg);
+  }
 }
 
 /* Callback invoked whenever a new source comes up */
@@ -226,7 +233,11 @@ main (gint argc, gchar **argv)
 
   /* Get DBus */
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-  g_assert (connection);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_clear_error (&error);
+    return -1;
+  }
 
   gproxy = dbus_g_proxy_new_for_name (connection,
                                       DBUS_SERVICE_DBUS,
