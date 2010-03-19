@@ -53,111 +53,19 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* NONE:STRING,STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.L4PD9U:1) */
-extern void dbus_glib_marshal_rygel_grilo_media_container_VOID__STRING_STRING_POINTER (GClosure     *closure,
-                                                                                       GValue       *return_value,
-                                                                                       guint         n_param_values,
-                                                                                       const GValue *param_values,
-                                                                                       gpointer      invocation_hint,
-                                                                                       gpointer      marshal_data);
-void
-dbus_glib_marshal_rygel_grilo_media_container_VOID__STRING_STRING_POINTER (GClosure     *closure,
-                                                                           GValue       *return_value G_GNUC_UNUSED,
-                                                                           guint         n_param_values,
-                                                                           const GValue *param_values,
-                                                                           gpointer      invocation_hint G_GNUC_UNUSED,
-                                                                           gpointer      marshal_data)
-{
-  typedef void (*GMarshalFunc_VOID__STRING_STRING_POINTER) (gpointer     data1,
-                                                            gpointer     arg_1,
-                                                            gpointer     arg_2,
-                                                            gpointer     arg_3,
-                                                            gpointer     data2);
-  register GMarshalFunc_VOID__STRING_STRING_POINTER callback;
-  register GCClosure *cc = (GCClosure*) closure;
-  register gpointer data1, data2;
-
-  g_return_if_fail (n_param_values == 4);
-
-  if (G_CCLOSURE_SWAP_DATA (closure))
-    {
-      data1 = closure->data;
-      data2 = g_value_peek_pointer (param_values + 0);
-    }
-  else
-    {
-      data1 = g_value_peek_pointer (param_values + 0);
-      data2 = closure->data;
-    }
-  callback = (GMarshalFunc_VOID__STRING_STRING_POINTER) (marshal_data ? marshal_data : cc->callback);
-
-  callback (data1,
-            g_marshal_value_peek_string (param_values + 1),
-            g_marshal_value_peek_string (param_values + 2),
-            g_marshal_value_peek_pointer (param_values + 3),
-            data2);
-}
-#define dbus_glib_marshal_rygel_grilo_media_container_NONE__STRING_STRING_POINTER	dbus_glib_marshal_rygel_grilo_media_container_VOID__STRING_STRING_POINTER
-
-/* NONE:STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.L4PD9U:2) */
-extern void dbus_glib_marshal_rygel_grilo_media_container_VOID__STRING_POINTER (GClosure     *closure,
-                                                                                GValue       *return_value,
-                                                                                guint         n_param_values,
-                                                                                const GValue *param_values,
-                                                                                gpointer      invocation_hint,
-                                                                                gpointer      marshal_data);
-void
-dbus_glib_marshal_rygel_grilo_media_container_VOID__STRING_POINTER (GClosure     *closure,
-                                                                    GValue       *return_value G_GNUC_UNUSED,
-                                                                    guint         n_param_values,
-                                                                    const GValue *param_values,
-                                                                    gpointer      invocation_hint G_GNUC_UNUSED,
-                                                                    gpointer      marshal_data)
-{
-  typedef void (*GMarshalFunc_VOID__STRING_POINTER) (gpointer     data1,
-                                                     gpointer     arg_1,
-                                                     gpointer     arg_2,
-                                                     gpointer     data2);
-  register GMarshalFunc_VOID__STRING_POINTER callback;
-  register GCClosure *cc = (GCClosure*) closure;
-  register gpointer data1, data2;
-
-  g_return_if_fail (n_param_values == 3);
-
-  if (G_CCLOSURE_SWAP_DATA (closure))
-    {
-      data1 = closure->data;
-      data2 = g_value_peek_pointer (param_values + 0);
-    }
-  else
-    {
-      data1 = g_value_peek_pointer (param_values + 0);
-      data2 = closure->data;
-    }
-  callback = (GMarshalFunc_VOID__STRING_POINTER) (marshal_data ? marshal_data : cc->callback);
-
-  callback (data1,
-            g_marshal_value_peek_string (param_values + 1),
-            g_marshal_value_peek_pointer (param_values + 2),
-            data2);
-}
-#define dbus_glib_marshal_rygel_grilo_media_container_NONE__STRING_POINTER	dbus_glib_marshal_rygel_grilo_media_container_VOID__STRING_POINTER
-
 G_END_DECLS
 
 #endif /* __dbus_glib_marshal_rygel_grilo_media_container_MARSHAL_H__ */
 
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_rygel_grilo_media_container_methods[] = {
-  { (GCallback) rygel_grilo_media_container_get, dbus_glib_marshal_rygel_grilo_media_container_NONE__STRING_STRING_POINTER, 0 },
-  { (GCallback) rygel_grilo_media_container_get_all, dbus_glib_marshal_rygel_grilo_media_container_NONE__STRING_POINTER, 80 },
 };
 
 const DBusGObjectInfo dbus_glib_rygel_grilo_media_container_object_info = {
   0,
   dbus_glib_rygel_grilo_media_container_methods,
-  2,
-"org.freedesktop.DBus.Properties\0Get\0A\0interface\0I\0s\0property\0I\0s\0value\0O\0F\0N\0v\0\0org.freedesktop.DBus.Properties\0GetAll\0A\0interface\0I\0s\0properties\0O\0F\0N\0a{sv}\0\0\0",
+  0,
+"\0",
 "\0",
 "org.gnome.UPnP.MediaContainer1\0Items\0org.gnome.UPnP.MediaContainer1\0ItemCount\0org.gnome.UPnP.MediaContainer1\0Containers\0org.gnome.UPnP.MediaContainer1\0ContainerCount\0\0"
 };

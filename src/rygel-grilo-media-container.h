@@ -81,17 +81,6 @@ GType rygel_grilo_media_container_get_type (void);
 RygelGriloMediaContainer *rygel_grilo_media_container_new (const gchar *parent,
                                                            const gchar *display_name);
 
-gboolean rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
-                                          const gchar *interface,
-                                          const gchar *property,
-                                          DBusGMethodInvocation *context,
-                                          GError **error);
-
-gboolean rygel_grilo_media_container_get_all (RygelGriloMediaContainer *obj,
-                                              const gchar *interface,
-                                              DBusGMethodInvocation *context,
-                                              GError **error);
-
 RygelGriloMediaContainer *rygel_grilo_media_container_new_root (const gchar *dbus_path,
                                                                 GrlMedia *media,
                                                                 gint limit);
