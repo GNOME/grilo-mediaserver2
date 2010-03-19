@@ -20,6 +20,7 @@
  */
 
 #include <dbus/dbus-glib.h>
+#include <string.h>
 #include "rygel-grilo-media-container.h"
 #include "rygel-grilo-media-container-glue.h"
 #include "rygel-grilo-media-item.h"
@@ -60,13 +61,13 @@ typedef struct {
  *   containers: list of RygelGriloMediaContainer children
  *   browsed: @TRUE if previous fields have right values
  */
-typedef struct {
+struct _RygelGriloMediaContainerPrivate {
   guint item_count;
   guint container_count;
   GList *items;
   GList *containers;
   gboolean browsed;
-} RygelGriloMediaContainerPrivate;
+};
 
 G_DEFINE_TYPE (RygelGriloMediaContainer, rygel_grilo_media_container, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
 
@@ -123,40 +124,40 @@ browse_result_cb (GrlMediaSource *source,
                   const GError *error)
 {
   BrowseData *bd = (BrowseData *) user_data;
-  RygelGriloMediaContainerPrivate *priv;
   RygelGriloMediaContainer *container;
   RygelGriloMediaItem *item;
 
-  priv = RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (bd->container);
   if (media) {
     if (GRL_IS_MEDIA_BOX (media)) {
       container =
         rygel_grilo_media_container_new_with_parent (RYGEL_GRILO_MEDIA_OBJECT (bd->container),
                                                      media);
       if (container) {
-        priv->containers =
-          g_list_prepend (priv->containers,
+        bd->container->priv->containers =
+          g_list_prepend (bd->container->priv->containers,
                           g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (container))));
-        priv->container_count++;
+        bd->container->priv->container_count++;
       }
     } else {
       item =
         rygel_grilo_media_item_new (RYGEL_GRILO_MEDIA_OBJECT (bd->container),
                                     media);
       if (item) {
-        priv->items =
-          g_list_prepend (priv->items,
+        bd->container->priv->items =
+          g_list_prepend (bd->container->priv->items,
                           g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (item))));
-        priv->item_count++;
+        bd->container->priv->item_count++;
       }
     }
   }
 
   if (!remaining) {
     /* Send result */
-    priv->browsed = TRUE;
-    priv->containers = g_list_reverse (priv->containers);
-    priv->items = g_list_reverse (priv->items);
+    bd->container->priv->browsed = TRUE;
+    bd->container->priv->containers =
+      g_list_reverse (bd->container->priv->containers);
+    bd->container->priv->items =
+      g_list_reverse (bd->container->priv->items);
     bd->retry (bd->container, bd->item, bd->context);
     g_free (bd->item);
     g_free (bd);
@@ -248,15 +249,13 @@ rygel_grilo_media_container_get_property (GObject *object,
 {
   RygelGriloMediaContainer *self =
     RYGEL_GRILO_MEDIA_CONTAINER (object);
-  RygelGriloMediaContainerPrivate *priv =
-    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
   switch (prop_id) {
   case PROP_ITEM_COUNT:
-    g_value_set_uint (value, priv->item_count);
+    g_value_set_uint (value, self->priv->item_count);
     break;
   case PROP_CONTAINER_COUNT:
-    g_value_set_uint (value, priv->container_count);
+    g_value_set_uint (value, self->priv->container_count);
     break;
   case PROP_ITEMS:
     g_value_take_boxed (value,
@@ -281,15 +280,13 @@ rygel_grilo_media_container_set_property (GObject *object,
 {
   RygelGriloMediaContainer *self =
     RYGEL_GRILO_MEDIA_CONTAINER (object);
-  RygelGriloMediaContainerPrivate *priv =
-    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
   switch (prop_id) {
   case PROP_ITEM_COUNT:
-    priv->item_count = g_value_get_uint (value);
+    self->priv->item_count = g_value_get_uint (value);
     break;
   case PROP_CONTAINER_COUNT:
-    priv->container_count = g_value_get_uint (value);
+    self->priv->container_count = g_value_get_uint (value);
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -303,15 +300,13 @@ rygel_grilo_media_container_dispose (GObject *object)
 {
   RygelGriloMediaContainer *self =
     RYGEL_GRILO_MEDIA_CONTAINER (object);
-  RygelGriloMediaContainerPrivate *priv =
-    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (self);
 
   /* Free children */
-  g_list_foreach (priv->containers, (GFunc) free_child, NULL);
-  g_list_free (priv->containers);
+  g_list_foreach (self->priv->containers, (GFunc) free_child, NULL);
+  g_list_free (self->priv->containers);
 
-  g_list_foreach (priv->items, (GFunc) free_child, NULL);
-  g_list_free (priv->items);
+  g_list_foreach (self->priv->items, (GFunc) free_child, NULL);
+  g_list_free (self->priv->items);
 
   G_OBJECT_CLASS (rygel_grilo_media_container_parent_class)->dispose (object);
 }
@@ -373,9 +368,8 @@ rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
 static void
 rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
 {
-  memset (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (server),
-          0,
-          sizeof (RygelGriloMediaContainerPrivate));
+  server->priv = RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (server);
+  memset (server->priv, 0, sizeof (RygelGriloMediaContainerPrivate));
 }
 
 /**
@@ -400,8 +394,6 @@ rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
                                  GError **error)
 {
   BrowseData *bd;
-  RygelGriloMediaContainerPrivate *priv =
-    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
   GValue val = { 0 };
   gchar *display_name = NULL;
   gchar *parent_path = NULL;
@@ -417,7 +409,7 @@ rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
     g_value_init (&val, G_TYPE_STRING);
     g_value_take_string (&val, parent_path);
   } else if (g_strcmp0 (property, "ContainerCount") == 0) {
-    if (priv->browsed) {
+    if (obj->priv->browsed) {
       g_object_get (obj, "container-count", &container_count, NULL);
       g_value_init (&val, G_TYPE_UINT);
       g_value_set_uint (&val, container_count);
@@ -431,7 +423,7 @@ rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
       return TRUE;
     }
   } else if (g_strcmp0 (property, "ItemCount") == 0) {
-    if (priv->browsed) {
+    if (obj->priv->browsed) {
       g_object_get (obj, "item-count", &item_count, NULL);
       g_value_init (&val, G_TYPE_UINT);
       g_value_set_uint (&val, item_count);
@@ -445,7 +437,7 @@ rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
       return TRUE;
     }
   } else if (g_strcmp0 (property, "Items") == 0) {
-    if (priv->browsed) {
+    if (obj->priv->browsed) {
       g_value_init (&val, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
       g_value_take_boxed (&val,
                           rygel_grilo_media_container_get_items (obj));
@@ -459,7 +451,7 @@ rygel_grilo_media_container_get (RygelGriloMediaContainer *obj,
       return TRUE;
     }
   } else if (g_strcmp0 (property, "Containers") == 0) {
-    if (priv->browsed) {
+    if (obj->priv->browsed) {
       g_value_init (&val, DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH);
       g_value_take_boxed (&val,
                           rygel_grilo_media_container_get_containers (obj));
@@ -502,8 +494,6 @@ rygel_grilo_media_container_get_all (RygelGriloMediaContainer *obj,
                                      GError **error)
 {
   BrowseData *bd;
-  RygelGriloMediaContainerPrivate *priv =
-    RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj);
   GHashTable *map;
   GPtrArray *containers;
   GPtrArray *items;
@@ -536,7 +526,7 @@ rygel_grilo_media_container_get_all (RygelGriloMediaContainer *obj,
     g_hash_table_insert (map, "Parent", &parent_value);
     g_hash_table_insert (map, "DisplayName", &display_value);
   } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
-    if (priv->browsed) {
+    if (obj->priv->browsed) {
       g_object_get (obj,
                     "item-count", &item_count,
                     "items", &items,

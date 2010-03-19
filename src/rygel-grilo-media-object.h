@@ -53,12 +53,14 @@
                               RYGEL_GRILO_MEDIA_OBJECT_TYPE,    \
                               RygelGriloMediaObjectClass))
 
-typedef struct _RygelGriloMediaObject RygelGriloMediaObject;
-
+typedef struct _RygelGriloMediaObject        RygelGriloMediaObject;
+typedef struct _RygelGriloMediaObjectPrivate RygelGriloMediaObjectPrivate;
 struct _RygelGriloMediaObject {
 
   GObject parent;
 
+  /*< private >*/
+  RygelGriloMediaObjectPrivate *priv;
 };
 
 typedef struct _RygelGriloMediaObjectClass RygelGriloMediaObjectClass;

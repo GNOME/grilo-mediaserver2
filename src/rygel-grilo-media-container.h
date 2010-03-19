@@ -54,12 +54,15 @@
                               RYGEL_GRILO_MEDIA_CONTAINER_TYPE, \
                               RygelGriloMediaContainerClass))
 
-typedef struct _RygelGriloMediaContainer RygelGriloMediaContainer;
+typedef struct _RygelGriloMediaContainer        RygelGriloMediaContainer;
+typedef struct _RygelGriloMediaContainerPrivate RygelGriloMediaContainerPrivate;
 
 struct _RygelGriloMediaContainer {
 
   RygelGriloMediaObject parent;
 
+  /*< private >*/
+  RygelGriloMediaContainerPrivate *priv;
 };
 
 typedef struct _RygelGriloMediaContainerClass RygelGriloMediaContainerClass;
