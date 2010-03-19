@@ -32,6 +32,9 @@
 #define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer1"
 #define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer1"
 
+#define UPNP_SOURCE_PREFIX        "UPnP - "
+#define UPNP_SOURCE_PREFIX_LENGTH 7
+
 #define DEFAULT_LIMIT 5
 
 static gint limit;
@@ -167,7 +170,11 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     /* Check if this is already provided */
     if (g_list_find_custom (contents_provided,
                             source_name,
-                            (GCompareFunc) g_strcmp0)) {
+                            (GCompareFunc) g_strcmp0) ||
+        (g_str_has_prefix (source_name, UPNP_SOURCE_PREFIX) &&
+         g_list_find_custom (contents_provided,
+                             source_name + UPNP_SOURCE_PREFIX_LENGTH,
+                             (GCompareFunc) g_strcmp0))) {
       g_debug ("Skipping %s [%s]", source_id, source_name);
       g_free (source_id);
       g_free (source_name);
