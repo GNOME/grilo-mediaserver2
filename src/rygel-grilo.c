@@ -26,6 +26,9 @@
 
 #include "rygel-grilo-media-container.h"
 
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN "rygel-grilo"
+
 #define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer1"
 #define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer1"
 
