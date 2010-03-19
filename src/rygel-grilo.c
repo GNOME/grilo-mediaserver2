@@ -35,6 +35,7 @@ static gint limit;
 static gchar **args;
 static DBusGProxy *gproxy = NULL;
 static GHashTable *registered_sources = NULL;
+static GList *contents_provided = NULL;
 
 static GOptionEntry entries[] = {
   { "limit", 'l', 0,
@@ -122,18 +123,18 @@ get_root_cb (GrlMediaSource *source,
     return;
   }
 
-  /* WORKAROUND: THIS MUST BE FIXED IN GRILO */
-  g_object_ref (media);
-
   rg = rygel_grilo_media_container_new_root (dbus_path, media, limit);
-  if (!rg) {
+  if (rg) {
+    g_hash_table_insert (registered_sources, dbus_path, rg);
+    contents_provided =
+      g_list_prepend (contents_provided,
+                      g_strdup (grl_metadata_source_get_name (GRL_METADATA_SOURCE (source))));
+  } else {
     name = grl_media_get_title (media);
     if (!name) {
       name = grl_media_get_id (media);
     }
     g_warning ("Cannot register %s\n",  name);
-  } else {
-    g_hash_table_insert (registered_sources, dbus_path, rg);
   }
 }
 
@@ -146,6 +147,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
   gchar *dbus_path;
   gchar *dbus_service;
   gchar *source_id;
+  gchar *source_name;
 
   /* Only sources that implement browse and metadata are of interest */
   supported_ops =
@@ -156,8 +158,20 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     /* Register a new service name */
     source_id =
       g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+    source_name =
+      g_strdup (grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data)));
 
-    g_debug ("Registering %s source", source_id);
+    /* Check if this is already provided */
+    if (g_list_find_custom (contents_provided,
+                            source_name,
+                            (GCompareFunc) g_strcmp0)) {
+      g_debug ("Skipping %s [%s]", source_id, source_name);
+      g_free (source_id);
+      g_free (source_name);
+      return;
+    }
+
+    g_debug ("Registering %s source [%s]", source_id, source_name);
 
     sanitize (source_id);
     dbus_service = g_strconcat (ENTRY_POINT_SERVICE ".", source_id, NULL);
@@ -187,12 +201,17 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 static void
 source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
+  GList *provider_entry;
+  const gchar *source_name;
   gchar *dbus_name;
   gchar *dbus_path;
   gchar *source_id;
 
   source_id =
     g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+  source_name =
+    grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data));
+
   sanitize (source_id);
 
   dbus_name = g_strconcat (ENTRY_POINT_SERVICE ".", source_id, NULL);
@@ -203,6 +222,14 @@ source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
   dbus_path = g_strconcat (ENTRY_POINT_PATH "/", source_id, NULL);
   g_hash_table_remove (registered_sources, dbus_path);
   g_free (dbus_path);
+
+  provider_entry = g_list_find_custom (contents_provided,
+                                       source_name,
+                                       (GCompareFunc) g_strcmp0);
+  if (provider_entry) {
+    g_free (provider_entry->data);
+    contents_provided = g_list_delete_link (contents_provided, provider_entry);
+  }
 }
 
 /* Main program */
