@@ -251,6 +251,9 @@ rygel_grilo_media_item_new (RygelGriloMediaObject *parent,
   RygelGriloMediaObjectClass *klass;
   gchar *dbus_path;
 
+  g_return_val_if_fail (parent, NULL);
+  g_return_val_if_fail (media, NULL);
+
   klass = RYGEL_GRILO_MEDIA_OBJECT_GET_CLASS (parent);
   dbus_path = g_strdup_printf ("%s/%u",
                                rygel_grilo_media_object_get_dbus_path (parent),

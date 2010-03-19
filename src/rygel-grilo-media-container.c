@@ -387,6 +387,9 @@ rygel_grilo_media_container_new_root (const gchar *dbus_path,
   RygelGriloMediaContainer *obj;
   RygelGriloMediaContainerClass *klass;
 
+  g_return_val_if_fail (dbus_path, NULL);
+  g_return_val_if_fail (media, NULL);
+
   obj = g_object_new (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
                       "parent", dbus_path,
                       "dbus-path", dbus_path,
@@ -421,6 +424,9 @@ rygel_grilo_media_container_new_with_parent (RygelGriloMediaObject *parent,
   RygelGriloMediaContainer *obj;
   RygelGriloMediaObjectClass *klass;
   gchar *dbus_path;
+
+  g_return_val_if_fail (parent, NULL);
+  g_return_val_if_fail (media, NULL);
 
   klass = RYGEL_GRILO_MEDIA_OBJECT_GET_CLASS (parent);
   dbus_path = g_strdup_printf ("%s/%u",
