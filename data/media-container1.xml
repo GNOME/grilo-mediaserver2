@@ -10,18 +10,4 @@
     <property name="Containers"     type="ao" access="read"/>
     <property name="ContainerCount" type="u"  access="read"/>
   </interface>
-
-  <interface name="org.freedesktop.DBus.Properties">
-    <method name="Get">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
-      <arg name="interface" direction="in"  type="s"/>
-      <arg name="property"  direction="in"  type="s"/>
-      <arg name="value"     direction="out" type="v"/>
-    </method>
-    <method name="GetAll">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
-      <arg name="interface"   direction="in"  type="s"/>
-      <arg name="properties"  direction="out" type="a{sv}"/>
-    </method>
-  </interface>
 </node>
