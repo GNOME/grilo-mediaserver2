@@ -224,6 +224,9 @@ rygel_grilo_media_object_class_init (RygelGriloMediaObjectClass *klass)
 static void
 rygel_grilo_media_object_init (RygelGriloMediaObject *obj)
 {
+  memset (RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj),
+          0,
+          sizeof (RygelGriloMediaObjectPrivate));
 }
 
 /**

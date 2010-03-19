@@ -373,6 +373,9 @@ rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
 static void
 rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
 {
+  memset (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (server),
+          0,
+          sizeof (RygelGriloMediaContainerPrivate));
 }
 
 /**
