@@ -365,7 +365,6 @@ static void
 rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
 {
   server->priv = RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (server);
-  memset (server->priv, 0, sizeof (RygelGriloMediaContainerPrivate));
 }
 
 /**

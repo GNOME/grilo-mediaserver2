@@ -220,7 +220,6 @@ static void
 rygel_grilo_media_object_init (RygelGriloMediaObject *obj)
 {
   obj->priv = RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj);
-  memset (obj->priv, 0, sizeof (RygelGriloMediaObjectPrivate));
 }
 
 /**
