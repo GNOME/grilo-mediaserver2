@@ -182,7 +182,6 @@ static void
 rygel_grilo_media_server_init (RygelGriloMediaServer *server)
 {
   server->priv = RYGEL_GRILO_MEDIA_SERVER_GET_PRIVATE (server);
-  memset (server->priv, 0, sizeof (RygelGriloMediaServerPrivate));
 }
 
 /* Given a rygel-grilo id, returns the id of grilo media that it is being
