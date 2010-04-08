@@ -16,18 +16,18 @@ rygel-grilo-%-glue.h: $(top_srcdir)/data/%2.xml
 
 bin_PROGRAMS = rygel-grilo
 
-rygel_grilo_SOURCES =			\
-	rygel-grilo.c			\
-	rygel-grilo-media-server-glue.h	\
-	rygel-grilo-media-server.h	\
-	rygel-grilo-media-server.c
+rygel_grilo_SOURCES =	\
+	rygel-grilo.c
 
-rygel_grilo_CFLAGS =	\
-	-DPREFIX=$(prefix)
+
+rygel_grilo_CFLAGS =		\
+	-DPREFIX=$(prefix)	\
+        -I$(top_srcdir)/lib
 
 rygel_grilo_LDADD =	\
 	-ldl -lpthread	\
-	@DEPS_LIBS@
+	@DEPS_LIBS@	\
+	$(top_builddir)/lib/libmediaserver2.la
 
 MAINTAINERCLEANFILES =	\
 	*.in
