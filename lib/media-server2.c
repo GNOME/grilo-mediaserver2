@@ -248,7 +248,7 @@ get_array_properties (const gchar *id,
         g_ptr_array_add (prop_array, val);
       } else {
         val = get_unknown_value (filter[i]);
-        g_hash_table_insert (properties, g_strdup (filter[i]), val);
+        g_hash_table_insert (properties, (gchar *) filter[i], val);
         g_ptr_array_add (prop_array, val);
       }
     } else {

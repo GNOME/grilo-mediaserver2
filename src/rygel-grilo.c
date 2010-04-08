@@ -368,6 +368,8 @@ wait_for_result (RygelGriloData *rgdata)
   while (!rgdata->updated) {
     g_main_context_iteration (mainloop_context, TRUE);
   }
+
+  g_main_loop_unref (mainloop);
 }
 
 static GHashTable *
