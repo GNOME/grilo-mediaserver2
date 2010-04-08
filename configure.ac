@@ -78,6 +78,7 @@ AC_SUBST([builddir])
 
 AC_CONFIG_FILES([
   Makefile
+  lib/Makefile
   src/Makefile
   data//Makefile
 ])
