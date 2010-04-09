@@ -25,7 +25,7 @@
 #include <grilo.h>
 #include <stdio.h>
 
-#include "media-server2.h"
+#include "media-server2-server.h"
 
 #define ID_PREFIX_AUDIO     "gra://"
 #define ID_PREFIX_CONTAINER "grc://"

@@ -7,11 +7,11 @@
 
 INCLUDES = @DEPS_CFLAGS@
 
-%-glue.h: $(top_srcdir)/data/%.xml
+%-server-glue.h: $(top_srcdir)/data/%.xml
 	$(DBUSBINDINGTOOL)		\
 	--mode=glib-server		\
 	--output=$@			\
-	--prefix=$(subst -,_,$*)	\
+	--prefix=$(subst -,_,$*)_server	\
 	$^
 
 lib_LTLIBRARIES = libmediaserver2.la
@@ -22,10 +22,10 @@ libmediaserver2_la_CFLAGS =	\
 libmediaserver2_la_LIBADD =	\
 	$(DEPS_LIBS)
 
-libmediaserver2_la_SOURCES =	\
-	media-server2-glue.h	\
-	media-server2-private.h	\
-	media-server2.h		\
+libmediaserver2_la_SOURCES =		\
+	media-server2-server-glue.h	\
+	media-server2-server-private.h	\
+	media-server2-server.h		\
 	media-server2.c
 
 MAINTAINERCLEANFILES =	\

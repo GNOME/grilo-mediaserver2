@@ -23,10 +23,9 @@
 #include <dbus/dbus-glib-bindings.h>
 #include <dbus/dbus-glib.h>
 
-#include "media-server2-private.h"
-#include "media-server2.h"
-
-#include "media-server2-glue.h"
+#include "media-server2-server-private.h"
+#include "media-server2-server-glue.h"
+#include "media-server2-server.h"
 
 #define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2"
 #define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2"
@@ -134,7 +133,7 @@ media_server2_class_init (MediaServer2Class *klass)
 
   /* Register introspection */
   dbus_g_object_type_install_info (MEDIA_SERVER2_TYPE,
-                                   &dbus_glib_media_server2_object_info);
+                                   &dbus_glib_media_server2_server_object_info);
 }
 
 /* Object init function */
@@ -293,7 +292,7 @@ get_hash_children (GList *children,
 }
 
 /**
- * media_server2_get_properties:
+ * media_server2_server_get_properties:
  * @server: 
  * @id: 
  * @filter: 
@@ -305,11 +304,11 @@ get_hash_children (GList *children,
  * Returns: 
  **/
 gboolean
-media_server2_get_properties (MediaServer2 *server,
-                              const gchar *id,
-                              const gchar **filter,
-                              DBusGMethodInvocation *context,
-                              GError **error)
+media_server2_server_get_properties (MediaServer2 *server,
+                                     const gchar *id,
+                                     const gchar **filter,
+                                     DBusGMethodInvocation *context,
+                                     GError **error)
 {
   GError *prop_error = NULL;
   GHashTable *properties = NULL;
@@ -350,7 +349,7 @@ media_server2_get_properties (MediaServer2 *server,
 }
 
 /**
- * media_server2_get_children:
+ * media_server2_server_get_children:
  * @server: 
  * @id: 
  * @offset: 
@@ -364,13 +363,13 @@ media_server2_get_properties (MediaServer2 *server,
  * Returns: 
  **/
 gboolean
-media_server2_get_children (MediaServer2 *server,
-                            const gchar *id,
-                            guint offset,
-                            gint max_count,
-                            const gchar **filter,
-                            DBusGMethodInvocation *context,
-                            GError **error)
+media_server2_server_get_children (MediaServer2 *server,
+                                   const gchar *id,
+                                   guint offset,
+                                   gint max_count,
+                                   const gchar **filter,
+                                   DBusGMethodInvocation *context,
+                                   GError **error)
 
 {
   GError *child_error = NULL;
