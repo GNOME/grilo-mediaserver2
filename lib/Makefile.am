@@ -8,7 +8,7 @@
 INCLUDES = @DEPS_CFLAGS@
 
 %-server-glue.h: $(top_srcdir)/data/%.xml
-	$(DBUSBINDINGTOOL)		\
+	$(AM_V_GEN) $(DBUSBINDINGTOOL)	\
 	--mode=glib-server		\
 	--output=$@			\
 	--prefix=$(subst -,_,$*)_server	\
