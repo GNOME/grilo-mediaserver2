@@ -14,6 +14,13 @@ INCLUDES = @DEPS_CFLAGS@
 	--prefix=$(subst -,_,$*)_server	\
 	$^
 
+%-client-glue.h: $(top_srcdir)/data/%.xml
+	$(AM_V_GEN) $(DBUSBINDINGTOOL)	\
+	--mode=glib-client		\
+	--output=$@			\
+	--prefix=$(subst -,_,$*)_client	\
+	$^
+
 lib_LTLIBRARIES = libmediaserver2.la
 
 libmediaserver2_la_CFLAGS =	\
@@ -26,6 +33,7 @@ libmediaserver2_la_SOURCES =		\
 	media-server2-server-glue.h	\
 	media-server2-server-private.h	\
 	media-server2-server.h		\
+	media-server2-client-glue.h	\
 	media-server2.c
 
 MAINTAINERCLEANFILES =	\
