@@ -30,6 +30,7 @@ libmediaserver2_la_LIBADD =	\
 	$(DEPS_LIBS)
 
 libmediaserver2_la_SOURCES =		\
+	media-server2-common.h		\
 	media-server2-server-glue.h	\
 	media-server2-server-private.h	\
 	media-server2-server.h		\
