@@ -11,14 +11,14 @@ INCLUDES = @DEPS_CFLAGS@
 	$(AM_V_GEN) $(DBUSBINDINGTOOL)	\
 	--mode=glib-server		\
 	--output=$@			\
-	--prefix=$(subst -,_,$*)_server	\
+	--prefix=ms2_server		\
 	$^
 
 %-client-glue.h: $(top_srcdir)/data/%.xml
 	$(AM_V_GEN) $(DBUSBINDINGTOOL)	\
 	--mode=glib-client		\
 	--output=$@			\
-	--prefix=$(subst -,_,$*)_client	\
+	--prefix=ms2_client		\
 	$^
 
 lib_LTLIBRARIES = libmediaserver2.la

@@ -62,26 +62,26 @@
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
 
-#define MEDIA_SERVER2_GET_PRIVATE(o)                                    \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), MEDIA_SERVER2_TYPE, MediaServer2Private)
+#define MS2_SERVER_GET_PRIVATE(o)                                    \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_SERVER, MS2ServerPrivate)
 
 /*
- * Private MediaServer2 structure
+ * Private MS2Server structure
  *   data: holds stuff for owner
  *   get_children: function to get children
  *   get_properties: function to get properties
  */
-struct _MediaServer2Private {
+struct _MS2ServerPrivate {
   gpointer *data;
   GetChildrenFunc get_children;
   GetPropertiesFunc get_properties;
 };
 
-G_DEFINE_TYPE (MediaServer2, media_server2, G_TYPE_OBJECT);
+G_DEFINE_TYPE (MS2Server, ms2_server, G_TYPE_OBJECT);
 
-/* Registers the MediaServer2 object in dbus */
+/* Registers the MS2Server object in dbus */
 static gboolean
-media_server2_dbus_register (MediaServer2 *server,
+ms2_server_dbus_register (MS2Server *server,
                              const gchar *name)
 {
   DBusGConnection *connection;
@@ -127,20 +127,20 @@ media_server2_dbus_register (MediaServer2 *server,
 
 /* Class init function */
 static void
-media_server2_class_init (MediaServer2Class *klass)
+ms2_server_class_init (MS2ServerClass *klass)
 {
-  g_type_class_add_private (klass, sizeof (MediaServer2Private));
+  g_type_class_add_private (klass, sizeof (MS2ServerPrivate));
 
   /* Register introspection */
-  dbus_g_object_type_install_info (MEDIA_SERVER2_TYPE,
-                                   &dbus_glib_media_server2_server_object_info);
+  dbus_g_object_type_install_info (MS2_TYPE_SERVER,
+                                   &dbus_glib_ms2_server_object_info);
 }
 
 /* Object init function */
 static void
-media_server2_init (MediaServer2 *server)
+ms2_server_init (MS2Server *server)
 {
-  server->priv = MEDIA_SERVER2_GET_PRIVATE (server);
+  server->priv = MS2_SERVER_GET_PRIVATE (server);
 }
 
 /* Free gvalue */
@@ -292,7 +292,7 @@ get_hash_children (GList *children,
 }
 
 /**
- * media_server2_server_get_properties:
+ * ms2_server_server_get_properties:
  * @server: 
  * @id: 
  * @filter: 
@@ -304,11 +304,11 @@ get_hash_children (GList *children,
  * Returns: 
  **/
 gboolean
-media_server2_server_get_properties (MediaServer2 *server,
-                                     const gchar *id,
-                                     const gchar **filter,
-                                     DBusGMethodInvocation *context,
-                                     GError **error)
+ms2_server_get_properties (MS2Server *server,
+                           const gchar *id,
+                           const gchar **filter,
+                           DBusGMethodInvocation *context,
+                           GError **error)
 {
   GError *prop_error = NULL;
   GHashTable *properties = NULL;
@@ -322,8 +322,8 @@ media_server2_server_get_properties (MediaServer2 *server,
 
     if (prop_error) {
       if (error) {
-        *error = g_error_new_literal (MEDIA_SERVER2_ERROR,
-                                      MEDIA_SERVER2_ERROR_GENERAL,
+        *error = g_error_new_literal (MS2_ERROR,
+                                      MS2_ERROR_GENERAL,
                                       prop_error->message);
         dbus_g_method_return_error (context, *error);
       }
@@ -349,7 +349,7 @@ media_server2_server_get_properties (MediaServer2 *server,
 }
 
 /**
- * media_server2_server_get_children:
+ * ms2_server_server_get_children:
  * @server: 
  * @id: 
  * @offset: 
@@ -363,14 +363,13 @@ media_server2_server_get_properties (MediaServer2 *server,
  * Returns: 
  **/
 gboolean
-media_server2_server_get_children (MediaServer2 *server,
-                                   const gchar *id,
-                                   guint offset,
-                                   gint max_count,
-                                   const gchar **filter,
-                                   DBusGMethodInvocation *context,
-                                   GError **error)
-
+ms2_server_get_children (MS2Server *server,
+                         const gchar *id,
+                         guint offset,
+                         gint max_count,
+                         const gchar **filter,
+                         DBusGMethodInvocation *context,
+                         GError **error)
 {
   GError *child_error = NULL;
   GHashTable *children_hash = NULL;
@@ -386,8 +385,8 @@ media_server2_server_get_children (MediaServer2 *server,
 
     if (child_error) {
       if (error) {
-        *error = g_error_new_literal (MEDIA_SERVER2_ERROR,
-                                      MEDIA_SERVER2_ERROR_GENERAL,
+        *error = g_error_new_literal (MS2_ERROR,
+                                      MS2_ERROR_GENERAL,
                                       child_error->message);
         dbus_g_method_return_error (context, *error);
       }
@@ -412,7 +411,7 @@ media_server2_server_get_children (MediaServer2 *server,
 /*********** PUBLIC API ***********/
 
 /**
- * media_server2_new:
+ * ms2_server_new:
  * @name: 
  * @data: 
  *
@@ -420,17 +419,17 @@ media_server2_server_get_children (MediaServer2 *server,
  *
  * Returns: 
  **/
-MediaServer2 *
-media_server2_new (const gchar *name,
+MS2Server *
+ms2_server_new (const gchar *name,
                    gpointer data)
 {
-  MediaServer2 *server;
+  MS2Server *server;
 
-  server = g_object_new (MEDIA_SERVER2_TYPE, NULL);
+  server = g_object_new (MS2_TYPE_SERVER, NULL);
 
   server->priv->data = data;
 
-  if (!media_server2_dbus_register (server, name)) {
+  if (!ms2_server_dbus_register (server, name)) {
     g_object_unref (server);
     return NULL;
   } else {
@@ -439,39 +438,39 @@ media_server2_new (const gchar *name,
 }
 
 /**
- * media_server2_set_get_properties_func:
+ * ms2_server_set_get_properties_func:
  * @server: 
  * @f: 
  *
  * 
  **/
 void
-media_server2_set_get_properties_func (MediaServer2 *server,
+ms2_server_set_get_properties_func (MS2Server *server,
                                        GetPropertiesFunc get_properties_func)
 {
-  g_return_if_fail (IS_MEDIA_SERVER2 (server));
+  g_return_if_fail (MS2_IS_SERVER (server));
 
   server->priv->get_properties = get_properties_func;
 }
 
 /**
- * media_server2_set_get_children_func:
+ * ms2_server_set_get_children_func:
  * @server: 
  * @f: 
  *
  * 
  **/
 void
-media_server2_set_get_children_func (MediaServer2 *server,
+ms2_server_set_get_children_func (MS2Server *server,
                                      GetChildrenFunc get_children_func)
 {
-  g_return_if_fail (IS_MEDIA_SERVER2 (server));
+  g_return_if_fail (MS2_IS_SERVER (server));
 
   server->priv->get_children = get_children_func;
 }
 
 /**
- * media_server2_new_properties_hashtable:
+ * ms2_server_new_properties_hashtable:
  * @id: 
  *
  * 
@@ -479,7 +478,7 @@ media_server2_set_get_children_func (MediaServer2 *server,
  * Returns: 
  **/
 GHashTable *
-media_server2_new_properties_hashtable (const gchar *id)
+ms2_server_new_properties_hashtable (const gchar *id)
 {
   GHashTable *properties;
 
@@ -495,14 +494,14 @@ media_server2_new_properties_hashtable (const gchar *id)
 }
 
 /**
- * media_server2_set_parent:
+ * ms2_server_set_parent:
  * @properties: 
  * @parent: 
  *
  * 
  **/
 void
-media_server2_set_parent (GHashTable *properties,
+ms2_server_set_parent (GHashTable *properties,
                           const gchar *parent)
 {
   g_return_if_fail (properties);
@@ -515,14 +514,14 @@ media_server2_set_parent (GHashTable *properties,
 }
 
 /**
- * media_server2_set_display_name:
+ * ms2_server_set_display_name:
  * @properties: 
  * @display_name: 
  *
  * 
  **/
 void
-media_server2_set_display_name (GHashTable *properties,
+ms2_server_set_display_name (GHashTable *properties,
                                 const gchar *display_name)
 {
   g_return_if_fail (properties);
@@ -535,13 +534,13 @@ media_server2_set_display_name (GHashTable *properties,
 }
 
 /**
- * media_server2_set_type_container:
+ * ms2_server_set_type_container:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_container (GHashTable *properties)
+ms2_server_set_type_container (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -551,13 +550,13 @@ media_server2_set_type_container (GHashTable *properties)
 }
 
 /**
- * media_server2_set_type_video:
+ * ms2_server_set_type_video:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_video (GHashTable *properties)
+ms2_server_set_type_video (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -567,13 +566,13 @@ media_server2_set_type_video (GHashTable *properties)
 }
 
 /**
- * media_server2_set_type_movie:
+ * ms2_server_set_type_movie:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_movie (GHashTable *properties)
+ms2_server_set_type_movie (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -583,13 +582,13 @@ media_server2_set_type_movie (GHashTable *properties)
 }
 
 /**
- * media_server2_set_type_audio:
+ * ms2_server_set_type_audio:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_audio (GHashTable *properties)
+ms2_server_set_type_audio (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -599,13 +598,13 @@ media_server2_set_type_audio (GHashTable *properties)
 }
 
 /**
- * media_server2_set_type_music:
+ * ms2_server_set_type_music:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_music (GHashTable *properties)
+ms2_server_set_type_music (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -615,13 +614,13 @@ media_server2_set_type_music (GHashTable *properties)
 }
 
 /**
- * media_server2_set_type_image:
+ * ms2_server_set_type_image:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_image (GHashTable *properties)
+ms2_server_set_type_image (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -631,13 +630,13 @@ media_server2_set_type_image (GHashTable *properties)
 }
 
 /**
- * media_server2_set_type_photo:
+ * ms2_server_set_type_photo:
  * @properties: 
  *
  * 
  **/
 void
-media_server2_set_type_photo (GHashTable *properties)
+ms2_server_set_type_photo (GHashTable *properties)
 {
   g_return_if_fail (properties);
 
@@ -647,14 +646,14 @@ media_server2_set_type_photo (GHashTable *properties)
 }
 
 /**
- * media_server2_set_icon:
+ * ms2_server_set_icon:
  * @properties: 
  * @icon: 
  *
  * 
  **/
 void
-media_server2_set_icon (GHashTable *properties,
+ms2_server_set_icon (GHashTable *properties,
                         const gchar *icon)
 {
   g_return_if_fail (properties);
@@ -667,14 +666,14 @@ media_server2_set_icon (GHashTable *properties,
 }
 
 /**
- * media_server2_set_mime_type:
+ * ms2_server_set_mime_type:
  * @properties: 
  * @mime_type: 
  *
  * 
  **/
 void
-media_server2_set_mime_type (GHashTable *properties,
+ms2_server_set_mime_type (GHashTable *properties,
                              const gchar *mime_type)
 {
   g_return_if_fail (properties);
@@ -687,14 +686,14 @@ media_server2_set_mime_type (GHashTable *properties,
 }
 
 /**
- * media_server2_set_artist:
+ * ms2_server_set_artist:
  * @properties: 
  * @artist: 
  *
  * 
  **/
 void
-media_server2_set_artist (GHashTable *properties,
+ms2_server_set_artist (GHashTable *properties,
                           const gchar *artist)
 {
   g_return_if_fail (properties);
@@ -707,14 +706,14 @@ media_server2_set_artist (GHashTable *properties,
 }
 
 /**
- * media_server2_set_album:
+ * ms2_server_set_album:
  * @properties: 
  * @album: 
  *
  * 
  **/
 void
-media_server2_set_album (GHashTable *properties,
+ms2_server_set_album (GHashTable *properties,
                          const gchar *album)
 {
   g_return_if_fail (properties);
@@ -727,14 +726,14 @@ media_server2_set_album (GHashTable *properties,
 }
 
 /**
- * media_server2_set_date:
+ * ms2_server_set_date:
  * @properties: 
  * @date: 
  *
  * 
  **/
 void
-media_server2_set_date (GHashTable *properties,
+ms2_server_set_date (GHashTable *properties,
                         const gchar *date)
 {
   g_return_if_fail (properties);
@@ -747,14 +746,14 @@ media_server2_set_date (GHashTable *properties,
 }
 
 /**
- * media_server2_set_dlna_profile:
+ * ms2_server_set_dlna_profile:
  * @properties: 
  * @dlna_profile: 
  *
  * 
  **/
 void
-media_server2_set_dlna_profile (GHashTable *properties,
+ms2_server_set_dlna_profile (GHashTable *properties,
                                 const gchar *dlna_profile)
 {
   g_return_if_fail (properties);
@@ -767,14 +766,14 @@ media_server2_set_dlna_profile (GHashTable *properties,
 }
 
 /**
- * media_server2_set_thumbnail:
+ * ms2_server_set_thumbnail:
  * @properties: 
  * @thumbnail: 
  *
  * 
  **/
 void
-media_server2_set_thumbnail (GHashTable *properties,
+ms2_server_set_thumbnail (GHashTable *properties,
                              const gchar *thumbnail)
 {
   g_return_if_fail (properties);
@@ -787,14 +786,14 @@ media_server2_set_thumbnail (GHashTable *properties,
 }
 
 /**
- * media_server2_set_genre:
+ * ms2_server_set_genre:
  * @properties: 
  * @genre: 
  *
  * 
  **/
 void
-media_server2_set_genre (GHashTable *properties,
+ms2_server_set_genre (GHashTable *properties,
                          const gchar *genre)
 {
   g_return_if_fail (properties);
@@ -807,14 +806,14 @@ media_server2_set_genre (GHashTable *properties,
 }
 
 /**
- * media_server2_set_child_count:
+ * ms2_server_set_child_count:
  * @properties: 
  * @child_count: 
  *
  * 
  **/
 void
-media_server2_set_child_count (GHashTable *properties,
+ms2_server_set_child_count (GHashTable *properties,
                                gint child_count)
 {
   g_return_if_fail (properties);
@@ -825,14 +824,14 @@ media_server2_set_child_count (GHashTable *properties,
 }
 
 /**
- * media_server2_set_size:
+ * ms2_server_set_size:
  * @properties: 
  * @size: 
  *
  * 
  **/
 void
-media_server2_set_size (GHashTable *properties,
+ms2_server_set_size (GHashTable *properties,
                         gint size)
 {
   g_return_if_fail (properties);
@@ -843,14 +842,14 @@ media_server2_set_size (GHashTable *properties,
 }
 
 /**
- * media_server2_set_duration:
+ * ms2_server_set_duration:
  * @properties: 
  * @duration: 
  *
  * 
  **/
 void
-media_server2_set_duration (GHashTable *properties,
+ms2_server_set_duration (GHashTable *properties,
                             gint duration)
 {
   g_return_if_fail (properties);
@@ -861,14 +860,14 @@ media_server2_set_duration (GHashTable *properties,
 }
 
 /**
- * media_server2_set_bitrate:
+ * ms2_server_set_bitrate:
  * @properties: 
  * @bitrate: 
  *
  * 
  **/
 void
-media_server2_set_bitrate (GHashTable *properties,
+ms2_server_set_bitrate (GHashTable *properties,
                            gint bitrate)
 {
   g_return_if_fail (properties);
@@ -879,14 +878,14 @@ media_server2_set_bitrate (GHashTable *properties,
 }
 
 /**
- * media_server2_set_sample_rate:
+ * ms2_server_set_sample_rate:
  * @properties: 
  * @sample_rate: 
  *
  * 
  **/
 void
-media_server2_set_sample_rate (GHashTable *properties,
+ms2_server_set_sample_rate (GHashTable *properties,
                                gint sample_rate)
 {
   g_return_if_fail (properties);
@@ -897,14 +896,14 @@ media_server2_set_sample_rate (GHashTable *properties,
 }
 
 /**
- * media_server2_set_bits_per_sample:
+ * ms2_server_set_bits_per_sample:
  * @properties: 
  * @bits_per_sample: 
  *
  * 
  **/
 void
-media_server2_set_bits_per_sample (GHashTable *properties,
+ms2_server_set_bits_per_sample (GHashTable *properties,
                                    gint bits_per_sample)
 {
   g_return_if_fail (properties);
@@ -915,14 +914,14 @@ media_server2_set_bits_per_sample (GHashTable *properties,
 }
 
 /**
- * media_server2_set_width:
+ * ms2_server_set_width:
  * @properties: 
  * @width: 
  *
  * 
  **/
 void
-media_server2_set_width (GHashTable *properties,
+ms2_server_set_width (GHashTable *properties,
                          gint width)
 {
   g_return_if_fail (properties);
@@ -933,14 +932,14 @@ media_server2_set_width (GHashTable *properties,
 }
 
 /**
- * media_server2_set_height:
+ * ms2_server_set_height:
  * @properties: 
  * @height: 
  *
  * 
  **/
 void
-media_server2_set_height (GHashTable *properties,
+ms2_server_set_height (GHashTable *properties,
                           gint height)
 {
   g_return_if_fail (properties);
@@ -951,14 +950,14 @@ media_server2_set_height (GHashTable *properties,
 }
 
 /**
- * media_server2_set_pixel_width:
+ * ms2_server_set_pixel_width:
  * @properties: 
  * @pixel_width: 
  *
  * 
  **/
 void
-media_server2_set_pixel_width (GHashTable *properties,
+ms2_server_set_pixel_width (GHashTable *properties,
                                gint pixel_width)
 {
   g_return_if_fail (properties);
@@ -969,14 +968,14 @@ media_server2_set_pixel_width (GHashTable *properties,
 }
 
 /**
- * media_server2_set_pixel_height:
+ * ms2_server_set_pixel_height:
  * @properties: 
  * @pixel_height: 
  *
  * 
  **/
 void
-media_server2_set_pixel_height (GHashTable *properties,
+ms2_server_set_pixel_height (GHashTable *properties,
                                 gint pixel_height)
 {
   g_return_if_fail (properties);
@@ -987,14 +986,14 @@ media_server2_set_pixel_height (GHashTable *properties,
 }
 
 /**
- * media_server2_set_urls:
+ * ms2_server_set_urls:
  * @properties: 
  * @urls: 
  *
  * 
  **/
 void
-media_server2_set_urls (GHashTable *properties,
+ms2_server_set_urls (GHashTable *properties,
                         gchar **urls)
 {
   GPtrArray *url_array;

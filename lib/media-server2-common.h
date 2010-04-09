@@ -23,6 +23,9 @@
 #ifndef _MEDIA_SERVER2_COMMON_H_
 #define _MEDIA_SERVER2_COMMON_H_
 
+#define MS2_ERROR                                       \
+  g_quark_from_static_string("media_server2_error")
+
 /* Common properties */
 #define MS2_PROP_ID           "id"
 #define MS2_PROP_PARENT       "parent"
@@ -71,6 +74,10 @@
 /* Unknown values */
 #define MS2_UNKNOWN_INT -1
 #define MS2_UNKNOWN_STR ""
+
+typedef enum {
+  MS2_ERROR_GENERAL = 1
+} MS2Error;
 
 #endif /* _MEDIA_SERVER2_COMMON_H_ */
 

@@ -28,34 +28,31 @@
 
 #include "media-server2-common.h"
 
-#define MEDIA_SERVER2_ERROR                             \
-  g_quark_from_static_string("media_server2_error")
+#define MS2_TYPE_SERVER                         \
+  (ms2_server_get_type ())
 
-#define MEDIA_SERVER2_TYPE                      \
-  (media_server2_get_type ())
+#define MS2_SERVER(obj)                         \
+  (G_TYPE_CHECK_INSTANCE_CAST ((obj),           \
+                               MS2_TYPE_SERVER, \
+                               MS2Server))
 
-#define MEDIA_SERVER2(obj)                                      \
-  (G_TYPE_CHECK_INSTANCE_CAST ((obj),                           \
-                               MEDIA_SERVER2_TYPE,              \
-                               MediaServer2))
+#define MS2_IS_SERVER(obj)                              \
+  (G_TYPE_CHECK_INSTANCE_TYPE ((obj),                   \
+                               MS2_TYPE_SERVER))
 
-#define IS_MEDIA_SERVER2(obj)                                           \
-  (G_TYPE_CHECK_INSTANCE_TYPE ((obj),                                   \
-                               MEDIA_SERVER2_TYPE))
+#define MS2_SERVER_CLASS(klass)                 \
+  (G_TYPE_CHECK_CLASS_CAST((klass),             \
+                           MS2_TYPE_SERVER,     \
+                           MS2ServerClass))
 
-#define MEDIA_SERVER2_CLASS(klass)                                \
-  (G_TYPE_CHECK_CLASS_CAST((klass),                               \
-                           MEDIA_SERVER2_TYPE,                    \
-                           MediaServer2Class))
+#define MS2_IS_SERVER_CLASS(klass)              \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),             \
+                           MS2_TYPE_SERVER))
 
-#define IS_MEDIA_SERVER2_CLASS(klass)                           \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),                             \
-                           MEDIA_SERVER2_TYPE))
-
-#define MEDIA_SERVER2_GET_CLASS(obj)                            \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj),                            \
-                              MEDIA_SERVER2_TYPE,               \
-                              MediaServer2Class))
+#define MS2_SERVER_GET_CLASS(obj)               \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj),            \
+                              MS2_TYPE_SERVER,  \
+                              MS2ServerClass))
 
 typedef GHashTable * (*GetPropertiesFunc) (const gchar *id,
                                            const gchar **properties,
@@ -69,116 +66,112 @@ typedef GList * (*GetChildrenFunc) (const gchar *id,
                                     gpointer data,
                                     GError **error);
 
-typedef struct _MediaServer2        MediaServer2;
-typedef struct _MediaServer2Private MediaServer2Private;
+typedef struct _MS2Server        MS2Server;
+typedef struct _MS2ServerPrivate MS2ServerPrivate;
 
-struct _MediaServer2 {
+struct _MS2Server {
 
   GObject parent;
 
   /*< private >*/
-  MediaServer2Private *priv;
+  MS2ServerPrivate *priv;
 };
 
-typedef struct _MediaServer2Class MediaServer2Class;
+typedef struct _MS2ServerClass MS2ServerClass;
 
-struct _MediaServer2Class {
+struct _MS2ServerClass {
 
   GObjectClass parent_class;
 };
 
-typedef enum {
-  MEDIA_SERVER2_ERROR_GENERAL = 1
-} MediaServer2Error;
+GType ms2_server_get_type (void);
 
-GType media_server2_get_type (void);
+MS2Server *ms2_server_new (const gchar *name,
+                           gpointer data);
 
-MediaServer2 *media_server2_new (const gchar *name,
-                                 gpointer data);
+void ms2_server_set_get_properties_func (MS2Server *server,
+                                         GetPropertiesFunc get_properties_func);
 
-void media_server2_set_get_properties_func (MediaServer2 *server,
-                                            GetPropertiesFunc get_properties_func);
+void ms2_server_set_get_children_func (MS2Server *server,
+                                       GetChildrenFunc get_children_func);
 
-void media_server2_set_get_children_func (MediaServer2 *server,
-                                          GetChildrenFunc get_children_func);
+GHashTable *ms2_server_new_properties_hashtable (const gchar *id);
 
-GHashTable *media_server2_new_properties_hashtable (const gchar *id);
+void ms2_server_set_parent (GHashTable *properties,
+                            const gchar *parent);
 
-void media_server2_set_parent (GHashTable *properties,
-                               const gchar *parent);
+void ms2_server_set_display_name (GHashTable *properties,
+                                  const gchar *display_name);
 
-void media_server2_set_display_name (GHashTable *properties,
-                                     const gchar *display_name);
+void ms2_server_set_type_container (GHashTable *properties);
 
-void media_server2_set_type_container (GHashTable *properties);
+void ms2_server_set_type_video (GHashTable *properties);
 
-void media_server2_set_type_video (GHashTable *properties);
+void ms2_server_set_type_movie (GHashTable *properties);
 
-void media_server2_set_type_movie (GHashTable *properties);
+void ms2_server_set_type_audio (GHashTable *properties);
 
-void media_server2_set_type_audio (GHashTable *properties);
+void ms2_server_set_type_music (GHashTable *properties);
 
-void media_server2_set_type_music (GHashTable *properties);
+void ms2_server_set_type_image (GHashTable *properties);
 
-void media_server2_set_type_image (GHashTable *properties);
+void ms2_server_set_type_photo (GHashTable *properties);
 
-void media_server2_set_type_photo (GHashTable *properties);
+void ms2_server_set_icon (GHashTable *properties,
+                          const gchar *icon);
 
-void media_server2_set_icon (GHashTable *properties,
-                             const gchar *icon);
+void ms2_server_set_mime_type (GHashTable *properties,
+                               const gchar *mime_type);
 
-void media_server2_set_mime_type (GHashTable *properties,
-                                  const gchar *mime_type);
+void ms2_server_set_artist (GHashTable *properties,
+                            const gchar *artist);
 
-void media_server2_set_artist (GHashTable *properties,
-                               const gchar *artist);
+void ms2_server_set_album (GHashTable *properties,
+                           const gchar *album);
 
-void media_server2_set_album (GHashTable *properties,
-                              const gchar *album);
+void ms2_server_set_date (GHashTable *properties,
+                          const gchar *date);
 
-void media_server2_set_date (GHashTable *properties,
-                             const gchar *date);
+void ms2_server_set_dlna_profile (GHashTable *properties,
+                                  const gchar *dlna_profile);
 
-void media_server2_set_dlna_profile (GHashTable *properties,
-                                     const gchar *dlna_profile);
+void ms2_server_set_thumbnail (GHashTable *properties,
+                               const gchar *thumbnail);
 
-void media_server2_set_thumbnail (GHashTable *properties,
-                                  const gchar *thumbnail);
+void ms2_server_set_genre (GHashTable *properties,
+                           const gchar *genre);
 
-void media_server2_set_genre (GHashTable *properties,
-                              const gchar *genre);
+void ms2_server_set_child_count (GHashTable *properties,
+                                 gint child_count);
 
-void media_server2_set_child_count (GHashTable *properties,
-                                    gint child_count);
+void ms2_server_set_size (GHashTable *properties,
+                          gint size);
 
-void media_server2_set_size (GHashTable *properties,
-                             gint size);
+void ms2_server_set_duration (GHashTable *properties,
+                              gint duration);
 
-void media_server2_set_duration (GHashTable *properties,
-                                 gint duration);
+void ms2_server_set_bitrate (GHashTable *properties,
+                             gint bitrate);
 
-void media_server2_set_bitrate (GHashTable *properties,
-                                gint bitrate);
+void ms2_server_set_sample_rate (GHashTable *properties,
+                                 gint sample_rate);
 
-void media_server2_set_sample_rate (GHashTable *properties,
-                                    gint sample_rate);
+void ms2_server_set_bits_per_sample (GHashTable *properties,
+                                     gint bits_per_sample);
 
-void media_server2_set_bits_per_sample (GHashTable *properties,
-                                        gint bits_per_sample);
+void ms2_server_set_width (GHashTable *properties,
+                           gint width);
 
-void media_server2_set_width (GHashTable *properties,
-                              gint width);
+void ms2_server_set_height (GHashTable *properties,
+                            gint height);
 
-void media_server2_set_height (GHashTable *properties,
-                               gint height);
+void ms2_server_set_pixel_width (GHashTable *properties,
+                                 gint pixel_width);
 
-void media_server2_set_pixel_width (GHashTable *properties,
-                                    gint pixel_width);
+void ms2_server_set_pixel_height (GHashTable *properties,
+                                  gint pixel_height);
 
-void media_server2_set_pixel_height (GHashTable *properties,
-                                     gint pixel_height);
-
-void media_server2_set_urls (GHashTable *properties,
-                             gchar **urls);
+void ms2_server_set_urls (GHashTable *properties,
+                          gchar **urls);
 
 #endif /* _MEDIA_SERVER2_SERVER_H_ */

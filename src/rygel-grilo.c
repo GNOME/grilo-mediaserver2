@@ -245,62 +245,62 @@ fill_properties_table (GHashTable *properties_table,
     if (grl_data_key_is_known (GRL_DATA (media), key)) {
       switch (key) {
       case GRL_METADATA_KEY_TITLE:
-        media_server2_set_display_name (properties_table,
-                                        grl_media_get_title (media));
+        ms2_server_set_display_name (properties_table,
+                                     grl_media_get_title (media));
         break;
       case GRL_METADATA_KEY_ALBUM:
-        media_server2_set_album (properties_table,
-                                 grl_data_get_string (GRL_DATA (media),
-                                                      GRL_METADATA_KEY_ALBUM));
+        ms2_server_set_album (properties_table,
+                              grl_data_get_string (GRL_DATA (media),
+                                                   GRL_METADATA_KEY_ALBUM));
         break;
       case GRL_METADATA_KEY_ARTIST:
-        media_server2_set_artist (properties_table,
-                                  grl_data_get_string (GRL_DATA (media),
-                                                       GRL_METADATA_KEY_ARTIST));
+        ms2_server_set_artist (properties_table,
+                               grl_data_get_string (GRL_DATA (media),
+                                                    GRL_METADATA_KEY_ARTIST));
         break;
       case GRL_METADATA_KEY_GENRE:
-        media_server2_set_genre (properties_table,
-                                 grl_data_get_string (GRL_DATA (media),
-                                                      GRL_METADATA_KEY_GENRE));
+        ms2_server_set_genre (properties_table,
+                              grl_data_get_string (GRL_DATA (media),
+                                                   GRL_METADATA_KEY_GENRE));
         break;
       case GRL_METADATA_KEY_MIME:
-        media_server2_set_mime_type (properties_table,
-                                     grl_media_get_mime (media));
+        ms2_server_set_mime_type (properties_table,
+                                  grl_media_get_mime (media));
         break;
       case GRL_METADATA_KEY_CHILDCOUNT:
-        media_server2_set_child_count (properties_table,
-                                       grl_data_get_int (GRL_DATA (media),
-                                                            GRL_METADATA_KEY_CHILDCOUNT));
+        ms2_server_set_child_count (properties_table,
+                                    grl_data_get_int (GRL_DATA (media),
+                                                      GRL_METADATA_KEY_CHILDCOUNT));
         break;
       case GRL_METADATA_KEY_URL:
         urls[0] = (gchar *) grl_media_get_url (media);
-        media_server2_set_urls (properties_table, urls);
+        ms2_server_set_urls (properties_table, urls);
         break;
       case GRL_METADATA_KEY_BITRATE:
-        media_server2_set_bitrate (properties_table,
-                                   grl_data_get_int (GRL_DATA (media),
-                                                     GRL_METADATA_KEY_BITRATE));
+        ms2_server_set_bitrate (properties_table,
+                                grl_data_get_int (GRL_DATA (media),
+                                                  GRL_METADATA_KEY_BITRATE));
         break;
       case GRL_METADATA_KEY_DURATION:
-        media_server2_set_duration (properties_table,
-                                    grl_media_get_duration (media));
+        ms2_server_set_duration (properties_table,
+                                 grl_media_get_duration (media));
         break;
       case GRL_METADATA_KEY_HEIGHT:
-        media_server2_set_height (properties_table,
-                                  grl_data_get_int (GRL_DATA (media),
-                                                    GRL_METADATA_KEY_HEIGHT));
+        ms2_server_set_height (properties_table,
+                               grl_data_get_int (GRL_DATA (media),
+                                                 GRL_METADATA_KEY_HEIGHT));
         break;
       case GRL_METADATA_KEY_WIDTH:
-        media_server2_set_width (properties_table,
-                                 grl_data_get_int (GRL_DATA (media),
-                                                   GRL_METADATA_KEY_WIDTH));
+        ms2_server_set_width (properties_table,
+                              grl_data_get_int (GRL_DATA (media),
+                                                GRL_METADATA_KEY_WIDTH));
         break;
       }
     }
   }
 
   if (parent_id) {
-    media_server2_set_parent (properties_table, parent_id);
+    ms2_server_set_parent (properties_table, parent_id);
   }
 }
 
@@ -344,7 +344,7 @@ browse_cb (GrlMediaSource *source,
   if (media) {
     id = serialize_media (rgdata->parent_id, media);
     if (id) {
-      prop_table = media_server2_new_properties_hashtable (id);
+      prop_table = ms2_server_new_properties_hashtable (id);
       fill_properties_table (prop_table, rgdata->keys, media, rgdata->parent_id);
       rgdata->children = g_list_prepend (rgdata->children, prop_table);
       g_free (id);
@@ -384,7 +384,7 @@ get_properties_cb (const gchar *id,
 
   rgdata = g_slice_new0 (RygelGriloData);
   rgdata->source = (GrlMediaSource *) data;
-  rgdata->properties = media_server2_new_properties_hashtable (id);
+  rgdata->properties = ms2_server_new_properties_hashtable (id);
   rgdata->keys = get_grilo_keys (properties);
   rgdata->parent_id = get_parent_id (id);
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
@@ -468,7 +468,7 @@ static void
 source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
   GrlSupportedOps supported_ops;
-  MediaServer2 *server;
+  MS2Server *server;
   gchar *source_id;
 
   /* Only sources that implement browse and metadata are of interest */
@@ -485,13 +485,13 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 
     sanitize (source_id);
 
-    server = media_server2_new (source_id, GRL_MEDIA_SOURCE (user_data));
+    server = ms2_server_new (source_id, GRL_MEDIA_SOURCE (user_data));
 
     if (!server) {
       g_warning ("Cannot register %s", source_id);
     } else {
-      media_server2_set_get_properties_func (server, get_properties_cb);
-      media_server2_set_get_children_func (server, get_children_cb);
+      ms2_server_set_get_properties_func (server, get_properties_cb);
+      ms2_server_set_get_children_func (server, get_children_cb);
     }
     g_free (source_id);
   } else {

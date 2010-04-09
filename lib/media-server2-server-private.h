@@ -25,18 +25,18 @@
 
 #include "media-server2-server.h"
 
-gboolean media_server2_server_get_properties (MediaServer2 *server,
-                                              const gchar *id,
-                                              const gchar **filter,
-                                              DBusGMethodInvocation *context,
-                                              GError **error);
+gboolean ms2_server_get_properties (MS2Server *server,
+                                    const gchar *id,
+                                    const gchar **filter,
+                                    DBusGMethodInvocation *context,
+                                    GError **error);
 
-gboolean media_server2_server_get_children (MediaServer2 *server,
-                                            const gchar *id,
-                                            guint offset,
-                                            gint max_count,
-                                            const gchar **filter,
-                                            DBusGMethodInvocation *context,
-                                            GError **error);
+gboolean ms2_server_get_children (MS2Server *server,
+                                  const gchar *id,
+                                  guint offset,
+                                  gint max_count,
+                                  const gchar **filter,
+                                  DBusGMethodInvocation *context,
+                                  GError **error);
 
 #endif /* _MEDIA_SERVER2_SERVER_PRIVATE_H_ */
