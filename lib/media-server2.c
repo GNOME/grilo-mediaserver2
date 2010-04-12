@@ -27,37 +27,8 @@
 #include "media-server2-server-glue.h"
 #include "media-server2-server.h"
 
-#define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2"
-#define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2"
-
-#define ID_PREFIX_AUDIO     "gra://"
-#define ID_PREFIX_CONTAINER "grc://"
-#define ID_PREFIX_IMAGE     "gri://"
-#define ID_PREFIX_VIDEO     "grv://"
-#define ID_ROOT             "0"
-#define ID_SEPARATOR        "/"
-
-#define MS_INT_VALUE_UNKNOWN -1
-#define MS_STR_VALUE_UNKNOWN ""
-
-#define MS_TYPE_AUDIO     "audio"
-#define MS_TYPE_CONTAINER "container"
-#define MS_TYPE_IMAGE     "image"
-#define MS_TYPE_VIDEO     "video"
-
-#define MS_PROP_ALBUM        "album"
-#define MS_PROP_ARTIST       "artist"
-#define MS_PROP_BITRATE      "bitrate"
-#define MS_PROP_CHILD_COUNT  "child-count"
-#define MS_PROP_DISPLAY_NAME "display-name"
-#define MS_PROP_DURATION     "duration"
-#define MS_PROP_GENRE        "genre"
-#define MS_PROP_HEIGHT       "height"
-#define MS_PROP_MIME_TYPE    "mime-type"
-#define MS_PROP_PARENT       "parent"
-#define MS_PROP_TYPE         "type"
-#define MS_PROP_URLS         "URLs"
-#define MS_PROP_WIDTH        "width"
+#define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
+#define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -104,7 +75,7 @@ ms2_server_dbus_register (MS2Server *server,
                                       DBUS_INTERFACE_DBUS);
 
   /* Request name */
-  dbus_name = g_strconcat (ENTRY_POINT_NAME, ".", name, NULL);
+  dbus_name = g_strconcat (ENTRY_POINT_NAME, name, NULL);
   if (!org_freedesktop_DBus_request_name (gproxy,
                                           dbus_name,
                                           DBUS_NAME_FLAG_DO_NOT_QUEUE,
@@ -116,7 +87,7 @@ ms2_server_dbus_register (MS2Server *server,
   g_object_unref (gproxy);
 
   /* Register object */
-  dbus_path = g_strconcat (ENTRY_POINT_IFACE, "/", name, NULL);
+  dbus_path = g_strconcat (ENTRY_POINT_IFACE, name, NULL);
   dbus_g_connection_register_g_object (connection,
                                        dbus_path,
                                        G_OBJECT (server));
