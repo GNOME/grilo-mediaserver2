@@ -14,7 +14,7 @@ rygel-grilo-%-glue.h: $(top_srcdir)/data/%2.xml
 	--prefix=rygel_grilo_$(subst -,_,$*)	\
 	$^
 
-bin_PROGRAMS = rygel-grilo
+bin_PROGRAMS = rygel-grilo test-client
 
 rygel_grilo_SOURCES =	\
 	rygel-grilo.c
@@ -25,6 +25,18 @@ rygel_grilo_CFLAGS =		\
         -I$(top_srcdir)/lib
 
 rygel_grilo_LDADD =	\
+	-ldl -lpthread	\
+	@DEPS_LIBS@	\
+	$(top_builddir)/lib/libmediaserver2.la
+
+test_client_SOURCES =	\
+	test-client.c
+
+test_client_CFLAGS =		\
+	-DPREFIX=$(prefix)	\
+	-I$(top_srcdir)/lib
+
+test_client_LDADD =	\
 	-ldl -lpthread	\
 	@DEPS_LIBS@	\
 	$(top_builddir)/lib/libmediaserver2.la

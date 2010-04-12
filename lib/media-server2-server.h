@@ -26,7 +26,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "media-server2-common.h"
+#include <media-server2-common.h>
 
 #define MS2_TYPE_SERVER                         \
   (ms2_server_get_type ())
