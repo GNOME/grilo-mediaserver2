@@ -31,7 +31,6 @@
 #define ID_PREFIX_CONTAINER "grc://"
 #define ID_PREFIX_IMAGE     "gri://"
 #define ID_PREFIX_VIDEO     "grv://"
-#define ID_ROOT             "0"
 #define ID_SEPARATOR        "/"
 
 static gchar **args;
@@ -81,7 +80,7 @@ get_parent_id (const gchar *child_id)
   gchar *parent_id;
   gsize bytes_to_copy;
 
-  if (g_strcmp0 (child_id, ID_ROOT) == 0) {
+  if (g_strcmp0 (child_id, MS2_ROOT) == 0) {
     return NULL;
   }
 
@@ -90,7 +89,7 @@ get_parent_id (const gchar *child_id)
 
   /* Check if parent is a root */
   if (bytes_to_copy < 6) {
-    return g_strdup (ID_ROOT);
+    return g_strdup (MS2_ROOT);
   }
 
   /* Save parent id */
@@ -108,7 +107,7 @@ get_grl_id (const gchar *ms_id)
   gchar **offspring;
   gchar *grl_id;
 
-  if (g_strcmp0 (ms_id, ID_ROOT) == 0) {
+  if (g_strcmp0 (ms_id, MS2_ROOT) == 0) {
     return NULL;
   }
 
@@ -135,7 +134,7 @@ serialize_media (const gchar *parent_id,
 
   escaped_id = g_uri_escape_string (grl_media_get_id (media), NULL, TRUE);
 
-  if (g_strcmp0 (parent_id, ID_ROOT) == 0) {
+  if (g_strcmp0 (parent_id, MS2_ROOT) == 0) {
     ms_id = g_strconcat (ID_PREFIX_CONTAINER, escaped_id, NULL);
   } else {
     ms_id = g_strconcat (parent_id, ID_SEPARATOR, escaped_id, NULL);
@@ -161,7 +160,7 @@ unserialize_media (GrlMetadataSource *source, const gchar *id)
   GrlMedia *media = NULL;
   gchar *grl_id;
 
-  if (g_strcmp0 (id, ID_ROOT) == 0 ||
+  if (g_strcmp0 (id, MS2_ROOT) == 0 ||
       g_str_has_prefix (id, ID_PREFIX_CONTAINER)) {
     media = grl_media_box_new ();
   } else if (g_str_has_prefix (id, ID_PREFIX_AUDIO)) {

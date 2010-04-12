@@ -75,10 +75,12 @@
 #define MS2_UNKNOWN_INT -1
 #define MS2_UNKNOWN_STR ""
 
+/* Root category */
+#define MS2_ROOT "0"
+
 typedef enum {
   MS2_ERROR_GENERAL = 1
 } MS2Error;
 
 #endif /* _MEDIA_SERVER2_COMMON_H_ */
-
 

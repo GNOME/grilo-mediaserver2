@@ -28,7 +28,7 @@
 #include "media-server2-client.h"
 
 #define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
-#define MS2_DBUS_OBJECT         "/org/gnome/UPnP/MediaServer2"
+#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
 #define MS2_DBUS_IFACE          "org.gnome.UPnP.MediaServer2"
 
 #define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
@@ -124,7 +124,8 @@ MS2Client *ms2_client_new (const gchar *provider)
   DBusGProxy *gproxy;
   GError *error = NULL;
   MS2Client *client;
-  gchar *dbus_provider;
+  gchar *service_provider;
+  gchar *path_provider;
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
@@ -133,13 +134,17 @@ MS2Client *ms2_client_new (const gchar *provider)
     return NULL;
   }
 
-  dbus_provider = g_strconcat (MS2_DBUS_SERVICE_PREFIX, provider, NULL);
+  service_provider = g_strconcat (MS2_DBUS_SERVICE_PREFIX, provider, NULL);
+  path_provider = g_strconcat (MS2_DBUS_PATH_PREFIX, provider, NULL);
 
   gproxy = dbus_g_proxy_new_for_name_owner (connection,
-                                            dbus_provider,
-                                            MS2_DBUS_OBJECT,
+                                            service_provider,
+                                            path_provider,
                                             MS2_DBUS_IFACE,
                                             &error);
+
+  g_free (service_provider);
+  g_free (path_provider);
 
   if (!gproxy) {
     g_printerr ("Could not connect to %s provider, %s\n",
@@ -153,4 +158,46 @@ MS2Client *ms2_client_new (const gchar *provider)
   client->priv->proxy_provider = gproxy;
 
   return client;
+}
+
+static void
+free_gvalue (GValue *v)
+{
+  g_value_unset (v);
+  g_free (v);
+}
+
+GHashTable *
+ms2_client_get_properties (MS2Client *client,
+                           const gchar *id,
+                           const gchar **properties,
+                           GError **error)
+{
+  GHashTable *prop_result;
+  GPtrArray *result = NULL;
+  gint i;
+
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
+
+  if (!org_gnome_UPnP_MediaServer2_get_properties (client->priv->proxy_provider,
+                                                   id,
+                                                   properties,
+                                                   &result,
+                                                   error)) {
+    return NULL;
+  }
+
+  prop_result = g_hash_table_new_full (g_str_hash,
+                                       g_str_equal,
+                                       (GDestroyNotify) g_free,
+                                       (GDestroyNotify) free_gvalue);
+  for (i = 0; i < result->len; i++) {
+    g_hash_table_insert (prop_result,
+                         g_strdup (properties[i]),
+                         g_ptr_array_index (result, i));
+  }
+
+  g_ptr_array_free (result, TRUE);
+
+  return prop_result;
 }

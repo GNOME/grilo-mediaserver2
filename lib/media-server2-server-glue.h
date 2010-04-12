@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* NONE:STRING,UINT,INT,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.9MVLAV:1) */
+/* NONE:STRING,UINT,INT,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.O4F0AV:1) */
 extern void dbus_glib_marshal_ms2_server_VOID__STRING_UINT_INT_BOXED_POINTER (GClosure     *closure,
                                                                               GValue       *return_value,
                                                                               guint         n_param_values,
@@ -103,7 +103,7 @@ dbus_glib_marshal_ms2_server_VOID__STRING_UINT_INT_BOXED_POINTER (GClosure     *
 }
 #define dbus_glib_marshal_ms2_server_NONE__STRING_UINT_INT_BOXED_POINTER	dbus_glib_marshal_ms2_server_VOID__STRING_UINT_INT_BOXED_POINTER
 
-/* NONE:STRING,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.9MVLAV:2) */
+/* NONE:STRING,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.O4F0AV:2) */
 extern void dbus_glib_marshal_ms2_server_VOID__STRING_BOXED_POINTER (GClosure     *closure,
                                                                      GValue       *return_value,
                                                                      guint         n_param_values,

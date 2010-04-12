@@ -78,4 +78,6 @@ gchar **ms2_client_get_providers (void);
 
 MS2Client *ms2_client_new (const gchar *provider);
 
+GHashTable *ms2_client_get_properties (MS2Client *client, const gchar *id, const gchar **properties, GError **error);
+
 #endif /* _MEDIA_SERVER2_CLIENT_H_ */
