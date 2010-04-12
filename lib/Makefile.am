@@ -34,9 +34,10 @@ libmediaserver2_la_SOURCES =		\
 	media-server2-server-glue.h	\
 	media-server2-server-private.h	\
 	media-server2-server.h		\
+	media-server2-server.c		\
 	media-server2-client-glue.h	\
 	media-server2-client.h		\
-	media-server2.c
+	media-server2-client.c
 
 MAINTAINERCLEANFILES =	\
 	*.in

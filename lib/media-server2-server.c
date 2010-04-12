@@ -28,9 +28,6 @@
 #include "media-server2-server-glue.h"
 #include "media-server2-server.h"
 
-#include "media-server2-client-glue.h"
-#include "media-server2-client.h"
-
 #define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
 #define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
 
@@ -39,9 +36,6 @@
 
 #define MS2_SERVER_GET_PRIVATE(o)                                    \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_SERVER, MS2ServerPrivate)
-
-#define MS2_CLIENT_GET_PRIVATE(o)                                    \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
 
 /*
  * Private MS2Server structure
@@ -55,12 +49,7 @@ struct _MS2ServerPrivate {
   GetPropertiesFunc get_properties;
 };
 
-struct _MS2ClientPrivate {
-  gpointer *reserved;
-};
-
 G_DEFINE_TYPE (MS2Server, ms2_server, G_TYPE_OBJECT);
-G_DEFINE_TYPE (MS2Client, ms2_client, G_TYPE_OBJECT);
 
 /* Registers the MS2Server object in dbus */
 static gboolean
@@ -119,25 +108,11 @@ ms2_server_class_init (MS2ServerClass *klass)
                                    &dbus_glib_ms2_server_object_info);
 }
 
-/* Class init function */
-static void
-ms2_client_class_init (MS2ClientClass *klass)
-{
-  g_type_class_add_private (klass, sizeof (MS2ClientPrivate));
-}
-
 /* Object init function */
 static void
 ms2_server_init (MS2Server *server)
 {
   server->priv = MS2_SERVER_GET_PRIVATE (server);
-}
-
-/* Object init function */
-static void
-ms2_client_init (MS2Client *client)
-{
-  client->priv = MS2_CLIENT_GET_PRIVATE (client);
 }
 
 /* Free gvalue */
@@ -1010,70 +985,3 @@ ms2_server_set_urls (GHashTable *properties,
   }
 }
 
-gchar **
-ms2_client_get_providers ()
-{
-  DBusGConnection *connection;
-  DBusGProxy *gproxy;
-  GError *error = NULL;
-  GPtrArray *providers;
-  gchar **dbus_names;
-  gchar **list_providers;
-  gchar **p;
-  gint i;
-  gint prefix_size = strlen (ENTRY_POINT_NAME);
-
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-  if (!connection) {
-    g_printerr ("Could not connect to session bus, %s\n", error->message);
-    g_clear_error (&error);
-    return FALSE;
-  }
-
-  gproxy = dbus_g_proxy_new_for_name (connection,
-                                      DBUS_SERVICE_DBUS,
-                                      DBUS_PATH_DBUS,
-                                      DBUS_INTERFACE_DBUS);
-
-  org_freedesktop_DBus_list_names (gproxy, &dbus_names, &error);
-  g_object_unref (gproxy);
-
-  if (error) {
-    g_printerr ("Could not get list of dbus names, %s\n", error->message);
-    g_clear_error (&error);
-    return FALSE;
-  }
-
-  if (!dbus_names) {
-    return FALSE;
-  }
-
-  providers = g_ptr_array_new ();
-  for (p = dbus_names; *p; p++) {
-    if (g_str_has_prefix (*p, ENTRY_POINT_NAME)) {
-      g_ptr_array_add (providers, *p);
-    }
-  }
-
-
-  list_providers = g_new (gchar *, providers->len + 1);
-  for (i = 0; i < providers->len; i++) {
-    list_providers[i] = g_strdup (g_ptr_array_index (providers, i) + prefix_size);
-  }
-
-  list_providers[i] = NULL;
-
-  g_strfreev (dbus_names);
-  g_ptr_array_free (providers, TRUE);
-
-  return list_providers;
-}
-
-MS2Client *ms2_client_new (const gchar *provider)
-{
-  MS2Client *client;
-
-  client = g_object_new (MS2_TYPE_CLIENT, NULL);
-
-  return client;
-}
