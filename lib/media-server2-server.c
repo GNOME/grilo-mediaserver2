@@ -28,8 +28,8 @@
 #include "media-server2-server-glue.h"
 #include "media-server2-server.h"
 
-#define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
-#define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
+#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
+#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -76,19 +76,21 @@ ms2_server_dbus_register (MS2Server *server,
                                       DBUS_INTERFACE_DBUS);
 
   /* Request name */
-  dbus_name = g_strconcat (ENTRY_POINT_NAME, name, NULL);
+  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, name, NULL);
   if (!org_freedesktop_DBus_request_name (gproxy,
                                           dbus_name,
                                           DBUS_NAME_FLAG_DO_NOT_QUEUE,
                                           &request_name_result,
                                           NULL))  {
-      return FALSE;
+    g_free (dbus_name);
+    return FALSE;
   }
   g_free (dbus_name);
   g_object_unref (gproxy);
 
+  dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, name, NULL);
+
   /* Register object */
-  dbus_path = g_strconcat (ENTRY_POINT_IFACE, name, NULL);
   dbus_g_connection_register_g_object (connection,
                                        dbus_path,
                                        G_OBJECT (server));

@@ -27,6 +27,10 @@
 #include "media-server2-client-glue.h"
 #include "media-server2-client.h"
 
+#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
+#define MS2_DBUS_OBJECT         "/org/gnome/UPnP/MediaServer2"
+#define MS2_DBUS_IFACE          "org.gnome.UPnP.MediaServer2"
+
 #define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
 #define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
 
@@ -37,7 +41,7 @@
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
 
 struct _MS2ClientPrivate {
-  gpointer *reserved;
+  DBusGProxy *proxy_provider;
 };
 
 G_DEFINE_TYPE (MS2Client, ms2_client, G_TYPE_OBJECT);
@@ -66,7 +70,7 @@ ms2_client_get_providers ()
   gchar **list_providers;
   gchar **p;
   gint i;
-  gint prefix_size = strlen (ENTRY_POINT_NAME);
+  gint prefix_size = strlen (MS2_DBUS_SERVICE_PREFIX);
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
@@ -95,7 +99,7 @@ ms2_client_get_providers ()
 
   providers = g_ptr_array_new ();
   for (p = dbus_names; *p; p++) {
-    if (g_str_has_prefix (*p, ENTRY_POINT_NAME)) {
+    if (g_str_has_prefix (*p, MS2_DBUS_SERVICE_PREFIX)) {
       g_ptr_array_add (providers, *p);
     }
   }
@@ -116,9 +120,37 @@ ms2_client_get_providers ()
 
 MS2Client *ms2_client_new (const gchar *provider)
 {
+  DBusGConnection *connection;
+  DBusGProxy *gproxy;
+  GError *error = NULL;
   MS2Client *client;
+  gchar *dbus_provider;
+
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_clear_error (&error);
+    return NULL;
+  }
+
+  dbus_provider = g_strconcat (MS2_DBUS_SERVICE_PREFIX, provider, NULL);
+
+  gproxy = dbus_g_proxy_new_for_name_owner (connection,
+                                            dbus_provider,
+                                            MS2_DBUS_OBJECT,
+                                            MS2_DBUS_IFACE,
+                                            &error);
+
+  if (!gproxy) {
+    g_printerr ("Could not connect to %s provider, %s\n",
+                provider,
+                error->message);
+    g_clear_error (&error);
+    return NULL;
+  }
 
   client = g_object_new (MS2_TYPE_CLIENT, NULL);
+  client->priv->proxy_provider = gproxy;
 
   return client;
 }
