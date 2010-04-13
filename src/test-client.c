@@ -6,6 +6,8 @@ int main (int argc, char **argv)
 {
   GError *error = NULL;
   GHashTable *result;
+  GList *children;
+  GList *child;
   GValue *v;
   MS2Client *client;
   const gchar **p;
@@ -50,7 +52,38 @@ int main (int argc, char **argv)
         g_print ("\t* '%s' value: ---\n", *p);
       }
     }
+    g_hash_table_unref (result);
+    g_object_unref (client);
   }
 
-  g_hash_table_unref (result);
+  g_print ("\n================================================================================\n");
+
+  for (provider = providers; *provider; provider ++) {
+    client = ms2_client_new (*provider);
+
+    if (!client) {
+      g_printerr ("Unable to create a client\n");
+      return 0;
+    }
+
+    children  = ms2_client_get_children (client, MS2_ROOT, 0, -1, properties, &error);
+
+    if (!result) {
+      g_print ("Did not get any child, %s\n", error->message);
+      return 0;
+    }
+
+    g_print ("\n* Provider '%s'\n", *provider);
+    for (child = children; child; child = g_list_next (child)) {
+      g_print ("\t* '%s', '%s'\n",
+               g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_ID)),
+               g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_DISPLAY_NAME)));
+    }
+
+    g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
+    g_list_free (children);
+    g_object_unref (client);
+  }
+
+  g_strfreev (providers);
 }

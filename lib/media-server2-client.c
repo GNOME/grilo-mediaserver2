@@ -34,8 +34,14 @@
 #define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
 #define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
 
-#define DBUS_TYPE_G_ARRAY_OF_STRING                             \
-  (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
+#define DBUS_TYPE_PROPERTIES                    \
+  dbus_g_type_get_collection ("GPtrArray",      \
+                              G_TYPE_VALUE)
+
+#define DBUS_TYPE_CHILDREN                              \
+  dbus_g_type_get_map ("GHashTable",                    \
+                       G_TYPE_STRING,                   \
+                       DBUS_TYPE_PROPERTIES)            \
 
 #define MS2_CLIENT_GET_PRIVATE(o)                                    \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
@@ -167,6 +173,37 @@ free_gvalue (GValue *v)
   g_free (v);
 }
 
+static GHashTable *
+get_properties_table (const gchar *id,
+                      const gchar **properties,
+                      GPtrArray *result)
+{
+  GHashTable *table;
+  GValue *id_value;
+  gint i;
+
+  table = g_hash_table_new_full (g_str_hash,
+                                 g_str_equal,
+                                 (GDestroyNotify) g_free,
+                                 (GDestroyNotify) free_gvalue);
+
+  id_value = g_new0 (GValue, 1);
+  g_value_init (id_value, G_TYPE_STRING);
+  g_value_set_string (id_value, id);
+  g_hash_table_insert (table,
+                       g_strdup (MS2_PROP_ID),
+                       id_value);
+
+  for (i = 0; i < result->len; i++) {
+    g_hash_table_insert (table,
+                         g_strdup (properties[i]),
+                         g_boxed_copy (G_TYPE_VALUE,
+                                       g_ptr_array_index (result, i)));
+  }
+
+  return table;
+}
+
 GHashTable *
 ms2_client_get_properties (MS2Client *client,
                            const gchar *id,
@@ -175,7 +212,6 @@ ms2_client_get_properties (MS2Client *client,
 {
   GHashTable *prop_result;
   GPtrArray *result = NULL;
-  gint i;
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
@@ -187,17 +223,54 @@ ms2_client_get_properties (MS2Client *client,
     return NULL;
   }
 
-  prop_result = g_hash_table_new_full (g_str_hash,
-                                       g_str_equal,
-                                       (GDestroyNotify) g_free,
-                                       (GDestroyNotify) free_gvalue);
-  for (i = 0; i < result->len; i++) {
-    g_hash_table_insert (prop_result,
-                         g_strdup (properties[i]),
-                         g_ptr_array_index (result, i));
-  }
-
-  g_ptr_array_free (result, TRUE);
+  prop_result = get_properties_table (id, properties, result);
+  g_boxed_free (DBUS_TYPE_PROPERTIES, result);
 
   return prop_result;
+}
+
+GList *
+ms2_client_get_children (MS2Client *client,
+                         const gchar *id,
+                         guint offset,
+                         gint max_count,
+                         const gchar **properties,
+                         GError **error)
+{
+  GHashTable *result;
+  GList *child_id;
+  GList *children = NULL;
+  GList *children_id;
+  GPtrArray *prop_array;
+
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
+
+  if (!org_gnome_UPnP_MediaServer2_get_children (client->priv->proxy_provider,
+                                                 id,
+                                                 offset,
+                                                 max_count,
+                                                 properties,
+                                                 &result,
+                                                 error)) {
+    return NULL;
+  }
+
+  if (!result || g_hash_table_size (result) == 0) {
+    return NULL;
+  }
+
+  children_id = g_hash_table_get_keys (result);
+
+  for (child_id = children_id; child_id; child_id = g_list_next (child_id)) {
+    prop_array = g_hash_table_lookup (result, child_id->data);
+    children = g_list_prepend (children,
+                               get_properties_table (child_id->data,
+                                                     properties,
+                                                     prop_array));
+  }
+
+  g_list_free (children_id);
+  g_boxed_free (DBUS_TYPE_CHILDREN, result);
+
+  return children;
 }
