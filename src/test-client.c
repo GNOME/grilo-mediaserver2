@@ -2,28 +2,27 @@
 #include <glib.h>
 #include <string.h>
 
-int main (int argc, char **argv)
+static  const gchar *properties[] = { MS2_PROP_DISPLAY_NAME,
+                                      MS2_PROP_PARENT,
+                                      MS2_PROP_CHILD_COUNT,
+                                      NULL };
+
+static void
+test_properties_sync ()
 {
   GError *error = NULL;
   GHashTable *result;
-  GList *children;
-  GList *child;
   GValue *v;
   MS2Client *client;
   const gchar **p;
-  const gchar *properties[] = { MS2_PROP_DISPLAY_NAME,
-                                MS2_PROP_PARENT,
-                                MS2_PROP_CHILD_COUNT,
-                                NULL };
   gchar **provider;
   gchar **providers;
 
-  g_type_init ();
-
   providers = ms2_client_get_providers ();
+
   if (!providers) {
     g_print ("There is no MediaServer2 provider\n");
-    return 0;
+    return;
   }
 
   for (provider = providers; *provider; provider++) {
@@ -31,14 +30,14 @@ int main (int argc, char **argv)
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
-      return 0;
+      return;
     }
 
     result = ms2_client_get_properties (client, MS2_ROOT, properties, &error);
 
     if (!result) {
       g_print ("Did not get any property, %s\n", error->message);
-      return 0;
+      return;
     }
 
     g_print ("\n* Provider '%s'\n", *provider);
@@ -56,21 +55,39 @@ int main (int argc, char **argv)
     g_object_unref (client);
   }
 
-  g_print ("\n================================================================================\n");
+  g_strfreev (providers);
+}
+
+static void
+test_children_sync ()
+{
+  GError *error = NULL;
+  GList *children;
+  GList *child;
+  MS2Client *client;
+  gchar **provider;
+  gchar **providers;
+
+  providers = ms2_client_get_providers ();
+
+  if (!providers) {
+    g_print ("There is no MediaServer2 provider\n");
+    return;
+  }
 
   for (provider = providers; *provider; provider ++) {
     client = ms2_client_new (*provider);
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
-      return 0;
+      return;
     }
 
     children  = ms2_client_get_children (client, MS2_ROOT, 0, -1, properties, &error);
 
-    if (!result) {
+    if (!children) {
       g_print ("Did not get any child, %s\n", error->message);
-      return 0;
+      return;
     }
 
     g_print ("\n* Provider '%s'\n", *provider);
@@ -86,4 +103,13 @@ int main (int argc, char **argv)
   }
 
   g_strfreev (providers);
+}
+
+
+int main (int argc, char **argv)
+{
+  g_type_init ();
+
+  if (0) test_properties_sync ();
+  if (1) test_children_sync ();
 }
