@@ -46,6 +46,14 @@
 #define MS2_CLIENT_GET_PRIVATE(o)                                    \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
 
+typedef struct {
+  GHashTable *properties_result;
+  GList *children_result;
+  MS2Client *client;
+  gchar **properties;
+  gchar *id;
+} AsyncData;
+
 struct _MS2ClientPrivate {
   DBusGProxy *proxy_provider;
 };
@@ -227,6 +235,82 @@ ms2_client_get_properties (MS2Client *client,
   g_boxed_free (DBUS_TYPE_PROPERTIES, result);
 
   return prop_result;
+}
+
+static void
+free_async_data (AsyncData *adata)
+{
+  g_object_unref (adata->client);
+  g_free (adata->id);
+  g_strfreev (adata->properties);
+  g_slice_free (AsyncData, adata);
+}
+
+static void
+get_properties_async_reply (DBusGProxy *proxy,
+                            GPtrArray *result,
+                            GError *error,
+                            gpointer data)
+{
+  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (data);
+  AsyncData *adata;
+
+  adata = g_simple_async_result_get_op_res_gpointer (res);
+
+  adata->properties_result = get_properties_table (adata->id,
+                                                   (const gchar **) adata->properties,
+                                                   result);
+  g_boxed_free (DBUS_TYPE_PROPERTIES, result);
+
+  g_simple_async_result_complete (res);
+  g_object_unref (res);
+}
+
+void ms2_client_get_properties_async (MS2Client *client,
+                                      const gchar *id,
+                                      const gchar **properties,
+                                      GAsyncReadyCallback callback,
+                                      gpointer user_data)
+{
+  AsyncData *adata;
+  GSimpleAsyncResult *res;
+
+  g_return_if_fail (MS2_IS_CLIENT (client));
+
+  adata = g_slice_new0 (AsyncData);
+
+  res = g_simple_async_result_new (G_OBJECT (client),
+                                   callback,
+                                   user_data,
+                                   ms2_client_get_properties_async);
+
+  adata->client = g_object_ref (client);
+  adata->id = g_strdup (id);
+  adata->properties = g_strdupv ((gchar **) properties);
+
+  g_simple_async_result_set_op_res_gpointer (res,
+                                             adata,
+                                             (GDestroyNotify) free_async_data);
+
+  org_gnome_UPnP_MediaServer2_get_properties_async (client->priv->proxy_provider,
+                                                    id,
+                                                    properties,
+                                                    get_properties_async_reply,
+                                                    res);
+}
+
+GHashTable *
+ms2_client_get_properties_finish (MS2Client *client,
+                                  GAsyncResult *res,
+                                  GError **error)
+{
+  AsyncData *adata;
+
+  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
+                        ms2_client_get_properties_async, NULL);
+
+  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+  return adata->properties_result;
 }
 
 GList *

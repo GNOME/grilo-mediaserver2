@@ -23,8 +23,9 @@
 #ifndef _MEDIA_SERVER2_CLIENT_H_
 #define _MEDIA_SERVER2_CLIENT_H_
 
-#include <glib.h>
+#include <gio/gio.h>
 #include <glib-object.h>
+#include <glib.h>
 
 #include "media-server2-common.h"
 
@@ -82,6 +83,16 @@ GHashTable *ms2_client_get_properties (MS2Client *client,
                                        const gchar *id,
                                        const gchar **properties,
                                        GError **error);
+
+void ms2_client_get_properties_async (MS2Client *client,
+                                      const gchar *id,
+                                      const gchar **properties,
+                                      GAsyncReadyCallback callback,
+                                      gpointer user_data);
+
+GHashTable *ms2_client_get_properties_finish (MS2Client *client,
+                                              GAsyncResult *res,
+                                              GError **error);
 
 GList *ms2_client_get_children (MS2Client *client,
                                 const gchar *id,
