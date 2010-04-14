@@ -19,13 +19,14 @@ children_reply (GObject *source,
 
   children = ms2_client_get_children_finish (MS2_CLIENT (source), res, &error);
 
+  g_print ("\n* Provider '%s'\n", provider);
+  g_free (provider);
+
   if (!children) {
-    g_print ("Did not get any child, %s\n", error->message);
+    g_print ("\tDid not get any child, %s\n", error? error->message: "no error");
     return;
   }
 
-  g_print ("\n* Provider '%s'\n", provider);
-  g_free (provider);
   for (child = children; child; child = g_list_next (child)) {
     g_print ("\t* '%s', '%s'\n",
              g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_ID)),
@@ -84,13 +85,14 @@ properties_reply (GObject *source,
 
   result = ms2_client_get_properties_finish (MS2_CLIENT (source), res, &error);
 
+  g_print ("\n* Provider '%s'\n", provider);
+  g_free (provider);
+
   if (!result) {
-    g_print ("Did not get any property, %s\n", error->message);
+    g_print ("\tDid not get any property, %s\n", error? error->message: "no error");
     return;
   }
 
-  g_print ("\n* Provider '%s'\n", provider);
-  g_free (provider);
   for (p = properties; *p; p++) {
     v = g_hash_table_lookup (result, *p);
     if (v && G_VALUE_HOLDS_INT (v)) {
@@ -165,12 +167,12 @@ test_properties_sync ()
 
     result = ms2_client_get_properties (client, MS2_ROOT, properties, &error);
 
+    g_print ("\n* Provider '%s'\n", *provider);
     if (!result) {
-      g_print ("Did not get any property, %s\n", error->message);
+      g_print ("\tDid not get any property, %s\n", error? error->message: "no error");
       return;
     }
 
-    g_print ("\n* Provider '%s'\n", *provider);
     for (p = properties; *p; p++) {
       v = g_hash_table_lookup (result, *p);
       if (v && G_VALUE_HOLDS_INT (v)) {
@@ -215,12 +217,12 @@ test_children_sync ()
 
     children  = ms2_client_get_children (client, MS2_ROOT, 0, -1, properties, &error);
 
+    g_print ("\n* Provider '%s'\n", *provider);
     if (!children) {
-      g_print ("Did not get any child, %s\n", error->message);
+      g_print ("\tDid not get any child, %s\n", error? error->message: "no error");
       return;
     }
 
-    g_print ("\n* Provider '%s'\n", *provider);
     for (child = children; child; child = g_list_next (child)) {
       g_print ("\t* '%s', '%s'\n",
                g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_ID)),
