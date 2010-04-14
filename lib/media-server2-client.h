@@ -101,4 +101,16 @@ GList *ms2_client_get_children (MS2Client *client,
                                 const gchar **properties,
                                 GError **error);
 
+void ms2_client_get_children_async (MS2Client *client,
+                                    const gchar *id,
+                                    guint offset,
+                                    gint max_count,
+                                    const gchar **properties,
+                                    GAsyncReadyCallback callback,
+                                    gpointer user_data);
+
+GList *ms2_client_get_children_finish (MS2Client *client,
+                                       GAsyncResult *res,
+                                       GError **error);
+
 #endif /* _MEDIA_SERVER2_CLIENT_H_ */

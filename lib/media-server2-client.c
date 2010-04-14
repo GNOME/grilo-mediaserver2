@@ -212,6 +212,34 @@ get_properties_table (const gchar *id,
   return table;
 }
 
+static GList *
+get_children_list (GHashTable *result,
+                   const gchar **properties)
+{
+  GList *child_id;
+  GList *children = NULL;
+  GList *children_id;
+  GPtrArray *prop_array;
+
+  if (!result || g_hash_table_size (result) == 0) {
+    return NULL;
+  }
+
+  children_id = g_hash_table_get_keys (result);
+
+  for (child_id = children_id; child_id; child_id = g_list_next (child_id)) {
+    prop_array = g_hash_table_lookup (result, child_id->data);
+    children = g_list_prepend (children,
+                               get_properties_table (child_id->data,
+                                                     properties,
+                                                     prop_array));
+  }
+
+  g_list_free (children_id);
+
+  return children;
+}
+
 GHashTable *
 ms2_client_get_properties (MS2Client *client,
                            const gchar *id,
@@ -322,10 +350,7 @@ ms2_client_get_children (MS2Client *client,
                          GError **error)
 {
   GHashTable *result;
-  GList *child_id;
   GList *children = NULL;
-  GList *children_id;
-  GPtrArray *prop_array;
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
@@ -339,22 +364,80 @@ ms2_client_get_children (MS2Client *client,
     return NULL;
   }
 
-  if (!result || g_hash_table_size (result) == 0) {
-    return NULL;
-  }
+  children = get_children_list (result, properties);
 
-  children_id = g_hash_table_get_keys (result);
-
-  for (child_id = children_id; child_id; child_id = g_list_next (child_id)) {
-    prop_array = g_hash_table_lookup (result, child_id->data);
-    children = g_list_prepend (children,
-                               get_properties_table (child_id->data,
-                                                     properties,
-                                                     prop_array));
-  }
-
-  g_list_free (children_id);
   g_boxed_free (DBUS_TYPE_CHILDREN, result);
 
   return children;
+}
+
+static void
+get_children_async_reply (DBusGProxy *proxy,
+                          GHashTable *result,
+                          GError *error,
+                          gpointer data)
+{
+  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (data);
+  AsyncData *adata;
+
+  adata = g_simple_async_result_get_op_res_gpointer (res);
+
+  adata->children_result = get_children_list (result,
+                                              (const gchar **) adata->properties);
+
+  g_boxed_free (DBUS_TYPE_CHILDREN, result);
+
+  g_simple_async_result_complete (res);
+  g_object_unref (res);
+}
+
+void ms2_client_get_children_async (MS2Client *client,
+                                    const gchar *id,
+                                    guint offset,
+                                    gint max_count,
+                                    const gchar **properties,
+                                    GAsyncReadyCallback callback,
+                                    gpointer user_data)
+{
+  AsyncData *adata;
+  GSimpleAsyncResult *res;
+
+  g_return_if_fail (MS2_IS_CLIENT (client));
+
+  adata = g_slice_new0 (AsyncData);
+
+  res = g_simple_async_result_new (G_OBJECT (client),
+                                   callback,
+                                   user_data,
+                                   ms2_client_get_children_async);
+
+  adata->client = g_object_ref (client);
+  adata->id = g_strdup (id);
+  adata->properties = g_strdupv ((gchar **) properties);
+
+  g_simple_async_result_set_op_res_gpointer (res,
+                                             adata,
+                                             (GDestroyNotify) free_async_data);
+
+  org_gnome_UPnP_MediaServer2_get_children_async (client->priv->proxy_provider,
+                                                  id,
+                                                  offset,
+                                                  max_count,
+                                                  properties,
+                                                  get_children_async_reply,
+                                                  res);
+}
+
+GList *
+ms2_client_get_children_finish (MS2Client *client,
+                                GAsyncResult *res,
+                                GError **error)
+{
+  AsyncData *adata;
+
+  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
+                        ms2_client_get_children_async, NULL);
+
+  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+  return adata->children_result;
 }
