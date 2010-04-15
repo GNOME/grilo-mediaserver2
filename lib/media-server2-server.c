@@ -116,25 +116,24 @@ get_unknown_value (const gchar *property)
   GValue *val;
   GPtrArray *ptrarray;
 
-  if (g_strcmp0 (property, MS2_PROP_ID) == 0 ||
-      g_strcmp0 (property, MS2_PROP_PARENT) == 0 ||
-      g_strcmp0 (property, MS2_PROP_DISPLAY_NAME) == 0 ||
-      g_strcmp0 (property, MS2_PROP_TYPE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_ICON) == 0 ||
-      g_strcmp0 (property, MS2_PROP_MIME_TYPE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_ARTIST) == 0 ||
-      g_strcmp0 (property, MS2_PROP_ALBUM) == 0 ||
-      g_strcmp0 (property, MS2_PROP_DATE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_DLNA_PROFILE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_THUMBNAIL) == 0 ||
-      g_strcmp0 (property, MS2_PROP_GENRE) == 0) {
-    val = str_to_value (MS2_UNKNOWN_STR);
-  } else if (g_strcmp0 (property, MS2_PROP_URLS) == 0) {
+  if (g_strcmp0 (property, MS2_PROP_URLS) == 0) {
     ptrarray = g_ptr_array_sized_new (1);
     g_ptr_array_add (ptrarray, g_strdup (MS2_UNKNOWN_STR));
     val = ptrarray_to_value (ptrarray);
-  } else {
+  } else if (g_strcmp0 (property, MS2_PROP_CHILD_COUNT) == 0 ||
+             g_strcmp0 (property, MS2_PROP_SIZE) == 0 ||
+             g_strcmp0 (property, MS2_PROP_DURATION) == 0 ||
+             g_strcmp0 (property, MS2_PROP_BITRATE) == 0 ||
+             g_strcmp0 (property, MS2_PROP_SAMPLE_RATE) == 0 ||
+             g_strcmp0 (property, MS2_PROP_BITS_PER_SAMPLE) == 0 ||
+             g_strcmp0 (property, MS2_PROP_WIDTH) == 0 ||
+             g_strcmp0 (property, MS2_PROP_HEIGHT) == 0 ||
+             g_strcmp0 (property, MS2_PROP_COLOR_DEPTH) == 0 ||
+             g_strcmp0 (property, MS2_PROP_PIXEL_WIDTH) == 0 ||
+             g_strcmp0 (property, MS2_PROP_PIXEL_HEIGHT) == 0) {
     val = int_to_value (MS2_UNKNOWN_INT);
+  } else {
+    val = str_to_value (MS2_UNKNOWN_STR);
   }
 
   return val;
