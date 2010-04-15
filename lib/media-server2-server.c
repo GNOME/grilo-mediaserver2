@@ -61,13 +61,6 @@ free_value (GValue *value)
   g_free (value);
 }
 
-/* Free a GPtrArray */
-static void
-free_ptr_array (GPtrArray *array)
-{
-  g_ptr_array_free (array, TRUE);
-}
-
 /* Puts a string in a gvalue */
 static GValue *
 str_to_value (const gchar *str)
@@ -141,9 +134,8 @@ get_unknown_value (const gchar *property)
 
 /* Returns an array of properties values suitable to send as dbus reply */
 static GPtrArray *
-get_array_properties (const gchar *id,
-                      const gchar **filter,
-                      GHashTable *properties)
+get_array_properties (GHashTable *properties,
+                      const gchar **filter)
 {
   GPtrArray *prop_array;
   gint i;
@@ -169,36 +161,23 @@ get_array_properties (const gchar *id,
   return prop_array;
 }
 
-/* Returns a hashtable with children and properties suitable to send as dbus
-   reply */
-static GHashTable *
-get_hash_children (GList *children,
-                   const gchar **filter)
+/* Returns an array of children, which consist of arrays of properties, suitable
+   to send as dbus reply */
+static GPtrArray *
+get_array_children (GList *children,
+                    const gchar **filter)
 {
-  GHashTable *children_hash;
   GList *child;
   GPtrArray *prop_array;
-  GValue *val_id;
-  gchar *id;;
+  GPtrArray *children_array;
 
-  children_hash = g_hash_table_new_full (g_str_hash,
-                                         g_str_equal,
-                                         (GDestroyNotify) g_free,
-                                         (GDestroyNotify) free_ptr_array);
-
+  children_array = g_ptr_array_sized_new (g_list_length (children));
   for (child = children; child; child = g_list_next (child)) {
-    val_id = g_hash_table_lookup (child->data, MS2_PROP_ID);
-    if (val_id && G_VALUE_HOLDS_STRING (val_id)) {
-      id = g_value_dup_string (val_id);
-    }
-
-    if (id) {
-      prop_array = get_array_properties (id, filter, child->data);
-      g_hash_table_insert (children_hash, id, prop_array);
-    }
+    prop_array = get_array_properties (child->data, filter);
+    g_ptr_array_add (children_array, prop_array);
   }
 
-  return children_hash;
+  return children_array;
 }
 
 /* Registers the MS2Server object in dbus */
@@ -276,7 +255,6 @@ ms2_server_get_properties (MS2Server *server,
                            DBusGMethodInvocation *context,
                            GError **error)
 {
-  GError *prop_error = NULL;
   GHashTable *properties = NULL;
   GPtrArray *prop_array = NULL;
 
@@ -284,23 +262,10 @@ ms2_server_get_properties (MS2Server *server,
     properties = server->priv->get_properties (id,
                                                filter,
                                                server->priv->data,
-                                               &prop_error);
-
-    if (prop_error) {
-      if (error) {
-        *error = g_error_new_literal (MS2_ERROR,
-                                      MS2_ERROR_GENERAL,
-                                      prop_error->message);
-        dbus_g_method_return_error (context, *error);
-      }
-
-      g_error_free (prop_error);
-
-      return FALSE;
-    }
+                                               NULL);
   }
 
-  prop_array = get_array_properties (id, filter, properties);
+  prop_array = get_array_properties (properties, filter);
   dbus_g_method_return (context, prop_array);
 
   /* Free content */
@@ -323,8 +288,7 @@ ms2_server_get_children (MS2Server *server,
                          DBusGMethodInvocation *context,
                          GError **error)
 {
-  GError *child_error = NULL;
-  GHashTable *children_hash = NULL;
+  GPtrArray *children_array = NULL;
   GList *children = NULL;
 
   if (server->priv->get_children) {
@@ -333,27 +297,14 @@ ms2_server_get_children (MS2Server *server,
                                            max_count < 0? G_MAXINT: max_count,
                                            filter,
                                            server->priv->data,
-                                           &child_error);
-
-    if (child_error) {
-      if (error) {
-        *error = g_error_new_literal (MS2_ERROR,
-                                      MS2_ERROR_GENERAL,
-                                      child_error->message);
-        dbus_g_method_return_error (context, *error);
-      }
-
-      g_error_free (child_error);
-
-      return FALSE;
-    }
+                                           NULL);
   }
 
-  children_hash = get_hash_children (children, filter);
-  dbus_g_method_return (context, children_hash);
+  children_array = get_array_children (children, filter);
+  dbus_g_method_return (context, children_array);
 
   /* Free content */
-  g_hash_table_unref (children_hash);
+  g_ptr_array_free (children_array, TRUE);
   g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
   g_list_free (children);
 

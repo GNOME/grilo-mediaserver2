@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* NONE:STRING,UINT,INT,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.O4F0AV:1) */
+/* NONE:STRING,UINT,INT,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.SI92AV:1) */
 extern void dbus_glib_marshal_ms2_server_VOID__STRING_UINT_INT_BOXED_POINTER (GClosure     *closure,
                                                                               GValue       *return_value,
                                                                               guint         n_param_values,
@@ -103,7 +103,7 @@ dbus_glib_marshal_ms2_server_VOID__STRING_UINT_INT_BOXED_POINTER (GClosure     *
 }
 #define dbus_glib_marshal_ms2_server_NONE__STRING_UINT_INT_BOXED_POINTER	dbus_glib_marshal_ms2_server_VOID__STRING_UINT_INT_BOXED_POINTER
 
-/* NONE:STRING,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.O4F0AV:2) */
+/* NONE:STRING,BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.SI92AV:2) */
 extern void dbus_glib_marshal_ms2_server_VOID__STRING_BOXED_POINTER (GClosure     *closure,
                                                                      GValue       *return_value,
                                                                      guint         n_param_values,
@@ -156,14 +156,14 @@ G_END_DECLS
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_ms2_server_methods[] = {
   { (GCallback) ms2_server_get_children, dbus_glib_marshal_ms2_server_NONE__STRING_UINT_INT_BOXED_POINTER, 0 },
-  { (GCallback) ms2_server_get_properties, dbus_glib_marshal_ms2_server_NONE__STRING_BOXED_POINTER, 109 },
+  { (GCallback) ms2_server_get_properties, dbus_glib_marshal_ms2_server_NONE__STRING_BOXED_POINTER, 106 },
 };
 
 const DBusGObjectInfo dbus_glib_ms2_server_object_info = {
   0,
   dbus_glib_ms2_server_methods,
   2,
-"org.gnome.UPnP.MediaServer2\0GetChildren\0A\0id\0I\0s\0offset\0I\0u\0max_count\0I\0i\0filter\0I\0as\0children\0O\0F\0N\0a{sav}\0\0org.gnome.UPnP.MediaServer2\0GetProperties\0A\0id\0I\0s\0filter\0I\0as\0properties\0O\0F\0N\0av\0\0\0",
+"org.gnome.UPnP.MediaServer2\0GetChildren\0A\0id\0I\0s\0offset\0I\0u\0max_count\0I\0i\0filter\0I\0as\0children\0O\0F\0N\0aav\0\0org.gnome.UPnP.MediaServer2\0GetProperties\0A\0id\0I\0s\0filter\0I\0as\0properties\0O\0F\0N\0av\0\0\0",
 "\0",
 "\0"
 };

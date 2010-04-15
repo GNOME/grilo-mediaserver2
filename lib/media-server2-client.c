@@ -180,6 +180,7 @@ get_properties_async_reply (DBusGProxy *proxy,
   g_object_unref (res);
 }
 
+#if 0
 /* Callback invoked by dbus as answer to get_children_async() */
 static void
 get_children_async_reply (DBusGProxy *proxy,
@@ -200,6 +201,7 @@ get_children_async_reply (DBusGProxy *proxy,
   g_simple_async_result_complete (res);
   g_object_unref (res);
 }
+#endif
 
 /* Class init function */
 static void
@@ -396,11 +398,12 @@ ms2_client_get_children (MS2Client *client,
                          const gchar **properties,
                          GError **error)
 {
-  GHashTable *result;
+  GHashTable *result = NULL;
   GList *children = NULL;
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
+#if 0
   if (!org_gnome_UPnP_MediaServer2_get_children (client->priv->proxy_provider,
                                                  id,
                                                  offset,
@@ -410,6 +413,7 @@ ms2_client_get_children (MS2Client *client,
                                                  error)) {
     return NULL;
   }
+#endif
 
   children = get_children_list (result, properties);
 
@@ -446,6 +450,7 @@ void ms2_client_get_children_async (MS2Client *client,
                                              adata,
                                              (GDestroyNotify) free_async_data);
 
+#if 0
   org_gnome_UPnP_MediaServer2_get_children_async (client->priv->proxy_provider,
                                                   id,
                                                   offset,
@@ -453,6 +458,7 @@ void ms2_client_get_children_async (MS2Client *client,
                                                   properties,
                                                   get_children_async_reply,
                                                   res);
+#endif
 }
 
 GList *

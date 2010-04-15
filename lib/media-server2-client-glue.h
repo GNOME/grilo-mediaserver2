@@ -26,21 +26,21 @@ static
 inline
 #endif
 gboolean
-org_gnome_UPnP_MediaServer2_get_children (DBusGProxy *proxy, const char * IN_id, const guint IN_offset, const gint IN_max_count, const char ** IN_filter, GHashTable** OUT_children, GError **error)
+org_gnome_UPnP_MediaServer2_get_children (DBusGProxy *proxy, const char * IN_id, const guint IN_offset, const gint IN_max_count, const char ** IN_filter, GPtrArray** OUT_children, GError **error)
 
 {
-  return dbus_g_proxy_call (proxy, "GetChildren", error, G_TYPE_STRING, IN_id, G_TYPE_UINT, IN_offset, G_TYPE_INT, IN_max_count, G_TYPE_STRV, IN_filter, G_TYPE_INVALID, dbus_g_type_get_map ("GHashTable", G_TYPE_STRING, dbus_g_type_get_collection ("GPtrArray", G_TYPE_VALUE)), OUT_children, G_TYPE_INVALID);
+  return dbus_g_proxy_call (proxy, "GetChildren", error, G_TYPE_STRING, IN_id, G_TYPE_UINT, IN_offset, G_TYPE_INT, IN_max_count, G_TYPE_STRV, IN_filter, G_TYPE_INVALID, dbus_g_type_get_collection ("GPtrArray", dbus_g_type_get_collection ("GPtrArray", G_TYPE_VALUE)), OUT_children, G_TYPE_INVALID);
 }
 
-typedef void (*org_gnome_UPnP_MediaServer2_get_children_reply) (DBusGProxy *proxy, GHashTable *OUT_children, GError *error, gpointer userdata);
+typedef void (*org_gnome_UPnP_MediaServer2_get_children_reply) (DBusGProxy *proxy, GPtrArray *OUT_children, GError *error, gpointer userdata);
 
 static void
 org_gnome_UPnP_MediaServer2_get_children_async_callback (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
 {
   DBusGAsyncData *data = (DBusGAsyncData*) user_data;
   GError *error = NULL;
-  GHashTable* OUT_children;
-  dbus_g_proxy_end_call (proxy, call, &error, dbus_g_type_get_map ("GHashTable", G_TYPE_STRING, dbus_g_type_get_collection ("GPtrArray", G_TYPE_VALUE)), &OUT_children, G_TYPE_INVALID);
+  GPtrArray* OUT_children;
+  dbus_g_proxy_end_call (proxy, call, &error, dbus_g_type_get_collection ("GPtrArray", dbus_g_type_get_collection ("GPtrArray", G_TYPE_VALUE)), &OUT_children, G_TYPE_INVALID);
   (*(org_gnome_UPnP_MediaServer2_get_children_reply)data->cb) (proxy, OUT_children, error, data->userdata);
   return;
 }

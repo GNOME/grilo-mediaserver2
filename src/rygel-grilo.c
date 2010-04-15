@@ -377,7 +377,7 @@ get_properties_cb (const gchar *id,
                    gpointer data,
                    GError **error)
 {
-  GHashTable *properties_table;
+  GHashTable *properties_table = NULL;
   GrlMedia *media;
   RygelGriloData *rgdata;
 
