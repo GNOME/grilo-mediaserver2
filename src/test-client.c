@@ -245,10 +245,10 @@ int main (int argc, char **argv)
 
   g_type_init ();
 
-  if (0) test_properties_sync ();
+  if (1) test_properties_sync ();
   if (0) test_children_sync ();
   if (0) test_properties_async ();
-  if (1) test_children_async ();
+  if (0) test_children_async ();
 
   mainloop = g_main_loop_new (NULL, FALSE);
   g_main_loop_run (mainloop);

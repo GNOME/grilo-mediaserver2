@@ -180,6 +180,44 @@ get_array_children (GList *children,
   return children_array;
 }
 
+/* Looks up for wrong keys, and report them */
+static const gchar *
+check_properties (const gchar **filter)
+{
+  const gchar **p;
+
+  for (p = filter; *p; p++) {
+    if (g_strcmp0 (*p, MS2_PROP_ID) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_PARENT) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_DISPLAY_NAME) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_TYPE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_CHILD_COUNT) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_ICON) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_URLS) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_MIME_TYPE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_SIZE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_ARTIST) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_ALBUM) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_DATE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_DLNA_PROFILE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_DURATION) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_BITRATE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_SAMPLE_RATE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_BITS_PER_SAMPLE) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_WIDTH) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_HEIGHT) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_COLOR_DEPTH) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_PIXEL_WIDTH) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_PIXEL_HEIGHT) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_THUMBNAIL) != 0 &&
+        g_strcmp0 (*p, MS2_PROP_GENRE) != 0) {
+      return *p;
+    }
+  }
+
+  return NULL;
+}
+
 /* Registers the MS2Server object in dbus */
 static gboolean
 ms2_server_dbus_register (MS2Server *server,
@@ -255,14 +293,47 @@ ms2_server_get_properties (MS2Server *server,
                            DBusGMethodInvocation *context,
                            GError **error)
 {
+  GError *prop_error = NULL;
+  GError *send_error = NULL;
   GHashTable *properties = NULL;
   GPtrArray *prop_array = NULL;
+  const gchar *wrong_prop;
 
-  if (server->priv->get_properties) {
-    properties = server->priv->get_properties (id,
-                                               filter,
-                                               server->priv->data,
-                                               NULL);
+  if (!server->priv->get_properties) {
+    send_error = g_error_new_literal (MS2_ERROR,
+                                      MS2_ERROR_GENERAL,
+                                      "Unable to get properties");
+  } else {
+    /* Validate filter */
+    wrong_prop = check_properties (filter);
+
+    if (!wrong_prop) {
+      properties = server->priv->get_properties (id,
+                                                 filter,
+                                                 server->priv->data,
+                                                 &prop_error);
+      if (prop_error) {
+        send_error = g_error_new_literal (MS2_ERROR,
+                                          MS2_ERROR_GENERAL,
+                                          prop_error->message);
+        g_error_free (prop_error);
+      }
+    } else {
+      send_error = g_error_new (MS2_ERROR,
+                                MS2_ERROR_GENERAL,
+                                "Wrong property \"%s\"",
+                                wrong_prop);
+    }
+  }
+
+  if (send_error) {
+    if (error) {
+      *error = g_error_copy (send_error);
+    }
+
+    dbus_g_method_return_error (context, send_error);
+    g_error_free (send_error);
+    return TRUE;
   }
 
   prop_array = get_array_properties (properties, filter);
@@ -288,16 +359,49 @@ ms2_server_get_children (MS2Server *server,
                          DBusGMethodInvocation *context,
                          GError **error)
 {
+  GError *children_error = NULL;
+  GError *send_error = NULL;
   GPtrArray *children_array = NULL;
   GList *children = NULL;
+  const gchar *wrong_prop;
 
-  if (server->priv->get_children) {
-    children = server->priv->get_children (id,
-                                           offset,
-                                           max_count < 0? G_MAXINT: max_count,
-                                           filter,
-                                           server->priv->data,
-                                           NULL);
+  if (!server->priv->get_children) {
+    send_error = g_error_new_literal (MS2_ERROR,
+                                      MS2_ERROR_GENERAL,
+                                      "Unable to get children");
+  } else {
+    /* Validate filter */
+    wrong_prop = check_properties (filter);
+
+    if (!wrong_prop) {
+      children = server->priv->get_children (id,
+                                             offset,
+                                             max_count < 0? G_MAXINT: max_count,
+                                             filter,
+                                             server->priv->data,
+                                             &children_error);
+      if (children_error) {
+        send_error = g_error_new_literal (MS2_ERROR,
+                                          MS2_ERROR_GENERAL,
+                                          children_error->message);
+        g_error_free (children_error);
+      }
+    } else {
+      send_error = g_error_new (MS2_ERROR,
+                                MS2_ERROR_GENERAL,
+                                "Wrong property \"%s\"",
+                                wrong_prop);
+    }
+  }
+
+  if (send_error) {
+    if (error) {
+      *error = g_error_copy (send_error);
+    }
+
+    dbus_g_method_return_error (context, send_error);
+    g_error_free (send_error);
+    return TRUE;
   }
 
   children_array = get_array_children (children, filter);
