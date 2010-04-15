@@ -388,12 +388,16 @@ get_properties_cb (const gchar *id,
   rgdata->parent_id = get_parent_id (id);
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
 
-  grl_media_source_metadata (rgdata->source,
-                             media,
-                             rgdata->keys,
-                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
-                             metadata_cb,
-                             rgdata);
+  if (rgdata->keys) {
+    grl_media_source_metadata (rgdata->source,
+                               media,
+                               rgdata->keys,
+                               GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                               metadata_cb,
+                               rgdata);
+  } else {
+    metadata_cb (rgdata->source, media, rgdata, NULL);
+  }
 
   wait_for_result (rgdata);
 
