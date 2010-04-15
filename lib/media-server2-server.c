@@ -34,7 +34,7 @@
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
 
-#define MS2_SERVER_GET_PRIVATE(o)                                    \
+#define MS2_SERVER_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_SERVER, MS2ServerPrivate)
 
 /*
@@ -51,10 +51,161 @@ struct _MS2ServerPrivate {
 
 G_DEFINE_TYPE (MS2Server, ms2_server, G_TYPE_OBJECT);
 
+/******************** PRIVATE API ********************/
+
+/* Free gvalue */
+static void
+free_value (GValue *value)
+{
+  g_value_unset (value);
+  g_free (value);
+}
+
+/* Free a GPtrArray */
+static void
+free_ptr_array (GPtrArray *array)
+{
+  g_ptr_array_free (array, TRUE);
+}
+
+/* Puts a string in a gvalue */
+static GValue *
+str_to_value (const gchar *str)
+{
+  GValue *val = NULL;
+
+  if (str) {
+    val = g_new0 (GValue, 1);
+    g_value_init (val, G_TYPE_STRING);
+    g_value_set_string (val, str);
+  }
+
+  return val;
+}
+
+/* Puts an int in a gvalue */
+static GValue *
+int_to_value (gint number)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_INT);
+  g_value_set_int (val, number);
+
+  return val;
+}
+
+/* Puts a gptrarray in a gvalue */
+static GValue *
+ptrarray_to_value (GPtrArray *array)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, DBUS_TYPE_G_ARRAY_OF_STRING);
+  g_value_take_boxed (val, array);
+
+  return val;
+}
+
+/* Returns the unknown value for the property */
+static GValue *
+get_unknown_value (const gchar *property)
+{
+  GValue *val;
+  GPtrArray *ptrarray;
+
+  if (g_strcmp0 (property, MS2_PROP_ID) == 0 ||
+      g_strcmp0 (property, MS2_PROP_PARENT) == 0 ||
+      g_strcmp0 (property, MS2_PROP_DISPLAY_NAME) == 0 ||
+      g_strcmp0 (property, MS2_PROP_TYPE) == 0 ||
+      g_strcmp0 (property, MS2_PROP_ICON) == 0 ||
+      g_strcmp0 (property, MS2_PROP_MIME_TYPE) == 0 ||
+      g_strcmp0 (property, MS2_PROP_ARTIST) == 0 ||
+      g_strcmp0 (property, MS2_PROP_ALBUM) == 0 ||
+      g_strcmp0 (property, MS2_PROP_DATE) == 0 ||
+      g_strcmp0 (property, MS2_PROP_DLNA_PROFILE) == 0 ||
+      g_strcmp0 (property, MS2_PROP_THUMBNAIL) == 0 ||
+      g_strcmp0 (property, MS2_PROP_GENRE) == 0) {
+    val = str_to_value (MS2_UNKNOWN_STR);
+  } else if (g_strcmp0 (property, MS2_PROP_URLS) == 0) {
+    ptrarray = g_ptr_array_sized_new (1);
+    g_ptr_array_add (ptrarray, g_strdup (MS2_UNKNOWN_STR));
+    val = ptrarray_to_value (ptrarray);
+  } else {
+    val = int_to_value (MS2_UNKNOWN_INT);
+  }
+
+  return val;
+}
+
+/* Returns an array of properties values suitable to send as dbus reply */
+static GPtrArray *
+get_array_properties (const gchar *id,
+                      const gchar **filter,
+                      GHashTable *properties)
+{
+  GPtrArray *prop_array;
+  gint i;
+  GValue *val;
+
+  prop_array = g_ptr_array_sized_new (g_strv_length ((gchar **) filter));
+  for (i = 0; filter[i]; i++) {
+    if (properties) {
+      val = g_hash_table_lookup (properties, filter[i]);
+      if (val) {
+        g_ptr_array_add (prop_array, val);
+      } else {
+        val = get_unknown_value (filter[i]);
+        g_hash_table_insert (properties, (gchar *) filter[i], val);
+        g_ptr_array_add (prop_array, val);
+      }
+    } else {
+      val = get_unknown_value (filter[i]);
+      g_ptr_array_add (prop_array, val);
+    }
+  }
+
+  return prop_array;
+}
+
+/* Returns a hashtable with children and properties suitable to send as dbus
+   reply */
+static GHashTable *
+get_hash_children (GList *children,
+                   const gchar **filter)
+{
+  GHashTable *children_hash;
+  GList *child;
+  GPtrArray *prop_array;
+  GValue *val_id;
+  gchar *id;;
+
+  children_hash = g_hash_table_new_full (g_str_hash,
+                                         g_str_equal,
+                                         (GDestroyNotify) g_free,
+                                         (GDestroyNotify) free_ptr_array);
+
+  for (child = children; child; child = g_list_next (child)) {
+    val_id = g_hash_table_lookup (child->data, MS2_PROP_ID);
+    if (val_id && G_VALUE_HOLDS_STRING (val_id)) {
+      id = g_value_dup_string (val_id);
+    }
+
+    if (id) {
+      prop_array = get_array_properties (id, filter, child->data);
+      g_hash_table_insert (children_hash, id, prop_array);
+    }
+  }
+
+  return children_hash;
+}
+
 /* Registers the MS2Server object in dbus */
 static gboolean
 ms2_server_dbus_register (MS2Server *server,
-                             const gchar *name)
+                          const gchar *name)
 {
   DBusGConnection *connection;
   DBusGProxy *gproxy;
@@ -117,166 +268,8 @@ ms2_server_init (MS2Server *server)
   server->priv = MS2_SERVER_GET_PRIVATE (server);
 }
 
-/* Free gvalue */
-static void
-free_value (GValue *value)
-{
-  g_value_unset (value);
-  g_free (value);
-}
+/****************** INTERNAL PUBLIC API (NOT TO BE EXPORTED) ******************/
 
-static void
-free_ptr_array (GPtrArray *array)
-{
-  g_ptr_array_free (array, TRUE);
-}
-
-/* Puts a string in a gvalue */
-static GValue *
-str_to_value (const gchar *str)
-{
-  GValue *val = NULL;
-
-  if (str) {
-    val = g_new0 (GValue, 1);
-    g_value_init (val, G_TYPE_STRING);
-    g_value_set_string (val, str);
-  }
-
-  return val;
-}
-
-/* Puts an int in a gvalue */
-static GValue *
-int_to_value (gint number)
-{
-  GValue *val = NULL;
-
-  val = g_new0 (GValue, 1);
-  g_value_init (val, G_TYPE_INT);
-  g_value_set_int (val, number);
-
-  return val;
-}
-
-/* Puts a gptrarray in a gvalue */
-static GValue *
-ptrarray_to_value (GPtrArray *array)
-{
-  GValue *val = NULL;
-
-  val = g_new0 (GValue, 1);
-  g_value_init (val, DBUS_TYPE_G_ARRAY_OF_STRING);
-  g_value_take_boxed (val, array);
-
-  return val;
-}
-
-/* Get unknown value for the property */
-static GValue *
-get_unknown_value (const gchar *property)
-{
-  GValue *val;
-  GPtrArray *ptrarray;
-
-  if (g_strcmp0 (property, MS2_PROP_ID) == 0 ||
-      g_strcmp0 (property, MS2_PROP_PARENT) == 0 ||
-      g_strcmp0 (property, MS2_PROP_DISPLAY_NAME) == 0 ||
-      g_strcmp0 (property, MS2_PROP_TYPE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_ICON) == 0 ||
-      g_strcmp0 (property, MS2_PROP_MIME_TYPE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_ARTIST) == 0 ||
-      g_strcmp0 (property, MS2_PROP_ALBUM) == 0 ||
-      g_strcmp0 (property, MS2_PROP_DATE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_DLNA_PROFILE) == 0 ||
-      g_strcmp0 (property, MS2_PROP_THUMBNAIL) == 0 ||
-      g_strcmp0 (property, MS2_PROP_GENRE) == 0) {
-    val = str_to_value (MS2_UNKNOWN_STR);
-  } else if (g_strcmp0 (property, MS2_PROP_URLS) == 0) {
-    ptrarray = g_ptr_array_sized_new (1);
-    g_ptr_array_add (ptrarray, g_strdup (MS2_UNKNOWN_STR));
-    val = ptrarray_to_value (ptrarray);
-  } else {
-    val = int_to_value (MS2_UNKNOWN_INT);
-  }
-
-  return val;
-}
-
-/* Returns an array of properties values suitable to send as dbus reply */
-static GPtrArray *
-get_array_properties (const gchar *id,
-                      const gchar **filter,
-                      GHashTable *properties)
-{
-  GPtrArray *prop_array;
-  gint i;
-  GValue *val;
-
-  prop_array = g_ptr_array_sized_new (g_strv_length ((gchar **) filter));
-  for (i = 0; filter[i]; i++) {
-    if (properties) {
-      val = g_hash_table_lookup (properties, filter[i]);
-      if (val) {
-        g_ptr_array_add (prop_array, val);
-      } else {
-        val = get_unknown_value (filter[i]);
-        g_hash_table_insert (properties, (gchar *) filter[i], val);
-        g_ptr_array_add (prop_array, val);
-      }
-    } else {
-      val = get_unknown_value (filter[i]);
-      g_ptr_array_add (prop_array, val);
-    }
-  }
-
-  return prop_array;
-}
-
-/* Return a hashtable with children and properties suitable to send as dbus
-   reply */
-static GHashTable *
-get_hash_children (GList *children,
-                   const gchar **filter)
-{
-  GHashTable *children_hash;
-  GList *child;
-  GPtrArray *prop_array;
-  GValue *val_id;
-  gchar *id;;
-
-  children_hash = g_hash_table_new_full (g_str_hash,
-                                         g_str_equal,
-                                         (GDestroyNotify) g_free,
-                                         (GDestroyNotify) free_ptr_array);
-
-  for (child = children; child; child = g_list_next (child)) {
-    val_id = g_hash_table_lookup (child->data, MS2_PROP_ID);
-    if (val_id && G_VALUE_HOLDS_STRING (val_id)) {
-      id = g_value_dup_string (val_id);
-    }
-
-    if (id) {
-      prop_array = get_array_properties (id, filter, child->data);
-      g_hash_table_insert (children_hash, id, prop_array);
-    }
-  }
-
-  return children_hash;
-}
-
-/**
- * ms2_server_server_get_properties:
- * @server: 
- * @id: 
- * @filter: 
- * @context: 
- * @error: 
- *
- * 
- *
- * Returns: 
- **/
 gboolean
 ms2_server_get_properties (MS2Server *server,
                            const gchar *id,
@@ -322,20 +315,6 @@ ms2_server_get_properties (MS2Server *server,
   return TRUE;
 }
 
-/**
- * ms2_server_server_get_children:
- * @server: 
- * @id: 
- * @offset: 
- * @max_count: 
- * @filter: 
- * @context: 
- * @error: 
- *
- * 
- *
- * Returns: 
- **/
 gboolean
 ms2_server_get_children (MS2Server *server,
                          const gchar *id,
@@ -382,20 +361,13 @@ ms2_server_get_children (MS2Server *server,
   return TRUE;
 }
 
-/*********** PUBLIC API ***********/
+/********************* PUBLIC API *********************/
 
-/**
- * ms2_server_new:
- * @name: 
- * @data: 
- *
- * 
- *
- * Returns: 
- **/
+/********** SERVER API **********/
+
 MS2Server *
 ms2_server_new (const gchar *name,
-                   gpointer data)
+                gpointer data)
 {
   MS2Server *server;
 
@@ -411,46 +383,27 @@ ms2_server_new (const gchar *name,
   }
 }
 
-/**
- * ms2_server_set_get_properties_func:
- * @server: 
- * @f: 
- *
- * 
- **/
 void
 ms2_server_set_get_properties_func (MS2Server *server,
-                                       GetPropertiesFunc get_properties_func)
+                                    GetPropertiesFunc get_properties_func)
 {
   g_return_if_fail (MS2_IS_SERVER (server));
 
   server->priv->get_properties = get_properties_func;
 }
 
-/**
- * ms2_server_set_get_children_func:
- * @server: 
- * @f: 
- *
- * 
- **/
 void
 ms2_server_set_get_children_func (MS2Server *server,
-                                     GetChildrenFunc get_children_func)
+                                  GetChildrenFunc get_children_func)
 {
   g_return_if_fail (MS2_IS_SERVER (server));
 
   server->priv->get_children = get_children_func;
 }
 
-/**
- * ms2_server_new_properties_hashtable:
- * @id: 
- *
- * 
- *
- * Returns: 
- **/
+
+/********** PROPERTIES TABLE API **********/
+
 GHashTable *
 ms2_server_new_properties_hashtable (const gchar *id)
 {
@@ -467,16 +420,9 @@ ms2_server_new_properties_hashtable (const gchar *id)
   return properties;
 }
 
-/**
- * ms2_server_set_parent:
- * @properties: 
- * @parent: 
- *
- * 
- **/
 void
 ms2_server_set_parent (GHashTable *properties,
-                          const gchar *parent)
+                       const gchar *parent)
 {
   g_return_if_fail (properties);
 
@@ -487,16 +433,9 @@ ms2_server_set_parent (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_display_name:
- * @properties: 
- * @display_name: 
- *
- * 
- **/
 void
 ms2_server_set_display_name (GHashTable *properties,
-                                const gchar *display_name)
+                             const gchar *display_name)
 {
   g_return_if_fail (properties);
 
@@ -507,12 +446,6 @@ ms2_server_set_display_name (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_type_container:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_container (GHashTable *properties)
 {
@@ -523,12 +456,6 @@ ms2_server_set_type_container (GHashTable *properties)
                        str_to_value (MS2_TYPE_CONTAINER));
 }
 
-/**
- * ms2_server_set_type_video:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_video (GHashTable *properties)
 {
@@ -539,12 +466,6 @@ ms2_server_set_type_video (GHashTable *properties)
                        str_to_value (MS2_TYPE_VIDEO));
 }
 
-/**
- * ms2_server_set_type_movie:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_movie (GHashTable *properties)
 {
@@ -555,12 +476,6 @@ ms2_server_set_type_movie (GHashTable *properties)
                        str_to_value (MS2_TYPE_MOVIE));
 }
 
-/**
- * ms2_server_set_type_audio:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_audio (GHashTable *properties)
 {
@@ -571,12 +486,6 @@ ms2_server_set_type_audio (GHashTable *properties)
                        str_to_value (MS2_TYPE_AUDIO));
 }
 
-/**
- * ms2_server_set_type_music:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_music (GHashTable *properties)
 {
@@ -587,12 +496,6 @@ ms2_server_set_type_music (GHashTable *properties)
                        str_to_value (MS2_TYPE_MUSIC));
 }
 
-/**
- * ms2_server_set_type_image:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_image (GHashTable *properties)
 {
@@ -603,12 +506,6 @@ ms2_server_set_type_image (GHashTable *properties)
                        str_to_value (MS2_TYPE_IMAGE));
 }
 
-/**
- * ms2_server_set_type_photo:
- * @properties: 
- *
- * 
- **/
 void
 ms2_server_set_type_photo (GHashTable *properties)
 {
@@ -619,16 +516,9 @@ ms2_server_set_type_photo (GHashTable *properties)
                        str_to_value (MS2_TYPE_PHOTO));
 }
 
-/**
- * ms2_server_set_icon:
- * @properties: 
- * @icon: 
- *
- * 
- **/
 void
 ms2_server_set_icon (GHashTable *properties,
-                        const gchar *icon)
+                     const gchar *icon)
 {
   g_return_if_fail (properties);
 
@@ -639,16 +529,9 @@ ms2_server_set_icon (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_mime_type:
- * @properties: 
- * @mime_type: 
- *
- * 
- **/
 void
 ms2_server_set_mime_type (GHashTable *properties,
-                             const gchar *mime_type)
+                          const gchar *mime_type)
 {
   g_return_if_fail (properties);
 
@@ -659,16 +542,9 @@ ms2_server_set_mime_type (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_artist:
- * @properties: 
- * @artist: 
- *
- * 
- **/
 void
 ms2_server_set_artist (GHashTable *properties,
-                          const gchar *artist)
+                       const gchar *artist)
 {
   g_return_if_fail (properties);
 
@@ -679,16 +555,9 @@ ms2_server_set_artist (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_album:
- * @properties: 
- * @album: 
- *
- * 
- **/
 void
 ms2_server_set_album (GHashTable *properties,
-                         const gchar *album)
+                      const gchar *album)
 {
   g_return_if_fail (properties);
 
@@ -699,16 +568,9 @@ ms2_server_set_album (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_date:
- * @properties: 
- * @date: 
- *
- * 
- **/
 void
 ms2_server_set_date (GHashTable *properties,
-                        const gchar *date)
+                     const gchar *date)
 {
   g_return_if_fail (properties);
 
@@ -719,16 +581,9 @@ ms2_server_set_date (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_dlna_profile:
- * @properties: 
- * @dlna_profile: 
- *
- * 
- **/
 void
 ms2_server_set_dlna_profile (GHashTable *properties,
-                                const gchar *dlna_profile)
+                             const gchar *dlna_profile)
 {
   g_return_if_fail (properties);
 
@@ -739,16 +594,9 @@ ms2_server_set_dlna_profile (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_thumbnail:
- * @properties: 
- * @thumbnail: 
- *
- * 
- **/
 void
 ms2_server_set_thumbnail (GHashTable *properties,
-                             const gchar *thumbnail)
+                          const gchar *thumbnail)
 {
   g_return_if_fail (properties);
 
@@ -759,16 +607,9 @@ ms2_server_set_thumbnail (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_genre:
- * @properties: 
- * @genre: 
- *
- * 
- **/
 void
 ms2_server_set_genre (GHashTable *properties,
-                         const gchar *genre)
+                      const gchar *genre)
 {
   g_return_if_fail (properties);
 
@@ -779,16 +620,9 @@ ms2_server_set_genre (GHashTable *properties,
   }
 }
 
-/**
- * ms2_server_set_child_count:
- * @properties: 
- * @child_count: 
- *
- * 
- **/
 void
 ms2_server_set_child_count (GHashTable *properties,
-                               gint child_count)
+                            gint child_count)
 {
   g_return_if_fail (properties);
 
@@ -797,16 +631,9 @@ ms2_server_set_child_count (GHashTable *properties,
                        int_to_value (child_count));
 }
 
-/**
- * ms2_server_set_size:
- * @properties: 
- * @size: 
- *
- * 
- **/
 void
 ms2_server_set_size (GHashTable *properties,
-                        gint size)
+                     gint size)
 {
   g_return_if_fail (properties);
 
@@ -815,16 +642,9 @@ ms2_server_set_size (GHashTable *properties,
                        int_to_value (size));
 }
 
-/**
- * ms2_server_set_duration:
- * @properties: 
- * @duration: 
- *
- * 
- **/
 void
 ms2_server_set_duration (GHashTable *properties,
-                            gint duration)
+                         gint duration)
 {
   g_return_if_fail (properties);
 
@@ -833,16 +653,9 @@ ms2_server_set_duration (GHashTable *properties,
                        int_to_value (duration));
 }
 
-/**
- * ms2_server_set_bitrate:
- * @properties: 
- * @bitrate: 
- *
- * 
- **/
 void
 ms2_server_set_bitrate (GHashTable *properties,
-                           gint bitrate)
+                        gint bitrate)
 {
   g_return_if_fail (properties);
 
@@ -851,16 +664,9 @@ ms2_server_set_bitrate (GHashTable *properties,
                        int_to_value (bitrate));
 }
 
-/**
- * ms2_server_set_sample_rate:
- * @properties: 
- * @sample_rate: 
- *
- * 
- **/
 void
 ms2_server_set_sample_rate (GHashTable *properties,
-                               gint sample_rate)
+                            gint sample_rate)
 {
   g_return_if_fail (properties);
 
@@ -869,16 +675,9 @@ ms2_server_set_sample_rate (GHashTable *properties,
                        int_to_value (sample_rate));
 }
 
-/**
- * ms2_server_set_bits_per_sample:
- * @properties: 
- * @bits_per_sample: 
- *
- * 
- **/
 void
 ms2_server_set_bits_per_sample (GHashTable *properties,
-                                   gint bits_per_sample)
+                                gint bits_per_sample)
 {
   g_return_if_fail (properties);
 
@@ -887,16 +686,9 @@ ms2_server_set_bits_per_sample (GHashTable *properties,
                        int_to_value (bits_per_sample));
 }
 
-/**
- * ms2_server_set_width:
- * @properties: 
- * @width: 
- *
- * 
- **/
 void
 ms2_server_set_width (GHashTable *properties,
-                         gint width)
+                      gint width)
 {
   g_return_if_fail (properties);
 
@@ -905,16 +697,9 @@ ms2_server_set_width (GHashTable *properties,
                        int_to_value (width));
 }
 
-/**
- * ms2_server_set_height:
- * @properties: 
- * @height: 
- *
- * 
- **/
 void
 ms2_server_set_height (GHashTable *properties,
-                          gint height)
+                       gint height)
 {
   g_return_if_fail (properties);
 
@@ -923,16 +708,9 @@ ms2_server_set_height (GHashTable *properties,
                        int_to_value (height));
 }
 
-/**
- * ms2_server_set_pixel_width:
- * @properties: 
- * @pixel_width: 
- *
- * 
- **/
 void
 ms2_server_set_pixel_width (GHashTable *properties,
-                               gint pixel_width)
+                            gint pixel_width)
 {
   g_return_if_fail (properties);
 
@@ -941,16 +719,9 @@ ms2_server_set_pixel_width (GHashTable *properties,
                        int_to_value (pixel_width));
 }
 
-/**
- * ms2_server_set_pixel_height:
- * @properties: 
- * @pixel_height: 
- *
- * 
- **/
 void
 ms2_server_set_pixel_height (GHashTable *properties,
-                                gint pixel_height)
+                             gint pixel_height)
 {
   g_return_if_fail (properties);
 
@@ -959,16 +730,9 @@ ms2_server_set_pixel_height (GHashTable *properties,
                        int_to_value (pixel_height));
 }
 
-/**
- * ms2_server_set_urls:
- * @properties: 
- * @urls: 
- *
- * 
- **/
 void
 ms2_server_set_urls (GHashTable *properties,
-                        gchar **urls)
+                     gchar **urls)
 {
   GPtrArray *url_array;
   gint i;
@@ -986,4 +750,3 @@ ms2_server_set_urls (GHashTable *properties,
                          ptrarray_to_value (url_array));
   }
 }
-
