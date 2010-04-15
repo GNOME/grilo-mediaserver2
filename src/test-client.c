@@ -2,7 +2,9 @@
 #include <glib.h>
 #include <string.h>
 
-static const gchar *properties[] = { MS2_PROP_DISPLAY_NAME,
+static const gchar *properties[] = { MS2_PROP_ID,
+				     MS2_PROP_DISPLAY_NAME,
+                                     "title",
                                      MS2_PROP_PARENT,
                                      MS2_PROP_CHILD_COUNT,
                                      NULL };

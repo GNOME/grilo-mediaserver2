@@ -38,10 +38,9 @@
   dbus_g_type_get_collection ("GPtrArray",      \
                               G_TYPE_VALUE)
 
-#define DBUS_TYPE_CHILDREN                      \
-  dbus_g_type_get_map ("GHashTable",            \
-                       G_TYPE_STRING,           \
-                       DBUS_TYPE_PROPERTIES)    \
+#define DBUS_TYPE_CHILDREN                              \
+  dbus_g_type_get_collection ("GPtrArray",              \
+                              DBUS_TYPE_PROPERTIES)
 
 #define MS2_CLIENT_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
@@ -97,25 +96,16 @@ free_async_data (AsyncData *adata)
 /* Given a GPtrArray result (dbus answer of getting properties), returns a
    ghashtable with pairs <keys, values> */
 static GHashTable *
-get_properties_table (const gchar *id,
-                      const gchar **properties,
-                      GPtrArray *result)
+get_properties_table (GPtrArray *result,
+                      const gchar **properties)
 {
   GHashTable *table;
-  GValue *id_value;
   gint i;
 
   table = g_hash_table_new_full (g_str_hash,
                                  g_str_equal,
                                  (GDestroyNotify) g_free,
                                  (GDestroyNotify) free_gvalue);
-
-  id_value = g_new0 (GValue, 1);
-  g_value_init (id_value, G_TYPE_STRING);
-  g_value_set_string (id_value, id);
-  g_hash_table_insert (table,
-                       g_strdup (MS2_PROP_ID),
-                       id_value);
 
   for (i = 0; i < result->len; i++) {
     g_hash_table_insert (table,
@@ -127,33 +117,27 @@ get_properties_table (const gchar *id,
   return table;
 }
 
-/* Given a GHashTable result (dbus answer of getting children), returns a list
+/* Given a GPtrArray result (dbus answer of getting children), returns a list
    of children, which in turn are tables with pairs <keys, values>. Note that
    child id is included in those pairs */
 static GList *
-get_children_list (GHashTable *result,
+get_children_list (GPtrArray *result,
                    const gchar **properties)
 {
-  GList *child_id;
   GList *children = NULL;
-  GList *children_id;
   GPtrArray *prop_array;
+  gint i;
 
-  if (!result || g_hash_table_size (result) == 0) {
+  if (!result || result->len == 0) {
     return NULL;
   }
 
-  children_id = g_hash_table_get_keys (result);
-
-  for (child_id = children_id; child_id; child_id = g_list_next (child_id)) {
-    prop_array = g_hash_table_lookup (result, child_id->data);
+  for (i = 0; i < result->len; i++) {
+    prop_array = g_ptr_array_index (result, i);
     children = g_list_prepend (children,
-                               get_properties_table (child_id->data,
-                                                     properties,
-                                                     prop_array));
+                               get_properties_table (prop_array,
+                                                     properties));
   }
-
-  g_list_free (children_id);
 
   return children;
 }
@@ -171,20 +155,18 @@ get_properties_async_reply (DBusGProxy *proxy,
   adata = g_simple_async_result_get_op_res_gpointer (res);
 
   adata->properties_result =
-    get_properties_table (adata->id,
-                          (const gchar **) adata->properties,
-                          result);
+    get_properties_table (result,
+                          (const gchar **) adata->properties);
   g_boxed_free (DBUS_TYPE_PROPERTIES, result);
 
   g_simple_async_result_complete (res);
   g_object_unref (res);
 }
 
-#if 0
 /* Callback invoked by dbus as answer to get_children_async() */
 static void
 get_children_async_reply (DBusGProxy *proxy,
-                          GHashTable *result,
+                          GPtrArray *result,
                           GError *error,
                           gpointer data)
 {
@@ -201,7 +183,6 @@ get_children_async_reply (DBusGProxy *proxy,
   g_simple_async_result_complete (res);
   g_object_unref (res);
 }
-#endif
 
 /* Class init function */
 static void
@@ -337,7 +318,7 @@ ms2_client_get_properties (MS2Client *client,
     return NULL;
   }
 
-  prop_result = get_properties_table (id, properties, result);
+  prop_result = get_properties_table (result, properties);
   g_boxed_free (DBUS_TYPE_PROPERTIES, result);
 
   return prop_result;
@@ -398,12 +379,11 @@ ms2_client_get_children (MS2Client *client,
                          const gchar **properties,
                          GError **error)
 {
-  GHashTable *result = NULL;
+  GPtrArray *result = NULL;
   GList *children = NULL;
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
-#if 0
   if (!org_gnome_UPnP_MediaServer2_get_children (client->priv->proxy_provider,
                                                  id,
                                                  offset,
@@ -413,7 +393,7 @@ ms2_client_get_children (MS2Client *client,
                                                  error)) {
     return NULL;
   }
-#endif
+
 
   children = get_children_list (result, properties);
 
@@ -450,7 +430,6 @@ void ms2_client_get_children_async (MS2Client *client,
                                              adata,
                                              (GDestroyNotify) free_async_data);
 
-#if 0
   org_gnome_UPnP_MediaServer2_get_children_async (client->priv->proxy_provider,
                                                   id,
                                                   offset,
@@ -458,7 +437,6 @@ void ms2_client_get_children_async (MS2Client *client,
                                                   properties,
                                                   get_children_async_reply,
                                                   res);
-#endif
 }
 
 GList *
