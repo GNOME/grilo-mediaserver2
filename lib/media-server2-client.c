@@ -176,8 +176,9 @@ get_children_async_reply (DBusGProxy *proxy,
 
   adata = g_simple_async_result_get_op_res_gpointer (res);
 
-  adata->children_result = get_children_list (result,
-                                              (const gchar **) adata->properties);
+  adata->children_result =
+    get_children_list (result,
+                       (const gchar **) adata->properties);
 
   g_boxed_free (DBUS_TYPE_CHILDREN, result);
 
@@ -258,7 +259,8 @@ ms2_client_get_providers ()
   /* Put them in a NULL-terminated array */
   list_providers = g_new (gchar *, providers->len + 1);
   for (i = 0; i < providers->len; i++) {
-    list_providers[i] = g_strdup (g_ptr_array_index (providers, i) + prefix_size);
+    list_providers[i] =
+      g_strdup (g_ptr_array_index (providers, i) + prefix_size);
   }
 
   list_providers[i] = NULL;
@@ -273,7 +275,8 @@ ms2_client_get_providers ()
  * ms2_client_new:
  * @provider: provider name.
  *
- * Create a new #MS2Client that will be used to obtain content from the provider specified.
+ * Create a new #MS2Client that will be used to obtain content from the provider
+ * specified.
  *
  * Providers can be obtained with ms2_client_get_providers().
  *
@@ -429,7 +432,8 @@ ms2_client_get_properties_finish (MS2Client *client,
   g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
                         ms2_client_get_properties_async, NULL);
 
-  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+  adata =
+    g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
   return adata->properties_result;
 }
 
@@ -556,7 +560,8 @@ ms2_client_get_children_finish (MS2Client *client,
   g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
                         ms2_client_get_children_async, NULL);
 
-  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+  adata =
+    g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
   return adata->children_result;
 }
 

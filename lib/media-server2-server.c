@@ -406,12 +406,13 @@ ms2_server_get_children (MS2Server *server,
     wrong_prop = check_properties (filter);
 
     if (!wrong_prop) {
-      children = server->priv->get_children (id,
-                                             offset,
-                                             max_count < 0? G_MAXINT: max_count,
-                                             filter,
-                                             server->priv->data,
-                                             &children_error);
+      children =
+        server->priv->get_children (id,
+                                    offset,
+                                    max_count < 0? G_MAXINT: max_count,
+                                    filter,
+                                    server->priv->data,
+                                    &children_error);
       if (children_error) {
         send_error = g_error_new_literal (MS2_ERROR,
                                           MS2_ERROR_GENERAL,
