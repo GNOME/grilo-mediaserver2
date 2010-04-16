@@ -192,6 +192,7 @@ ms2_client_class_init (MS2ClientClass *klass)
   g_type_class_add_private (klass, sizeof (MS2ClientPrivate));
 }
 
+/* Object init function */
 static void
 ms2_client_init (MS2Client *client)
 {
@@ -200,6 +201,13 @@ ms2_client_init (MS2Client *client)
 
 /******************** PUBLIC API ********************/
 
+/**
+ * ms2_client_get_providers:
+ *
+ * Returns a list of content providers following MediaServer2 specification.
+ *
+ * Returns: a new @NULL-terminated array of strings
+ **/
 gchar **
 ms2_client_get_providers ()
 {
@@ -225,6 +233,7 @@ ms2_client_get_providers ()
                                       DBUS_PATH_DBUS,
                                       DBUS_INTERFACE_DBUS);
 
+  /* Get a list of all DBUS services running */
   org_freedesktop_DBus_list_names (gproxy, &dbus_names, &error);
   g_object_unref (gproxy);
 
@@ -238,6 +247,7 @@ ms2_client_get_providers ()
     return FALSE;
   }
 
+  /* Filter the list to obtain those services that fulfils MediaServer2 spec */
   providers = g_ptr_array_new ();
   for (p = dbus_names; *p; p++) {
     if (g_str_has_prefix (*p, MS2_DBUS_SERVICE_PREFIX)) {
@@ -245,6 +255,7 @@ ms2_client_get_providers ()
     }
   }
 
+  /* Put them in a NULL-terminated array */
   list_providers = g_new (gchar *, providers->len + 1);
   for (i = 0; i < providers->len; i++) {
     list_providers[i] = g_strdup (g_ptr_array_index (providers, i) + prefix_size);
@@ -258,6 +269,16 @@ ms2_client_get_providers ()
   return list_providers;
 }
 
+/**
+ * ms2_client_new:
+ * @provider: provider name.
+ *
+ * Create a new #MS2Client that will be used to obtain content from the provider specified.
+ *
+ * Providers can be obtained with ms2_client_get_providers().
+ *
+ * Returns: a new #MS2Client
+ **/
 MS2Client *ms2_client_new (const gchar *provider)
 {
   DBusGConnection *connection;
@@ -300,6 +321,18 @@ MS2Client *ms2_client_new (const gchar *provider)
   return client;
 }
 
+/**
+ * ms2_client_get_properties:
+ * @client: a #MS2Client
+ * @id: media identifier to obtain properties from
+ * @properties: @NULL-terminated array of properties to request
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Gets the properties of media id. Properties will be returned in a hash table
+ * of <prop_id, prop_gvalue> pairs.
+ *
+ * Returns: a new #GHashTable
+ **/
 GHashTable *
 ms2_client_get_properties (MS2Client *client,
                            const gchar *id,
@@ -325,6 +358,23 @@ ms2_client_get_properties (MS2Client *client,
   return prop_result;
 }
 
+/**
+ * ms2_client_get_properties_async:
+ * @client: a #MS2Client
+ * @id: media identifier to obtain properties from
+ * @properties: @NULL-terminated array of properties to request
+ * @callback: a #GAsyncReadyCallback to call when request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Starts an asynchronous get properties.
+ *
+ * For more details, see ms2_client_get_properties(), which is the synchronous
+ * version of this call.
+ *
+ * When the properties have been obtained, @callback will be called with
+ * @user_data. To finish the operation, call ms2_client_get_properties_finish()
+ * with the #GAsyncResult returned by the @callback.
+ **/
 void ms2_client_get_properties_async (MS2Client *client,
                                       const gchar *id,
                                       const gchar **properties,
@@ -358,6 +408,17 @@ void ms2_client_get_properties_async (MS2Client *client,
                                                     res);
 }
 
+/**
+ * ms2_client_get_properties_finish:
+ * @client: a #MS2Client
+ * @res: a #GAsyncResult
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Finishes an asynchronous getting properties operation. Properties are
+ * returned in a #GHashTable.
+ *
+ * Returns: a new #GHashTable
+ **/
 GHashTable *
 ms2_client_get_properties_finish (MS2Client *client,
                                   GAsyncResult *res,
@@ -372,6 +433,21 @@ ms2_client_get_properties_finish (MS2Client *client,
   return adata->properties_result;
 }
 
+/**
+ * ms2_client_get_children:
+ * @client: a #MS2Client
+ * @id: container identifier to get children from
+ * @offset: number of children to skip
+ * @max_count: maximum number of children to return, or -1 for no limit
+ * @properties: @NULL-terminated array of properties to request for each child
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Gets the list of children directly under the container id. Each child consist
+ * of a hash table of <prop_id, prop_gvalue> pairs.
+ *
+ * Returns: a new #GList of #GHashTable. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
 GList *
 ms2_client_get_children (MS2Client *client,
                          const gchar *id,
@@ -403,6 +479,25 @@ ms2_client_get_children (MS2Client *client,
   return children;
 }
 
+/**
+ * ms2_client_get_children_async:
+ * @client: a #MS2Client
+ * @id: container identifier to get children from
+ * @offset: number of children to skip
+ * @max_count: maximum number of children to return, or -1 for no limit
+ * @properties: @NULL-terminated array of properties to request for each child
+ * @callback: a #GAsyncReadyCallback to call when request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Starts an asynchronous get children.
+ *
+ * For more details, see ms2_client_get_children(), which is the synchronous
+ * version of this call.
+ *
+ * When the children have been obtained, @callback will be called with
+ * @user_data. To finish the operation, call ms2_client_get_children_finish()
+ * with the #GAsyncResult returned by the @callback.
+ **/
 void ms2_client_get_children_async (MS2Client *client,
                                     const gchar *id,
                                     guint offset,
@@ -440,6 +535,17 @@ void ms2_client_get_children_async (MS2Client *client,
                                                   res);
 }
 
+/**
+ * ms2_client_get_children_finish:
+ * @client: a #MS2Client
+ * @res: a #GAsyncResult
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Finishes an asynchronous getting children operation.
+ *
+ * Returns: a new #GList of #GHashTAble. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
 GList *
 ms2_client_get_children_finish (MS2Client *client,
                                 GAsyncResult *res,
@@ -456,6 +562,14 @@ ms2_client_get_children_finish (MS2Client *client,
 
 /******************** PROPERTIES TABLE API ********************/
 
+/**
+ * ms2_client_get_id:
+ * @properties: a #GHashTable
+ *
+ * Returns "id" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_id (GHashTable *properties)
 {
@@ -471,6 +585,14 @@ ms2_client_get_id (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_parent:
+ * @properties: a #GHashTable
+ *
+ * Returns "parent" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_parent (GHashTable *properties)
 {
@@ -486,6 +608,14 @@ ms2_client_get_parent (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_display_name:
+ * @properties: a #GHashTable
+ *
+ * Returns "display-name" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_display_name (GHashTable *properties)
 {
@@ -501,6 +631,14 @@ ms2_client_get_display_name (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_item_type:
+ * @properties: a #GHashTable
+ *
+ * Returns "type" property value.
+ *
+ * Returns: property value
+ **/
 MS2ItemType
 ms2_client_get_item_type (GHashTable *properties)
 {
@@ -535,6 +673,14 @@ ms2_client_get_item_type (GHashTable *properties)
   }
 }
 
+/**
+ * ms2_client_get_icon:
+ * @properties: a #GHashTable
+ *
+ * Returns "icon" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_icon (GHashTable *properties)
 {
@@ -550,6 +696,14 @@ ms2_client_get_icon (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_mime_type:
+ * @properties: a #GHashTable
+ *
+ * Returns "mime-type" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_mime_type (GHashTable *properties)
 {
@@ -565,6 +719,14 @@ ms2_client_get_mime_type (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_artist:
+ * @properties: a #GHashTable
+ *
+ * Returns "artist" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_artist (GHashTable *properties)
 {
@@ -580,6 +742,14 @@ ms2_client_get_artist (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_album:
+ * @properties: a #GHashTable
+ *
+ * Returns "album" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_album (GHashTable *properties)
 {
@@ -595,6 +765,14 @@ ms2_client_get_album (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_date:
+ * @properties: a #GHashTable
+ *
+ * Returns "date" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_date (GHashTable *properties)
 {
@@ -610,6 +788,14 @@ ms2_client_get_date (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_dlna_profile:
+ * @properties: a #GHashTable
+ *
+ * Returns "dlna-profile" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_dlna_profile (GHashTable *properties)
 {
@@ -625,6 +811,14 @@ ms2_client_get_dlna_profile (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_thumbnail:
+ * @properties: a #GHashTable
+ *
+ * Returns "thumbanil" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_thumbnail (GHashTable *properties)
 {
@@ -640,6 +834,14 @@ ms2_client_get_thumbnail (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_genre:
+ * @properties: a #GHashTable
+ *
+ * Returns "genre" property value.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
 const gchar *
 ms2_client_get_genre (GHashTable *properties)
 {
@@ -655,6 +857,14 @@ ms2_client_get_genre (GHashTable *properties)
   return g_value_get_string (val);
 }
 
+/**
+ * ms2_client_get_child_count:
+ * @properties: a #GHashTable
+ *
+ * Returns "child-count" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_child_count (GHashTable *properties)
 {
@@ -670,6 +880,14 @@ ms2_client_get_child_count (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_size:
+ * @properties: a #GHashTable
+ *
+ * Returns "size" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_size (GHashTable *properties)
 {
@@ -685,6 +903,14 @@ ms2_client_get_size (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_duration:
+ * @properties: a #GHashTable
+ *
+ * Returns "duration" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_duration (GHashTable *properties)
 {
@@ -700,6 +926,14 @@ ms2_client_get_duration (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_bitrate:
+ * @properties: a #GHashTable
+ *
+ * Returns "bitrate" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_bitrate (GHashTable *properties)
 {
@@ -715,6 +949,14 @@ ms2_client_get_bitrate (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_sample_rate:
+ * @properties: a #GHashTable
+ *
+ * Returns "sample-rate" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_sample_rate (GHashTable *properties)
 {
@@ -730,6 +972,14 @@ ms2_client_get_sample_rate (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_bits_per_sample:
+ * @properties: a #GHashTable
+ *
+ * Returns "bits-per-sample" property value.
+ *
+ * Returns: property value of -1 if it is not available
+ **/
 gint
 ms2_client_get_bits_per_sample (GHashTable *properties)
 {
@@ -745,6 +995,14 @@ ms2_client_get_bits_per_sample (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_width:
+ * @properties: a #GHashTable
+ *
+ * Returns "width" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_width (GHashTable *properties)
 {
@@ -760,6 +1018,14 @@ ms2_client_get_width (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_height:
+ * @properties: a #GHashTable
+ *
+ * Returns "height" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_height (GHashTable *properties)
 {
@@ -775,6 +1041,14 @@ ms2_client_get_height (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_color_depth:
+ * @properties: a #GHashTable
+ *
+ * Returns "color-depth" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_color_depth (GHashTable *properties)
 {
@@ -790,6 +1064,14 @@ ms2_client_get_color_depth (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_pixel_width:
+ * @properties: a #GHashTable
+ *
+ * Returns "pixel-width" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_pixel_width (GHashTable *properties)
 {
@@ -805,6 +1087,14 @@ ms2_client_get_pixel_width (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_pixel_height:
+ * @properties: a #GHashTable
+ *
+ * Returns "pixel-height" property value.
+ *
+ * Returns: property value or -1 if it is not available
+ **/
 gint
 ms2_client_get_pixel_height (GHashTable *properties)
 {
@@ -820,6 +1110,15 @@ ms2_client_get_pixel_height (GHashTable *properties)
   return g_value_get_int (val);
 }
 
+/**
+ * ms2_client_get_urls:
+ * @properties: a #GHashTable
+ *
+ * Returns "URLs" property value.
+ *
+ * Returns: a new @NULL-terminated array of strings or @NULL if it is not
+ * available
+ **/
 gchar **
 ms2_client_get_urls (GHashTable *properties)
 {

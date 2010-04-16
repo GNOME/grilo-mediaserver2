@@ -286,6 +286,18 @@ ms2_server_init (MS2Server *server)
 
 /****************** INTERNAL PUBLIC API (NOT TO BE EXPORTED) ******************/
 
+/*
+ * ms2_server_get_properties:
+ * @server: a #MS2Server
+ * @id: media identifier to obtain properties from
+ * @filter: @NULL-terminated array of requested properties
+ * @context: DBus context to send the reply through
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Sends a #GPtrArray of properties values through DBus.
+ *
+ * Returns: @TRUE if success
+ */
 gboolean
 ms2_server_get_properties (MS2Server *server,
                            const gchar *id,
@@ -299,6 +311,7 @@ ms2_server_get_properties (MS2Server *server,
   GPtrArray *prop_array = NULL;
   const gchar *wrong_prop;
 
+  /* Check if peer has defined a function to retrieve properties */
   if (!server->priv->get_properties) {
     send_error = g_error_new_literal (MS2_ERROR,
                                       MS2_ERROR_GENERAL,
@@ -326,6 +339,7 @@ ms2_server_get_properties (MS2Server *server,
     }
   }
 
+  /* Check if there was an error */
   if (send_error) {
     if (error) {
       *error = g_error_copy (send_error);
@@ -336,6 +350,8 @@ ms2_server_get_properties (MS2Server *server,
     return TRUE;
   }
 
+  /* Convert properties table in a type suitable to send through DBus (in this
+     case, in a gptrarray of gvalues) */
   prop_array = get_array_properties (properties, filter);
   dbus_g_method_return (context, prop_array);
 
@@ -350,6 +366,21 @@ ms2_server_get_properties (MS2Server *server,
   return TRUE;
 }
 
+/*
+ * ms2_server_get_children:
+ * @server: a #MS2Server
+ * @id: container identifier to get children from
+ * @offset: number of children to skip in the result
+ * @max_count: maximum number of children to return, or -1 for no limit
+ * @filter: @NULL-terminated array of requested properties
+ * @context: DBus context to send the reply through
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Sends a #GPtrArray of children through DBus. Each child is in its turn a
+ * #GPtrArray of properties values.
+ *
+ * Returns: @TRUE if success
+ */
 gboolean
 ms2_server_get_children (MS2Server *server,
                          const gchar *id,
@@ -365,6 +396,7 @@ ms2_server_get_children (MS2Server *server,
   GList *children = NULL;
   const gchar *wrong_prop;
 
+  /* Check if peer has defined a function to retrieve children */
   if (!server->priv->get_children) {
     send_error = g_error_new_literal (MS2_ERROR,
                                       MS2_ERROR_GENERAL,
@@ -394,6 +426,7 @@ ms2_server_get_children (MS2Server *server,
     }
   }
 
+  /* Check if there was an error */
   if (send_error) {
     if (error) {
       *error = g_error_copy (send_error);
@@ -404,6 +437,8 @@ ms2_server_get_children (MS2Server *server,
     return TRUE;
   }
 
+  /* Convert children list in a type suitable to send through DBUS (in this
+     case, in a gptrarray of gptrarray o gvalues) */
   children_array = get_array_children (children, filter);
   dbus_g_method_return (context, children_array);
 
@@ -419,6 +454,19 @@ ms2_server_get_children (MS2Server *server,
 
 /********** SERVER API **********/
 
+/**
+ * ms2_server_new:
+ * @name: the name used when registered in DBus
+ * @data: user defined data
+ *
+ * Creates a new #MS2Server that will be registered in DBus under name
+ * "org.gnome.UPnP.MediaServer2.<name>".
+ *
+ * @data will be used as parameter when invoking the functions to retrieve
+ * properties or children.
+ *
+ * Returns: a new #MS2Server registed in DBus, or @NULL if fails
+ **/
 MS2Server *
 ms2_server_new (const gchar *name,
                 gpointer data)
@@ -429,6 +477,7 @@ ms2_server_new (const gchar *name,
 
   server->priv->data = data;
 
+  /* Register object in DBus */
   if (!ms2_server_dbus_register (server, name)) {
     g_object_unref (server);
     return NULL;
@@ -437,6 +486,13 @@ ms2_server_new (const gchar *name,
   }
 }
 
+/**
+ * ms2_server_set_get_properties_func:
+ * @server: a #MS2Server
+ * @get_properties_func: user-defined function to request properties
+ *
+ * Defines which function must be used when requesting properties.
+ **/
 void
 ms2_server_set_get_properties_func (MS2Server *server,
                                     GetPropertiesFunc get_properties_func)
@@ -446,6 +502,13 @@ ms2_server_set_get_properties_func (MS2Server *server,
   server->priv->get_properties = get_properties_func;
 }
 
+/**
+ * ms2_server_set_get_children_func:
+ * @server: a #MS2Server
+ * @get_children_func: user-defined function to request children
+ *
+ * Defines which function must be used when requesting children.
+ **/
 void
 ms2_server_set_get_children_func (MS2Server *server,
                                   GetChildrenFunc get_children_func)
@@ -458,6 +521,16 @@ ms2_server_set_get_children_func (MS2Server *server,
 
 /********** PROPERTIES TABLE API **********/
 
+/**
+ * ms2_server_new_properties_hashtable:
+ * @id: identifier of item which properties will be stored in the table
+ *
+ * Creates a new #GHashTable suitable to store items properties.
+ *
+ * For root container, identifier should be "0".
+ *
+ * Returns: a new #GHashTable
+ **/
 GHashTable *
 ms2_server_new_properties_hashtable (const gchar *id)
 {
@@ -474,6 +547,13 @@ ms2_server_new_properties_hashtable (const gchar *id)
   return properties;
 }
 
+/**
+ * ms2_server_set_parent:
+ * @properties: a #GHashTable
+ * @parent: parent value
+ *
+ * Sets the "parent" property. Mandatory property.
+ **/
 void
 ms2_server_set_parent (GHashTable *properties,
                        const gchar *parent)
@@ -487,6 +567,13 @@ ms2_server_set_parent (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_display_name:
+ * @properties: a #GHashTable
+ * @display_name: display name value
+ *
+ * Sets the "display-name" property. Mandatory property.
+ **/
 void
 ms2_server_set_display_name (GHashTable *properties,
                              const gchar *display_name)
@@ -500,6 +587,15 @@ ms2_server_set_display_name (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_item_type:
+ * @properties: a #GHashTable
+ * @type: type of item
+ *
+ * Sets the "type" property. Mandatory property.
+ *
+ * Tells what kind of object we are dealing with.
+ **/
 void
 ms2_server_set_item_type (GHashTable *properties,
                           MS2ItemType type)
@@ -548,6 +644,16 @@ ms2_server_set_item_type (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_icon:
+ * @properties: a #GHashTable
+ * @icon: icon identifier value
+ *
+ * Sets the "icon" property. Recommended property for containers.
+ *
+ * Use this to provide an icon to be used by consumer UIs to represent the
+ * provider. This is only relevant to root container.
+ **/
 void
 ms2_server_set_icon (GHashTable *properties,
                      const gchar *icon)
@@ -561,6 +667,13 @@ ms2_server_set_icon (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_mime_type:
+ * @properties: a #GHashTable
+ * @mime_type: mime type value
+ *
+ * Sets the "mime-type" property. Mandatory property for items.
+ **/
 void
 ms2_server_set_mime_type (GHashTable *properties,
                           const gchar *mime_type)
@@ -574,6 +687,13 @@ ms2_server_set_mime_type (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_artist:
+ * @properties: a #GHashTable
+ * @artist: artist value
+ *
+ * Sets the "artist" property. Recommended property for items.
+ **/
 void
 ms2_server_set_artist (GHashTable *properties,
                        const gchar *artist)
@@ -587,6 +707,13 @@ ms2_server_set_artist (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_album:
+ * @properties: a #GHashTable
+ * @album: album value
+ *
+ * Sets the "album" property. Recommended property for items.
+ **/
 void
 ms2_server_set_album (GHashTable *properties,
                       const gchar *album)
@@ -600,6 +727,16 @@ ms2_server_set_album (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_date:
+ * @properties: a #GHashTable
+ * @date: date value
+ *
+ * Sets the "date" property. Recommended property for items.
+ *
+ * This date can be date of creation or release. Must be compliant to ISO-8601
+ * and RFC-3339.
+ **/
 void
 ms2_server_set_date (GHashTable *properties,
                      const gchar *date)
@@ -613,6 +750,16 @@ ms2_server_set_date (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_dlna_profile:
+ * @properties: a #GHashTable
+ * @dlna_profile: DLNA value
+ *
+ * Sets the "dlna-profile" property. Optional property for items.
+ *
+ * If you provide a value for this property, it will greatly help avoiding
+ * guessing of its value by UPnP consumers.
+ **/
 void
 ms2_server_set_dlna_profile (GHashTable *properties,
                              const gchar *dlna_profile)
@@ -626,6 +773,13 @@ ms2_server_set_dlna_profile (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_thumbnail:
+ * @properties: a #GHashTable
+ * @thumbnail: thumbnail identifier value
+ *
+ * Sets the "thumbnail" property. Optional property for video/image items.
+ **/
 void
 ms2_server_set_thumbnail (GHashTable *properties,
                           const gchar *thumbnail)
@@ -639,6 +793,13 @@ ms2_server_set_thumbnail (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_genre:
+ * @properties: a #GHashTable
+ * @genre: genre value
+ *
+ * Sets the "genre" property. Optional property for audio/music items.
+ **/
 void
 ms2_server_set_genre (GHashTable *properties,
                       const gchar *genre)
@@ -652,6 +813,15 @@ ms2_server_set_genre (GHashTable *properties,
   }
 }
 
+/**
+ * ms2_server_set_child_count:
+ * @properties: a #GHashTable
+ * @child_count: childcount value
+ *
+ * Sets the "child-count" property. Recommended property for containers.
+ *
+ * It is the number of media objects directly under this container.
+ **/
 void
 ms2_server_set_child_count (GHashTable *properties,
                             gint child_count)
@@ -663,6 +833,15 @@ ms2_server_set_child_count (GHashTable *properties,
                        int_to_value (child_count));
 }
 
+/**
+ * ms2_server_set_size:
+ * @properties: a #GHashTable
+ * @size: size value
+ *
+ * Sets the "size" property. Recommended property for items.
+ *
+ * It is the resource size in bytes.
+ **/
 void
 ms2_server_set_size (GHashTable *properties,
                      gint size)
@@ -674,6 +853,13 @@ ms2_server_set_size (GHashTable *properties,
                        int_to_value (size));
 }
 
+/**
+ * ms2_server_set_duration:
+ * @properties: a #GHashTable
+ * @duration: duration (in seconds) value
+ *
+ * Sets the "duration" property. Optional property for audio/video/music items.
+ **/
 void
 ms2_server_set_duration (GHashTable *properties,
                          gint duration)
@@ -685,6 +871,13 @@ ms2_server_set_duration (GHashTable *properties,
                        int_to_value (duration));
 }
 
+/**
+ * ms2_server_set_bitrate:
+ * @properties: a #GHashTable
+ * @bitrate: bitrate value
+ *
+ * Sets the "bitrate" property. Optional property for audio/video/music items.
+ **/
 void
 ms2_server_set_bitrate (GHashTable *properties,
                         gint bitrate)
@@ -696,6 +889,14 @@ ms2_server_set_bitrate (GHashTable *properties,
                        int_to_value (bitrate));
 }
 
+/**
+ * ms2_server_set_sample_rate:
+ * @properties: a #GHashTable
+ * @sample_rate: sample rate value
+ *
+ * Sets the "sample-rate" property. Optional property for audio/video/music
+ * items.
+ **/
 void
 ms2_server_set_sample_rate (GHashTable *properties,
                             gint sample_rate)
@@ -707,6 +908,14 @@ ms2_server_set_sample_rate (GHashTable *properties,
                        int_to_value (sample_rate));
 }
 
+/**
+ * ms2_server_set_bits_per_sample:
+ * @properties: a #GHashTable
+ * @bits_per_sample: bits per sample value
+ *
+ * Sets the "bits-per-sample" property. Optional property for audio/video/music
+ * items.
+ **/
 void
 ms2_server_set_bits_per_sample (GHashTable *properties,
                                 gint bits_per_sample)
@@ -718,6 +927,13 @@ ms2_server_set_bits_per_sample (GHashTable *properties,
                        int_to_value (bits_per_sample));
 }
 
+/**
+ * ms2_server_set_width:
+ * @properties: a #GHashTable
+ * @width: width (in pixels) value
+ *
+ * Sets the "width" property. Recommended property for video/image items.
+ **/
 void
 ms2_server_set_width (GHashTable *properties,
                       gint width)
@@ -729,6 +945,13 @@ ms2_server_set_width (GHashTable *properties,
                        int_to_value (width));
 }
 
+/**
+ * ms2_server_set_height:
+ * @properties: a #GHashTable
+ * @height: height (in pixels) value
+ *
+ * Sets the "height" property. Recommended property for video/image items.
+ **/
 void
 ms2_server_set_height (GHashTable *properties,
                        gint height)
@@ -740,6 +963,13 @@ ms2_server_set_height (GHashTable *properties,
                        int_to_value (height));
 }
 
+/**
+ * ms2_server_set_color_depth:
+ * @properties: a #GHashTable
+ * @depth: color depth value
+ *
+ * Sets the "color-depth" property. Recommended property for video/image items.
+ **/
 void
 ms2_server_set_color_depth (GHashTable *properties,
                             gint depth)
@@ -751,6 +981,13 @@ ms2_server_set_color_depth (GHashTable *properties,
                        int_to_value (depth));
 }
 
+/**
+ * ms2_server_set_pixel_width:
+ * @properties: a #GHashTable
+ * @pixel_width: pixel width value
+ *
+ * Sets the "pixel-width" property. Optional property for video/image items.
+ **/
 void
 ms2_server_set_pixel_width (GHashTable *properties,
                             gint pixel_width)
@@ -762,6 +999,13 @@ ms2_server_set_pixel_width (GHashTable *properties,
                        int_to_value (pixel_width));
 }
 
+/**
+ * ms2_server_set_pixel_height:
+ * @properties: a #GHashTable
+ * @pixel_height: pixel height value
+ *
+ * Sets the "pixel-height" property. Optional property for video/image items.
+ **/
 void
 ms2_server_set_pixel_height (GHashTable *properties,
                              gint pixel_height)
@@ -773,6 +1017,13 @@ ms2_server_set_pixel_height (GHashTable *properties,
                        int_to_value (pixel_height));
 }
 
+/**
+ * ms2_server_set_urls:
+ * @properties: a #GHashTable
+ * @urls: @NULL-terminated array of URLs values
+ *
+ * Sets the "URLs" property. Mandatory property for items.
+ **/
 void
 ms2_server_set_urls (GHashTable *properties,
                      gchar **urls)
@@ -782,6 +1033,7 @@ ms2_server_set_urls (GHashTable *properties,
 
   g_return_if_fail (properties);
 
+  /* Check if there is at least one URL */
   if (urls && urls[0]) {
     url_array = g_ptr_array_sized_new (g_strv_length (urls));
     for (i = 0; urls[i]; i++) {
