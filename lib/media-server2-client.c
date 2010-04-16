@@ -34,13 +34,14 @@
 #define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
 #define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
 
-#define DBUS_TYPE_PROPERTIES                    \
-  dbus_g_type_get_collection ("GPtrArray",      \
-                              G_TYPE_VALUE)
+#define DBUS_TYPE_G_ARRAY_OF_STRING                             \
+  (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
 
-#define DBUS_TYPE_CHILDREN                              \
-  dbus_g_type_get_collection ("GPtrArray",              \
-                              DBUS_TYPE_PROPERTIES)
+#define DBUS_TYPE_PROPERTIES                                    \
+  dbus_g_type_get_collection ("GPtrArray", G_TYPE_VALUE)
+
+#define DBUS_TYPE_CHILDREN                                              \
+  dbus_g_type_get_collection ("GPtrArray", DBUS_TYPE_PROPERTIES)
 
 #define MS2_CLIENT_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
@@ -451,4 +452,385 @@ ms2_client_get_children_finish (MS2Client *client,
 
   adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
   return adata->children_result;
+}
+
+/******************** PROPERTIES TABLE API ********************/
+
+const gchar *
+ms2_client_get_id (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_ID);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_parent (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_PARENT);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_display_name (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_DISPLAY_NAME);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+MS2ItemType
+ms2_client_get_item_type (GHashTable *properties)
+{
+  GValue *val;
+  const gchar *type;
+
+  g_return_val_if_fail (properties, MS2_ITEM_TYPE_UNKNOWN);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_DISPLAY_NAME);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return MS2_ITEM_TYPE_UNKNOWN;
+  }
+
+  type = g_value_get_string (val);
+
+  if (g_strcmp0 (type, MS2_TYPE_CONTAINER) == 0) {
+    return MS2_ITEM_TYPE_CONTAINER;
+  } else if (g_strcmp0 (type, MS2_TYPE_VIDEO) == 0) {
+    return MS2_ITEM_TYPE_VIDEO;
+  } else if (g_strcmp0 (type, MS2_TYPE_MOVIE) == 0) {
+    return MS2_ITEM_TYPE_MOVIE;
+  } else if (g_strcmp0 (type, MS2_TYPE_AUDIO) == 0) {
+    return MS2_ITEM_TYPE_AUDIO;
+  } else if (g_strcmp0 (type, MS2_TYPE_MUSIC) == 0) {
+    return MS2_ITEM_TYPE_MUSIC;
+  } else if (g_strcmp0 (type, MS2_TYPE_IMAGE) == 0) {
+    return MS2_ITEM_TYPE_IMAGE;
+  } else if (g_strcmp0 (type, MS2_TYPE_PHOTO) == 0) {
+    return MS2_ITEM_TYPE_PHOTO;
+  } else {
+    return MS2_ITEM_TYPE_UNKNOWN;
+  }
+}
+
+const gchar *
+ms2_client_get_icon (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_ICON);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_mime_type (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_MIME_TYPE);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_artist (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_ARTIST);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_album (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_ALBUM);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_date (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_DATE);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_dlna_profile (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_DLNA_PROFILE);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_thumbnail (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_THUMBNAIL);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+const gchar *
+ms2_client_get_genre (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_GENRE);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+gint
+ms2_client_get_child_count (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_CHILD_COUNT);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_size (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_SIZE);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_duration (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_DURATION);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_bitrate (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_BITRATE);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_sample_rate (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_SAMPLE_RATE);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_bits_per_sample (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_BITS_PER_SAMPLE);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_width (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_WIDTH);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_height (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_HEIGHT);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_color_depth (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_COLOR_DEPTH);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_pixel_width (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_PIXEL_WIDTH);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gint
+ms2_client_get_pixel_height (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, -1);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_PIXEL_HEIGHT);
+  if (!val || !G_VALUE_HOLDS_INT (val)) {
+    return -1;
+  }
+
+  return g_value_get_int (val);
+}
+
+gchar **
+ms2_client_get_urls (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS2_PROP_URLS);
+  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
+    return NULL;
+  }
+
+  return g_strdupv (g_value_get_boxed (val));
 }

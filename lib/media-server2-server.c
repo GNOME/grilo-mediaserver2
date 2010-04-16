@@ -501,73 +501,51 @@ ms2_server_set_display_name (GHashTable *properties,
 }
 
 void
-ms2_server_set_type_container (GHashTable *properties)
+ms2_server_set_item_type (GHashTable *properties,
+                          MS2ItemType type)
 {
   g_return_if_fail (properties);
 
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_CONTAINER));
-}
-
-void
-ms2_server_set_type_video (GHashTable *properties)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_VIDEO));
-}
-
-void
-ms2_server_set_type_movie (GHashTable *properties)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_MOVIE));
-}
-
-void
-ms2_server_set_type_audio (GHashTable *properties)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_AUDIO));
-}
-
-void
-ms2_server_set_type_music (GHashTable *properties)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_MUSIC));
-}
-
-void
-ms2_server_set_type_image (GHashTable *properties)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_IMAGE));
-}
-
-void
-ms2_server_set_type_photo (GHashTable *properties)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS2_PROP_TYPE,
-                       str_to_value (MS2_TYPE_PHOTO));
+  switch (type) {
+  case MS2_ITEM_TYPE_UNKNOWN:
+    /* Do not handle unknown values */
+    break;
+  case MS2_ITEM_TYPE_CONTAINER:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_CONTAINER));
+    break;
+  case MS2_ITEM_TYPE_VIDEO:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_VIDEO));
+    break;
+  case MS2_ITEM_TYPE_MOVIE:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_MOVIE));
+    break;
+  case MS2_ITEM_TYPE_AUDIO:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_AUDIO));
+    break;
+  case MS2_ITEM_TYPE_MUSIC:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_MUSIC));
+    break;
+  case MS2_ITEM_TYPE_IMAGE:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_IMAGE));
+    break;
+  case MS2_ITEM_TYPE_PHOTO:
+    g_hash_table_insert (properties,
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_PHOTO));
+    break;
+  }
 }
 
 void
@@ -760,6 +738,17 @@ ms2_server_set_height (GHashTable *properties,
   g_hash_table_insert (properties,
                        MS2_PROP_HEIGHT,
                        int_to_value (height));
+}
+
+void
+ms2_server_set_color_depth (GHashTable *properties,
+                            gint depth)
+{
+  g_return_if_fail (properties);
+
+  g_hash_table_insert (properties,
+                       MS2_PROP_COLOR_DEPTH,
+                       int_to_value (depth));
 }
 
 void

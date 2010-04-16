@@ -113,4 +113,52 @@ GList *ms2_client_get_children_finish (MS2Client *client,
                                        GAsyncResult *res,
                                        GError **error);
 
+const gchar *ms2_client_get_id (GHashTable *properties);
+
+const gchar *ms2_client_get_parent (GHashTable *properties);
+
+const gchar *ms2_client_get_display_name (GHashTable *properties);
+
+MS2ItemType ms2_client_get_item_type (GHashTable *properties);
+
+const gchar *ms2_client_get_icon (GHashTable *properties);
+
+const gchar *ms2_client_get_mime_type (GHashTable *properties);
+
+const gchar *ms2_client_get_artist (GHashTable *properties);
+
+const gchar *ms2_client_get_album (GHashTable *properties);
+
+const gchar *ms2_client_get_date (GHashTable *properties);
+
+const gchar *ms2_client_get_dlna_profile (GHashTable *properties);
+
+const gchar *ms2_client_get_thumbnail (GHashTable *properties);
+
+const gchar *ms2_client_get_genre (GHashTable *properties);
+
+gint ms2_client_get_child_count (GHashTable *properties);
+
+gint  ms2_client_get_size (GHashTable *properties);
+
+gint  ms2_client_get_duration (GHashTable *properties);
+
+gint  ms2_client_get_bitrate (GHashTable *properties);
+
+gint  ms2_client_get_sample_rate (GHashTable *properties);
+
+gint  ms2_client_get_bits_per_sample (GHashTable *properties);
+
+gint  ms2_client_get_width (GHashTable *properties);
+
+gint ms2_client_get_height (GHashTable *properties);
+
+gint ms2_client_get_color_depth (GHashTable *properties);
+
+gint ms2_client_get_pixel_width (GHashTable *properties);
+
+gint ms2_client_get_pixel_height (GHashTable *properties);
+
+gchar **ms2_client_get_urls (GHashTable *properties);
+
 #endif /* _MEDIA_SERVER2_CLIENT_H_ */

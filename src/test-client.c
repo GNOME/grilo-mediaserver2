@@ -31,8 +31,8 @@ children_reply (GObject *source,
 
   for (child = children; child; child = g_list_next (child)) {
     g_print ("\t* '%s', '%s'\n",
-             g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_ID)),
-             g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_DISPLAY_NAME)));
+             ms2_client_get_id (child->data),
+             ms2_client_get_display_name(child->data));
   }
 
   g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
@@ -227,8 +227,8 @@ test_children_sync ()
 
     for (child = children; child; child = g_list_next (child)) {
       g_print ("\t* '%s', '%s'\n",
-               g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_ID)),
-               g_value_get_string(g_hash_table_lookup (child->data, MS2_PROP_DISPLAY_NAME)));
+               ms2_client_get_id (child->data),
+               ms2_client_get_display_name(child->data));
     }
 
     g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);

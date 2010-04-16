@@ -54,7 +54,7 @@
 /* Video/Image items properties */
 #define MS2_PROP_WIDTH        "width"
 #define MS2_PROP_HEIGHT       "height"
-#define MS2_PROP_COLOR_DEPTH  "depth"
+#define MS2_PROP_COLOR_DEPTH  "color-depth"
 #define MS2_PROP_PIXEL_WIDTH  "pixel-width"
 #define MS2_PROP_PIXEL_HEIGHT "pixel-height"
 #define MS2_PROP_THUMBNAIL    "thumbnail"
@@ -81,6 +81,18 @@
 typedef enum {
   MS2_ERROR_GENERAL = 1
 } MS2Error;
+
+/* Type items definition */
+typedef enum {
+  MS2_ITEM_TYPE_UNKNOWN = 0,
+  MS2_ITEM_TYPE_CONTAINER,
+  MS2_ITEM_TYPE_VIDEO,
+  MS2_ITEM_TYPE_MOVIE,
+  MS2_ITEM_TYPE_AUDIO,
+  MS2_ITEM_TYPE_MUSIC,
+  MS2_ITEM_TYPE_IMAGE,
+  MS2_ITEM_TYPE_PHOTO
+} MS2ItemType;
 
 #endif /* _MEDIA_SERVER2_COMMON_H_ */
 

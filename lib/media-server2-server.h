@@ -103,19 +103,8 @@ void ms2_server_set_parent (GHashTable *properties,
 void ms2_server_set_display_name (GHashTable *properties,
                                   const gchar *display_name);
 
-void ms2_server_set_type_container (GHashTable *properties);
-
-void ms2_server_set_type_video (GHashTable *properties);
-
-void ms2_server_set_type_movie (GHashTable *properties);
-
-void ms2_server_set_type_audio (GHashTable *properties);
-
-void ms2_server_set_type_music (GHashTable *properties);
-
-void ms2_server_set_type_image (GHashTable *properties);
-
-void ms2_server_set_type_photo (GHashTable *properties);
+void ms2_server_set_item_type (GHashTable *properties,
+                               MS2ItemType type);
 
 void ms2_server_set_icon (GHashTable *properties,
                           const gchar *icon);
@@ -164,6 +153,9 @@ void ms2_server_set_width (GHashTable *properties,
 
 void ms2_server_set_height (GHashTable *properties,
                             gint height);
+
+void ms2_server_set_color_depth (GHashTable *properties,
+                                 gint depth);
 
 void ms2_server_set_pixel_width (GHashTable *properties,
                                  gint pixel_width);
