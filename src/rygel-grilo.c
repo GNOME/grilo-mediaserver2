@@ -33,9 +33,16 @@
 #define ID_PREFIX_VIDEO     "grv://"
 #define ID_SEPARATOR        "/"
 
+static GList *providers_names = NULL;
+
 static gchar **args;
+static gboolean dups;
 
 static GOptionEntry entries[] = {
+  { "allow-duplicates", 'D', 0,
+    G_OPTION_ARG_NONE, &dups,
+    "Allow more than one provider with same name",
+    NULL },
   { G_OPTION_REMAINING, '\0', 0,
     G_OPTION_ARG_FILENAME_ARRAY, &args,
     "Grilo module to load",
@@ -472,6 +479,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
   GrlSupportedOps supported_ops;
   MS2Server *server;
+  const gchar *source_name;
   gchar *source_id;
 
   /* Only sources that implement browse and metadata are of interest */
@@ -480,11 +488,25 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
   if (supported_ops & GRL_OP_BROWSE &&
       supported_ops & GRL_OP_METADATA) {
 
-    /* Register a new service name */
     source_id =
-      g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+      (gchar *) grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data));
 
-    g_debug ("Registering %s source", source_id);
+    /* Check if there is already another provider with the same name */
+    if (!dups) {
+      source_name =
+        grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data));
+      if (g_list_find_custom (providers_names,
+                              source_name,
+                              (GCompareFunc) g_strcmp0)) {
+        g_debug ("Skipping %s [%s] source", source_id, source_name);
+        return;
+      }
+    }
+
+    /* Register a new service name */
+    source_id = g_strdup (source_id);
+
+    g_debug ("Registering %s [%s] source", source_id, source_name);
 
     sanitize (source_id);
 
@@ -495,11 +517,34 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     } else {
       ms2_server_set_get_properties_func (server, get_properties_cb);
       ms2_server_set_get_children_func (server, get_children_cb);
+      /* Save reference */
+      if (!dups) {
+        providers_names = g_list_prepend (providers_names,
+                                          g_strdup(source_name));
+      }
     }
     g_free (source_id);
   } else {
     g_debug ("%s source does not support either browse or metadata",
              grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+  }
+}
+
+/* Callback invoked whenever a source goes away */
+static void
+source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
+{
+  GList *entry;
+  const gchar *source_name;
+
+  source_name =
+    grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data));
+  entry = g_list_find_custom (providers_names,
+                              source_name,
+                              (GCompareFunc) g_strcmp0);
+  if (entry) {
+    g_free (entry->data);
+    providers_names = g_list_delete_link (providers_names, entry);
   }
 }
 
@@ -530,6 +575,11 @@ main (gint argc, gchar **argv)
 
   g_signal_connect (registry, "source-added",
                     G_CALLBACK (source_added_cb), NULL);
+
+  if (!dups) {
+    g_signal_connect (registry, "source-removed",
+                      G_CALLBACK (source_removed_cb), NULL);
+  }
 
   if (!args || !args[0]) {
     grl_plugin_registry_load_all (registry);
