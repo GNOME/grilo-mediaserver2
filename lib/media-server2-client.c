@@ -46,6 +46,11 @@
 #define MS2_CLIENT_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
 
+enum {
+  UPDATED,
+  LAST_SIGNAL
+};
+
 /*
  * AsyncData: used to pack needed data when dealing with async functions
  *   properties_result: when using get_properties_async() functions, it will
@@ -72,9 +77,20 @@ struct _MS2ClientPrivate {
   DBusGProxy *proxy_provider;
 };
 
+static guint32 signals[LAST_SIGNAL] = { 0 };
+
 G_DEFINE_TYPE (MS2Client, ms2_client, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
+
+/* Callback invoked when "Updated" dbus signal is received */
+static void
+updated (DBusGProxy *proxy,
+         const gchar *id,
+         MS2Client *client)
+{
+  g_signal_emit (client, signals[UPDATED], 0, id);
+}
 
 /* Free gvalue */
 static void
@@ -186,11 +202,47 @@ get_children_async_reply (DBusGProxy *proxy,
   g_object_unref (res);
 }
 
+/* Dispose function */
+static void
+ms2_client_dispose (GObject *object)
+{
+  MS2Client *client = MS2_CLIENT (object);
+
+  if (client->priv->proxy_provider) {
+    g_object_unref (client->priv->proxy_provider);
+    client->priv->proxy_provider = NULL;
+  }
+
+  G_OBJECT_CLASS (ms2_client_parent_class)->dispose (object);
+}
+
 /* Class init function */
 static void
 ms2_client_class_init (MS2ClientClass *klass)
 {
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
   g_type_class_add_private (klass, sizeof (MS2ClientPrivate));
+
+  gobject_class->dispose = ms2_client_dispose;
+
+  /**
+   * MS2Client::updated:
+   * @client: a #MS2Client
+   * @id: identifier of item that has changed
+   *
+   * Notifies when an item in provider has changed.
+   **/
+  signals[UPDATED] = g_signal_new ("updated",
+                                   G_TYPE_FROM_CLASS (klass),
+                                   G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
+                                   G_STRUCT_OFFSET (MS2ClientClass, updated),
+                                   NULL,
+                                   NULL,
+                                   g_cclosure_marshal_VOID__STRING,
+                                   G_TYPE_NONE,
+                                   1,
+                                   G_TYPE_STRING);
 }
 
 /* Object init function */
@@ -320,6 +372,11 @@ MS2Client *ms2_client_new (const gchar *provider)
 
   client = g_object_new (MS2_TYPE_CLIENT, NULL);
   client->priv->proxy_provider = gproxy;
+
+  /* Listen to "updated" signal */
+  dbus_g_proxy_add_signal (gproxy, "Updated", G_TYPE_STRING, G_TYPE_INVALID);
+  g_return_val_if_fail (MS2_IS_CLIENT(client), NULL);
+  dbus_g_proxy_connect_signal (gproxy, "Updated", G_CALLBACK (updated), client, NULL);
 
   return client;
 }

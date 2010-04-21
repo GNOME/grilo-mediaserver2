@@ -71,6 +71,9 @@ typedef struct _MS2ClientClass MS2ClientClass;
 struct _MS2ClientClass {
 
   GObjectClass parent_class;
+
+  void (*updated) (MS2Client *client,
+                   const gchar *id);
 };
 
 GType ms2_client_get_type (void);
