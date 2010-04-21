@@ -21,5 +21,9 @@
       <arg name="properties" direction="out" type="av"/>
     </method>
 
+    <signal name="Updated">
+      <arg name="id" type="s"/>
+    </signal>
+
   </interface>
 </node>

@@ -37,6 +37,11 @@
 #define MS2_SERVER_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_SERVER, MS2ServerPrivate)
 
+enum {
+  UPDATED,
+  LAST_SIGNAL
+};
+
 /*
  * Private MS2Server structure
  *   data: holds stuff for owner
@@ -48,6 +53,8 @@ struct _MS2ServerPrivate {
   GetChildrenFunc get_children;
   GetPropertiesFunc get_properties;
 };
+
+static guint32 signals[LAST_SIGNAL] = { 0 };
 
 G_DEFINE_TYPE (MS2Server, ms2_server, G_TYPE_OBJECT);
 
@@ -271,6 +278,17 @@ static void
 ms2_server_class_init (MS2ServerClass *klass)
 {
   g_type_class_add_private (klass, sizeof (MS2ServerPrivate));
+
+  signals[UPDATED] = g_signal_new ("updated",
+                                   G_TYPE_FROM_CLASS (klass),
+                                   G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
+                                   G_STRUCT_OFFSET (MS2ServerClass, updated),
+                                   NULL,
+                                   NULL,
+                                   g_cclosure_marshal_VOID__STRING,
+                                   G_TYPE_NONE,
+                                   1,
+                                   G_TYPE_STRING);
 
   /* Register introspection */
   dbus_g_object_type_install_info (MS2_TYPE_SERVER,
@@ -519,6 +537,29 @@ ms2_server_set_get_children_func (MS2Server *server,
   server->priv->get_children = get_children_func;
 }
 
+/**
+ * ms2_server_updated:
+ * @server: a #MS2Server
+ * @id: item identifier that has changed
+ *
+ * Emit a signal notifying an item has changed.
+ *
+ * Which shall be triggered when a new child item is created or removed from
+ * container, or one of the existing child items is modified, or any of the
+ * properties of the container itself are modified. While the signal should be
+ * emitted when child containers are created or removed, it shall not be emitted
+ * when child containers are modified: instead the signal should be emitted on
+ * the child in this case. It up to client to follow these rules when invoking
+ * this method
+ **/
+void
+ms2_server_updated (MS2Server *server,
+                    const gchar *id)
+{
+  g_return_if_fail (MS2_IS_SERVER (server));
+
+  g_signal_emit (server, signals[UPDATED], 0, id);
+}
 
 /********** PROPERTIES TABLE API **********/
 

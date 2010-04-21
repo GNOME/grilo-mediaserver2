@@ -82,6 +82,9 @@ typedef struct _MS2ServerClass MS2ServerClass;
 struct _MS2ServerClass {
 
   GObjectClass parent_class;
+
+  void (*updated) (MS2Server *server,
+                   const gchar *id);
 };
 
 GType ms2_server_get_type (void);
@@ -94,6 +97,9 @@ void ms2_server_set_get_properties_func (MS2Server *server,
 
 void ms2_server_set_get_children_func (MS2Server *server,
                                        GetChildrenFunc get_children_func);
+
+void ms2_server_updated (MS2Server *server,
+                         const gchar *id);
 
 GHashTable *ms2_server_new_properties_hashtable (const gchar *id);
 
