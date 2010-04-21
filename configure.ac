@@ -74,6 +74,7 @@ fi
 
 AC_SUBST([abs_top_builddir])
 AC_SUBST([builddir])
+AC_SUBST([sysconfdir])
 
 # ----------------------------------------------------------
 # OUTPUT

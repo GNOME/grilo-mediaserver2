@@ -27,6 +27,8 @@
 
 #include <media-server2-server.h>
 
+#define RYGEL_GRILO_CONFIG_FILE "rygel-grilo.conf"
+
 #define ID_PREFIX_AUDIO     "gra://"
 #define ID_PREFIX_CONTAINER "grc://"
 #define ID_PREFIX_IMAGE     "gri://"
@@ -34,6 +36,7 @@
 #define ID_SEPARATOR        "/"
 
 static GList *providers_names = NULL;
+static GrlPluginRegistry *registry = NULL;
 
 static gchar **args;
 static gboolean dups;
@@ -548,13 +551,71 @@ source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
   }
 }
 
+/* Load plugins configuration */
+static void
+load_config ()
+{
+  GError *error = NULL;
+  GKeyFile *keyfile;
+  GrlConfig *config;
+  gchar **key;
+  gchar **keys;
+  gchar **plugin;
+  gchar **plugins;
+  gchar **search_paths;
+  gchar *value;
+
+  keyfile = g_key_file_new ();
+
+  search_paths = g_new0 (gchar *, 3);
+  search_paths[0] = g_build_filename (g_get_user_config_dir (),
+                                      "rygel-grilo",
+                                      NULL);
+  search_paths[1] = g_strdup (SYSCONFDIR);
+
+  if (!g_key_file_load_from_dirs (keyfile,
+                                  RYGEL_GRILO_CONFIG_FILE,
+                                  (const gchar **) search_paths,
+                                  NULL,
+                                  G_KEY_FILE_NONE,
+                                  &error)) {
+    g_warning ("Unable to load configuration. %s", error->message);
+    g_error_free (error);
+    g_key_file_free (keyfile);
+    g_strfreev (search_paths);
+    return;
+  }
+
+  g_strfreev (search_paths);
+
+  /* Look up for defined plugins */
+  plugins = g_key_file_get_groups (keyfile, NULL);
+  for (plugin = plugins; *plugin; plugin++) {
+    config = grl_config_new (*plugin, NULL);
+
+    /* Look up for keys in this plugin */
+    keys = g_key_file_get_keys (keyfile, *plugin, NULL, NULL);
+    for (key = keys; *key; key++) {
+      value = g_key_file_get_string (keyfile, *plugin, *key, NULL);
+      if (value) {
+        grl_config_set_string (config, *key, value);
+        g_free (value);
+      }
+    }
+    grl_plugin_registry_add_config (registry, config);
+    g_strfreev (keys);
+  }
+
+  g_strfreev (plugins);
+  g_key_file_free (keyfile);
+}
+
 /* Main program */
 gint
 main (gint argc, gchar **argv)
 {
   GError *error = NULL;
   GOptionContext *context = NULL;
-  GrlPluginRegistry *registry;
   gint i;
 
   g_type_init ();
@@ -572,6 +633,12 @@ main (gint argc, gchar **argv)
 
   /* Load grilo plugins */
   registry = grl_plugin_registry_get_instance ();
+  if (!registry) {
+    g_printerr ("Unable to load Grilo registry\n");
+    return -1;
+  }
+
+  load_config ();
 
   g_signal_connect (registry, "source-added",
                     G_CALLBACK (source_added_cb), NULL);

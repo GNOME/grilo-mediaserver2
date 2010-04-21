@@ -20,8 +20,9 @@ rygel_grilo_SOURCES =	\
 	rygel-grilo.c
 
 
-rygel_grilo_CFLAGS =		\
-	-DPREFIX=$(prefix)	\
+rygel_grilo_CFLAGS =			\
+	-DPREFIX=$(prefix)		\
+	-DSYSCONFDIR=\"$(sysconfdir)\"	\
         -I$(top_srcdir)/lib
 
 rygel_grilo_LDADD =	\
