@@ -4,7 +4,6 @@
 
 static const gchar *properties[] = { MS2_PROP_ID,
 				     MS2_PROP_DISPLAY_NAME,
-                                     "title",
                                      MS2_PROP_PARENT,
                                      MS2_PROP_CHILD_COUNT,
                                      NULL };
@@ -245,9 +244,9 @@ int main (int argc, char **argv)
 
   g_type_init ();
 
-  if (1) test_properties_sync ();
+  if (0) test_properties_sync ();
   if (0) test_children_sync ();
-  if (0) test_properties_async ();
+  if (1) test_properties_async ();
   if (0) test_children_async ();
 
   mainloop = g_main_loop_new (NULL, FALSE);
