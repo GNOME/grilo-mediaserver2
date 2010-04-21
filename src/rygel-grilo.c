@@ -38,10 +38,15 @@
 static GList *providers_names = NULL;
 static GrlPluginRegistry *registry = NULL;
 
-static gchar **args;
 static gboolean dups;
+static gchar **args = NULL;
+static gchar *conffile = NULL;
 
 static GOptionEntry entries[] = {
+  { "config-file", 'c', 0,
+    G_OPTION_ARG_STRING, &conffile,
+    "Use this config file",
+    NULL },
   { "allow-duplicates", 'D', 0,
     G_OPTION_ARG_NONE, &dups,
     "Allow more than one provider with same name",
@@ -558,6 +563,7 @@ load_config ()
   GError *error = NULL;
   GKeyFile *keyfile;
   GrlConfig *config;
+  gboolean load_success;
   gchar **key;
   gchar **keys;
   gchar **plugin;
@@ -567,26 +573,33 @@ load_config ()
 
   keyfile = g_key_file_new ();
 
-  search_paths = g_new0 (gchar *, 3);
-  search_paths[0] = g_build_filename (g_get_user_config_dir (),
-                                      "rygel-grilo",
-                                      NULL);
-  search_paths[1] = g_strdup (SYSCONFDIR);
+  /* Try first user defined config file */
+  if (conffile){
+    load_success = g_key_file_load_from_file (keyfile,
+                                              conffile,
+                                              G_KEY_FILE_NONE,
+                                              &error);
+  } else {
+    search_paths = g_new0 (gchar *, 3);
+    search_paths[0] = g_build_filename (g_get_user_config_dir (),
+                                        "rygel-grilo",
+                                        NULL);
+    search_paths[1] = g_strdup (SYSCONFDIR);
+    load_success = g_key_file_load_from_dirs (keyfile,
+                                              RYGEL_GRILO_CONFIG_FILE,
+                                              (const gchar **) search_paths,
+                                              NULL,
+                                              G_KEY_FILE_NONE,
+                                              &error);
+    g_strfreev (search_paths);
+  }
 
-  if (!g_key_file_load_from_dirs (keyfile,
-                                  RYGEL_GRILO_CONFIG_FILE,
-                                  (const gchar **) search_paths,
-                                  NULL,
-                                  G_KEY_FILE_NONE,
-                                  &error)) {
+  if (!load_success) {
     g_warning ("Unable to load configuration. %s", error->message);
     g_error_free (error);
     g_key_file_free (keyfile);
-    g_strfreev (search_paths);
     return;
   }
-
-  g_strfreev (search_paths);
 
   /* Look up for defined plugins */
   plugins = g_key_file_get_groups (keyfile, NULL);
