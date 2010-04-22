@@ -44,11 +44,13 @@ enum {
 
 /*
  * Private MS2Server structure
+ *   name: provider name
  *   data: holds stuff for owner
  *   get_children: function to get children
  *   get_properties: function to get properties
  */
 struct _MS2ServerPrivate {
+  gchar *name;
   gpointer *data;
   GetChildrenFunc get_children;
   GetPropertiesFunc get_properties;
@@ -240,7 +242,7 @@ ms2_server_dbus_register (MS2Server *server,
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
     g_printerr ("Could not connect to session bus, %s\n", error->message);
-    g_clear_error (&error);
+    g_error_free (error);
     return FALSE;
   }
 
@@ -273,11 +275,58 @@ ms2_server_dbus_register (MS2Server *server,
   return TRUE;
 }
 
+static void
+ms2_server_dbus_unregister (MS2Server *server,
+                            const gchar *name)
+{
+  DBusGConnection *connection;
+  DBusGProxy *gproxy;
+  GError *error = NULL;
+  gchar *dbus_name;
+  guint request_name_result;
+
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_error_free (error);
+    return;
+  }
+
+  gproxy = dbus_g_proxy_new_for_name (connection,
+                                      DBUS_SERVICE_DBUS,
+                                      DBUS_PATH_DBUS,
+                                      DBUS_INTERFACE_DBUS);
+
+  /* Release name */
+  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, name, NULL);
+  org_freedesktop_DBus_release_name (gproxy,
+                                     dbus_name,
+                                     &request_name_result,
+                                     NULL);
+  g_free (dbus_name);
+  g_object_unref (gproxy);
+}
+
+static void
+ms2_server_finalize (GObject *object)
+{
+  MS2Server *server = MS2_SERVER (object);
+
+  ms2_server_dbus_unregister (server, server->priv->name);
+  g_free (server->priv->name);
+
+  G_OBJECT_CLASS (ms2_server_parent_class)->finalize (object);
+}
+
 /* Class init function */
 static void
 ms2_server_class_init (MS2ServerClass *klass)
 {
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
   g_type_class_add_private (klass, sizeof (MS2ServerPrivate));
+
+  gobject_class->finalize = ms2_server_finalize;
 
   signals[UPDATED] = g_signal_new ("updated",
                                    G_TYPE_FROM_CLASS (klass),
@@ -492,9 +541,12 @@ ms2_server_new (const gchar *name,
 {
   MS2Server *server;
 
+  g_return_val_if_fail (name, NULL);
+
   server = g_object_new (MS2_TYPE_SERVER, NULL);
 
   server->priv->data = data;
+  server->priv->name = g_strdup (name);
 
   /* Register object in DBus */
   if (!ms2_server_dbus_register (server, name)) {
