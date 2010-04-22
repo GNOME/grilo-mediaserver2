@@ -20,10 +20,18 @@
  *
  */
 
-#ifndef _MEDIA_SERVER2_SERVER_PRIVATE_H_
-#define _MEDIA_SERVER2_SERVER_PRIVATE_H_
+#ifndef _MEDIA_SERVER2_PRIVATE_H_
+#define _MEDIA_SERVER2_PRIVATE_H_
+
+#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
+#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
+
+#define MS2_DBUS_SERVICE_PREFIX_LENGTH 28
+
+#define MS2_DBUS_IFACE "org.gnome.UPnP.MediaServer"
 
 #include "media-server2-server.h"
+#include "media-server2-client.h"
 
 gboolean ms2_server_get_properties (MS2Server *server,
                                     const gchar *id,
@@ -39,4 +47,10 @@ gboolean ms2_server_get_children (MS2Server *server,
                                   DBusGMethodInvocation *context,
                                   GError **error);
 
-#endif /* _MEDIA_SERVER2_SERVER_PRIVATE_H_ */
+void ms2_client_notify_unref (MS2Client *client);
+
+void ms2_observer_add_client (MS2Client *client, const gchar *provider);
+
+void ms2_observer_remove_client (MS2Client *client, const gchar *provider);
+
+#endif /* _MEDIA_SERVER2_PRIVATE_H_ */

@@ -1,0 +1,224 @@
+/*
+ * Copyright (C) 2010 Igalia S.L.
+ *
+ * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * as published by the Free Software Foundation; version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
+ */
+
+#include <dbus/dbus-glib-bindings.h>
+#include <dbus/dbus-glib.h>
+
+#include "media-server2-private.h"
+#include "media-server2-observer.h"
+#include "media-server2-client.h"
+
+#define ENTRY_POINT_NAME "org.gnome.UPnP.MediaServer2."
+#define ENTRY_POINT_NAME_LENGTH 28
+
+#define MS2_OBSERVER_GET_PRIVATE(o)                                     \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_OBSERVER, MS2ObserverPrivate)
+
+enum {
+  NEW,
+  LAST_SIGNAL
+};
+
+/*
+ * Private MS2Observer structure
+ *   clients: a table with the clients
+ *   proxy: proxy to dbus service
+ */
+struct _MS2ObserverPrivate {
+  GHashTable *clients;
+  DBusGProxy *proxy;
+};
+
+static MS2Observer *observer_instance = NULL;
+static guint32 signals[LAST_SIGNAL] = { 0 };
+
+G_DEFINE_TYPE (MS2Observer, ms2_observer, G_TYPE_OBJECT);
+
+/******************** PRIVATE API ********************/
+
+static void
+name_owner_changed (DBusGProxy *proxy,
+                    const gchar *name,
+                    const gchar *old_owner,
+                    const gchar *new_owner,
+                    MS2Observer *observer)
+{
+  GList *clients;
+
+  /* Check if it has something to do with the spec */
+  if (!g_str_has_prefix (name, MS2_DBUS_SERVICE_PREFIX)) {
+    return;
+  }
+
+  name += MS2_DBUS_SERVICE_PREFIX_LENGTH;
+
+  /* Check if it has been removed */
+  if (*new_owner == '\0') {
+    clients = g_hash_table_lookup (observer->priv->clients, name);
+    g_list_foreach (clients, (GFunc) ms2_client_notify_unref, NULL);
+    return;
+  }
+
+  /* Check if it has been added */
+  if (*old_owner == '\0') {
+    g_signal_emit (observer, signals[NEW], 0, name);
+  }
+}
+
+/* Creates an instance of observer */
+static MS2Observer *
+create_instance ()
+{
+  DBusGConnection *connection;
+  GError *error = NULL;
+  MS2Observer *observer;
+
+  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error->message);
+    g_error_free (error);
+    return NULL;
+  }
+
+  observer = g_object_new (MS2_TYPE_OBSERVER, NULL);
+
+  observer->priv->proxy = dbus_g_proxy_new_for_name (connection,
+                                                     DBUS_SERVICE_DBUS,
+                                                     DBUS_PATH_DBUS,
+                                                     DBUS_INTERFACE_DBUS);
+
+  /* Listen for name-owner-changed signal */
+  dbus_g_proxy_add_signal (observer->priv->proxy,
+                           "NameOwnerChanged",
+                           G_TYPE_STRING,
+                           G_TYPE_STRING,
+                           G_TYPE_STRING,
+                           G_TYPE_INVALID);
+  dbus_g_proxy_connect_signal (observer->priv->proxy,
+                               "NameOwnerChanged",
+                               G_CALLBACK (name_owner_changed),
+                               observer,
+                               NULL);
+
+  return observer;
+}
+
+/* Class init function */
+static void
+ms2_observer_class_init (MS2ObserverClass *klass)
+{
+  g_type_class_add_private (klass, sizeof (MS2ObserverPrivate));
+
+  /**
+   * MS2Observer::observer:
+   * @observer: the #MS2Observer
+   * @provider: name of provider that has been added to dbus
+   *
+   * Notifies when a new provider comes up.
+   **/
+  signals[NEW] = g_signal_new ("new",
+                               G_TYPE_FROM_CLASS (klass),
+                               G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
+                               G_STRUCT_OFFSET (MS2ObserverClass, new),
+                               NULL,
+                               NULL,
+                               g_cclosure_marshal_VOID__STRING,
+                               G_TYPE_NONE,
+                               1,
+                               G_TYPE_STRING);
+}
+
+/* Object init function */
+static void
+ms2_observer_init (MS2Observer *client)
+{
+  client->priv = MS2_OBSERVER_GET_PRIVATE (client);
+  client->priv->clients = g_hash_table_new_full (g_str_hash,
+                                                 g_str_equal,
+                                                 g_free,
+                                                 NULL);
+}
+
+/****************** INTERNAL PUBLIC API (NOT TO BE EXPORTED) ******************/
+
+/* Register a client */
+void
+ms2_observer_add_client (MS2Client *client,
+                         const gchar *provider)
+{
+  GList *clients;
+  MS2Observer *observer;
+
+  observer = ms2_observer_get_instance ();
+  if (!observer) {
+    return;
+  }
+
+  clients = g_hash_table_lookup (observer->priv->clients, provider);
+  clients = g_list_prepend (clients, client);
+  g_hash_table_insert (observer->priv->clients, g_strdup (provider), clients);
+}
+
+/* Remove a client */
+void
+ms2_observer_remove_client (MS2Client *client,
+                            const gchar *provider)
+{
+  GList *clients;
+  GList *remove_client;
+  MS2Observer *observer;
+
+  observer = ms2_observer_get_instance ();
+  if (!observer) {
+    return;
+  }
+
+  clients = g_hash_table_lookup (observer->priv->clients, provider);
+  remove_client = g_list_find (clients, client);
+  if (remove_client) {
+    clients = g_list_delete_link (clients, remove_client);
+    /* Check if there are more clients */
+    if (clients) {
+      g_hash_table_insert (observer->priv->clients, g_strdup (provider), clients);
+    } else {
+      g_hash_table_remove (observer->priv->clients, provider);
+    }
+  }
+}
+
+/******************** PUBLIC API ********************/
+
+/**
+ * ms2_observer_get_instance:
+ *
+ * Returns the observer instance
+ *
+ * Returns: the observer instance or @NULL if it could not be created
+ **/
+MS2Observer *ms2_observer_get_instance ()
+{
+  if (!observer_instance) {
+    observer_instance = create_instance ();
+  }
+
+  return observer_instance;
+}

@@ -1,4 +1,5 @@
 #include <media-server2-client.h>
+#include <media-server2-observer.h>
 #include <glib.h>
 #include <string.h>
 
@@ -238,6 +239,90 @@ test_children_sync ()
   g_strfreev (providers);
 }
 
+static void
+destroy_cb (MS2Client *client, gpointer user_data)
+{
+  g_print ("End of provider %s\n", ms2_client_get_provider_name(client));
+}
+
+static void
+new_cb (MS2Observer *observer, const gchar *provider, gpointer user_data)
+{
+  MS2Client *client;
+
+  client = ms2_client_new (provider);
+  if (!client) {
+    g_printerr ("Unable to create client for %s\n", provider);
+  } else {
+    g_print ("New provider %s\n", provider);
+    g_signal_connect (client, "destroy", G_CALLBACK (destroy_cb), NULL);
+  }
+}
+
+static void
+test_provider_free ()
+{
+  MS2Client *client;
+  gchar **provider;
+  gchar **providers;
+
+  providers = ms2_client_get_providers ();
+
+  if (!providers) {
+    g_print ("There is no MediaServer2 provider\n");
+    return;
+  }
+
+  for (provider = providers; *provider; provider++) {
+    client = ms2_client_new (*provider);
+    if (!client) {
+      g_printerr ("Unable to create a client\n");
+      continue;
+    }
+
+    g_print ("Provider %s\n", *provider);
+    g_signal_connect (G_OBJECT (client), "destroy", G_CALLBACK (destroy_cb), NULL);
+  }
+
+  g_strfreev (providers);
+}
+
+static void
+test_dynamic_providers ()
+{
+  MS2Client *client;
+  MS2Observer *observer;
+  gchar **provider;
+  gchar **providers;
+
+  observer = ms2_observer_get_instance ();
+  if (!observer) {
+    g_printerr ("Unable to get the observer\n");
+    return;
+  }
+
+  g_signal_connect (observer, "new", G_CALLBACK (new_cb), NULL);
+
+  providers = ms2_client_get_providers ();
+  if (!providers) {
+    g_print ("There is no MediaServer2 providers\n");
+    return;
+  }
+
+  for (provider = providers; *provider; provider++) {
+    client = ms2_client_new (*provider);
+    if (!client) {
+      g_printerr ("Unable to create a client for %s\n", *provider);
+      continue;
+    }
+
+    g_print ("New provider %s\n", *provider);
+    g_signal_connect (client, "destroy", G_CALLBACK (destroy_cb), NULL);
+  }
+
+  g_strfreev (providers);
+}
+
 int main (int argc, char **argv)
 {
   GMainLoop *mainloop;
@@ -246,8 +331,10 @@ int main (int argc, char **argv)
 
   if (0) test_properties_sync ();
   if (0) test_children_sync ();
-  if (1) test_properties_async ();
+  if (0) test_properties_async ();
   if (0) test_children_async ();
+  if (0) test_provider_free ();
+  if (1) test_dynamic_providers ();
 
   mainloop = g_main_loop_new (NULL, FALSE);
   g_main_loop_run (mainloop);

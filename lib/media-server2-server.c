@@ -24,12 +24,9 @@
 #include <dbus/dbus-glib.h>
 #include <string.h>
 
-#include "media-server2-server-private.h"
+#include "media-server2-private.h"
 #include "media-server2-server-glue.h"
 #include "media-server2-server.h"
-
-#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
-#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))

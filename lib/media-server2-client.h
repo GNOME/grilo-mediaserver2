@@ -74,6 +74,8 @@ struct _MS2ClientClass {
 
   void (*updated) (MS2Client *client,
                    const gchar *id);
+
+  void (*destroy) (MS2Client *client);
 };
 
 GType ms2_client_get_type (void);
@@ -81,6 +83,8 @@ GType ms2_client_get_type (void);
 gchar **ms2_client_get_providers (void);
 
 MS2Client *ms2_client_new (const gchar *provider);
+
+const gchar *ms2_client_get_provider_name (MS2Client *client);
 
 GHashTable *ms2_client_get_properties (MS2Client *client,
                                        const gchar *id,

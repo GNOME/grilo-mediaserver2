@@ -24,15 +24,9 @@
 #include <dbus/dbus-glib.h>
 #include <string.h>
 
+#include "media-server2-private.h"
 #include "media-server2-client-glue.h"
 #include "media-server2-client.h"
-
-#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
-#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
-#define MS2_DBUS_IFACE          "org.gnome.UPnP.MediaServer2"
-
-#define ENTRY_POINT_IFACE "/org/gnome/UPnP/MediaServer2/"
-#define ENTRY_POINT_NAME  "org.gnome.UPnP.MediaServer2."
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -48,6 +42,7 @@
 
 enum {
   UPDATED,
+  DESTROY,
   LAST_SIGNAL
 };
 
@@ -72,9 +67,11 @@ typedef struct {
 /*
  * Private MS2Client structure
  *   proxy_provider: a dbus proxy of content provider
+ *   name: name of provider
  */
 struct _MS2ClientPrivate {
   DBusGProxy *proxy_provider;
+  gchar *name;
 };
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
@@ -208,12 +205,24 @@ ms2_client_dispose (GObject *object)
 {
   MS2Client *client = MS2_CLIENT (object);
 
+  ms2_observer_remove_client (client, client->priv->name);
+
   if (client->priv->proxy_provider) {
     g_object_unref (client->priv->proxy_provider);
     client->priv->proxy_provider = NULL;
   }
 
   G_OBJECT_CLASS (ms2_client_parent_class)->dispose (object);
+}
+
+static void
+ms2_client_finalize (GObject *object)
+{
+  MS2Client *client = MS2_CLIENT (object);
+
+  g_free (client->priv->name);
+
+  G_OBJECT_CLASS (ms2_client_parent_class)->finalize (object);
 }
 
 /* Class init function */
@@ -225,6 +234,7 @@ ms2_client_class_init (MS2ClientClass *klass)
   g_type_class_add_private (klass, sizeof (MS2ClientPrivate));
 
   gobject_class->dispose = ms2_client_dispose;
+  gobject_class->finalize = ms2_client_finalize;
 
   /**
    * MS2Client::updated:
@@ -243,6 +253,27 @@ ms2_client_class_init (MS2ClientClass *klass)
                                    G_TYPE_NONE,
                                    1,
                                    G_TYPE_STRING);
+
+  /**
+   * MS2Client::destroy:
+   * @client: a #MS2Client
+   *
+   * Notifies when a client is going to be destroyed. Usually this happens when
+   * provider goes away.
+   *
+   * User should not use the object, as provider is not present.
+   *
+   * After this, client will be automatically destroyed.
+   **/
+  signals[DESTROY] = g_signal_new ("destroy",
+                                   G_TYPE_FROM_CLASS (klass),
+                                   G_SIGNAL_RUN_LAST | G_SIGNAL_RUN_CLEANUP,
+                                   G_STRUCT_OFFSET (MS2ClientClass, destroy),
+                                   NULL,
+                                   NULL,
+                                   g_cclosure_marshal_VOID__VOID,
+                                   G_TYPE_NONE,
+                                   0);
 }
 
 /* Object init function */
@@ -250,6 +281,18 @@ static void
 ms2_client_init (MS2Client *client)
 {
   client->priv = MS2_CLIENT_GET_PRIVATE (client);
+}
+
+/****************** INTERNAL PUBLIC API (NOT TO BE EXPORTED) ******************/
+
+/* Notify destruction of client, and unref it */
+void
+ms2_client_notify_unref (MS2Client *client)
+{
+  g_return_if_fail (MS2_IS_CLIENT (client));
+
+  g_signal_emit (client, signals[DESTROY], 0);
+  g_object_unref (client);
 }
 
 /******************** PUBLIC API ********************/
@@ -372,13 +415,31 @@ MS2Client *ms2_client_new (const gchar *provider)
 
   client = g_object_new (MS2_TYPE_CLIENT, NULL);
   client->priv->proxy_provider = gproxy;
+  client->priv->name = g_strdup (provider);
+
+  ms2_observer_add_client (client, provider);
 
   /* Listen to "updated" signal */
   dbus_g_proxy_add_signal (gproxy, "Updated", G_TYPE_STRING, G_TYPE_INVALID);
-  g_return_val_if_fail (MS2_IS_CLIENT(client), NULL);
   dbus_g_proxy_connect_signal (gproxy, "Updated", G_CALLBACK (updated), client, NULL);
 
   return client;
+}
+
+/**
+ * ms2_client_get_provider_name:
+ * @client: a #MS2Client
+ *
+ * Returns name of provider which client is attending
+ *
+ * Returns: name of provider
+ **/
+const gchar *
+ms2_client_get_provider_name (MS2Client *client)
+{
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
+
+  return client->priv->name;
 }
 
 /**
