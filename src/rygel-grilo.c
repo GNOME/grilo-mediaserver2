@@ -35,6 +35,7 @@
 #define ID_PREFIX_VIDEO     "grv://"
 #define ID_SEPARATOR        "/"
 
+static GHashTable *servers = NULL;
 static GList *providers_names = NULL;
 static GrlPluginRegistry *registry = NULL;
 
@@ -522,6 +523,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 
     if (!server) {
       g_warning ("Cannot register %s", source_id);
+      g_free (source_id);
     } else {
       ms2_server_set_get_properties_func (server, get_properties_cb);
       ms2_server_set_get_children_func (server, get_children_cb);
@@ -530,8 +532,8 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
         providers_names = g_list_prepend (providers_names,
                                           g_strdup(source_name));
       }
+      g_hash_table_insert (servers, source_id, server);
     }
-    g_free (source_id);
   } else {
     g_debug ("%s source does not support either browse or metadata",
              grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
@@ -544,16 +546,26 @@ source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
   GList *entry;
   const gchar *source_name;
+  gchar *source_id;
 
   source_name =
     grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data));
-  entry = g_list_find_custom (providers_names,
-                              source_name,
-                              (GCompareFunc) g_strcmp0);
-  if (entry) {
-    g_free (entry->data);
-    providers_names = g_list_delete_link (providers_names, entry);
+  source_id =
+    g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+
+  if (!dups) {
+    entry = g_list_find_custom (providers_names,
+                                source_name,
+                                (GCompareFunc) g_strcmp0);
+    if (entry) {
+      g_free (entry->data);
+      providers_names = g_list_delete_link (providers_names, entry);
+    }
   }
+
+  sanitize (source_id);
+  g_hash_table_remove (servers, source_id);
+  g_free (source_id);
 }
 
 /* Load plugins configuration */
@@ -651,15 +663,20 @@ main (gint argc, gchar **argv)
     return -1;
   }
 
+  /* Load configuration */
   load_config ();
+
+  /* Initialize <grilo-plugin, ms2-server> pairs */
+  servers = g_hash_table_new_full (g_str_hash,
+                                   g_str_equal,
+                                   g_free,
+                                   g_object_unref);
 
   g_signal_connect (registry, "source-added",
                     G_CALLBACK (source_added_cb), NULL);
 
-  if (!dups) {
-    g_signal_connect (registry, "source-removed",
-                      G_CALLBACK (source_removed_cb), NULL);
-  }
+  g_signal_connect (registry, "source-removed",
+                    G_CALLBACK (source_removed_cb), NULL);
 
   if (!args || !args[0]) {
     grl_plugin_registry_load_all (registry);
