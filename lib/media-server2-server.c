@@ -22,11 +22,15 @@
 
 #include <dbus/dbus-glib-bindings.h>
 #include <dbus/dbus-glib.h>
+#include <dbus/dbus-glib-lowlevel.h>
+#include <dbus/dbus.h>
 #include <string.h>
 
 #include "media-server2-private.h"
-#include "media-server2-server-glue.h"
 #include "media-server2-server.h"
+
+#define INTROSPECTION_FILE                                              \
+  "/home/jasuarez/Projects/grilo/rygel-grilo/data/media-server2.xml"
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -52,6 +56,8 @@ struct _MS2ServerPrivate {
   GetChildrenFunc get_children;
   GetPropertiesFunc get_properties;
 };
+
+static const gchar introspect_sgn[] = { DBUS_TYPE_INVALID };
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
@@ -224,50 +230,101 @@ check_properties (const gchar **filter)
   return NULL;
 }
 
+static const gchar *
+get_introspection ()
+{
+  GError *error = NULL;
+  GFile *uri;
+  static gchar *introspection = NULL;
+
+  if (!introspection) {
+    uri = g_vfs_get_file_for_path (g_vfs_get_default (), INTROSPECTION_FILE);
+    if (!g_file_load_contents (uri, NULL, &introspection, NULL, NULL, &error)) {
+      g_printerr ("Unable to load introspection data, %s\n", error->message);
+      g_error_free (error);
+    }
+    g_object_unref (uri);
+  }
+
+  return introspection;
+}
+
+static DBusHandlerResult
+handle_introspect_message (DBusConnection *c,
+                           DBusMessage *m,
+                           void *userdata)
+{
+  const gchar *xml;
+  DBusMessage *r;
+
+  /* Check signature */
+  if (dbus_message_has_signature (m, introspect_sgn)) {
+    xml = get_introspection ();
+    r = dbus_message_new_method_return (m);
+    dbus_message_append_args (r, DBUS_TYPE_STRING, &xml, DBUS_TYPE_INVALID);
+    dbus_connection_send (c, r, NULL);
+    dbus_message_unref (r);
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
+static DBusHandlerResult
+root_handler (DBusConnection *c,
+              DBusMessage *m,
+              void *userdata)
+{
+  const gchar *iface;
+
+  iface = dbus_message_get_interface (m);
+
+  if (dbus_message_is_method_call (m, "org.freedesktop.DBus.Introspectable", "Introspect")) {
+    return handle_introspect_message (c, m, userdata);
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
 /* Registers the MS2Server object in dbus */
 static gboolean
 ms2_server_dbus_register (MS2Server *server,
                           const gchar *name)
 {
-  DBusGConnection *connection;
-  DBusGProxy *gproxy;
-  GError *error = NULL;
+  DBusConnection *connection;
+  DBusError error;
   gchar *dbus_name;
   gchar *dbus_path;
-  guint request_name_result;
+  static const DBusObjectPathVTable vtable_root = {
+    .message_function = root_handler,
+  };
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  dbus_error_init (&error);
+
+  connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
-    g_printerr ("Could not connect to session bus, %s\n", error->message);
-    g_error_free (error);
+    g_printerr ("Could not connect to session bus, %s\n", error.message);
     return FALSE;
   }
 
-  gproxy = dbus_g_proxy_new_for_name (connection,
-                                      DBUS_SERVICE_DBUS,
-                                      DBUS_PATH_DBUS,
-                                      DBUS_INTERFACE_DBUS);
-
   /* Request name */
   dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, name, NULL);
-  if (!org_freedesktop_DBus_request_name (gproxy,
-                                          dbus_name,
-                                          DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                                          &request_name_result,
-                                          NULL))  {
+  if (dbus_bus_request_name (connection,
+                             dbus_name,
+                             DBUS_NAME_FLAG_DO_NOT_QUEUE,
+                             &error) != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
+    g_printerr ("Failed to request name %s, %s\n", dbus_name, error.message);
     g_free (dbus_name);
     return FALSE;
   }
   g_free (dbus_name);
-  g_object_unref (gproxy);
 
   dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, name, NULL);
+  dbus_connection_register_object_path (connection, dbus_path, &vtable_root, server);
 
-  /* Register object */
-  dbus_g_connection_register_g_object (connection,
-                                       dbus_path,
-                                       G_OBJECT (server));
   g_free (dbus_path);
+
+  dbus_connection_setup_with_g_main(connection, NULL);
 
   return TRUE;
 }
@@ -335,10 +392,6 @@ ms2_server_class_init (MS2ServerClass *klass)
                                    G_TYPE_NONE,
                                    1,
                                    G_TYPE_STRING);
-
-  /* Register introspection */
-  dbus_g_object_type_install_info (MS2_TYPE_SERVER,
-                                   &dbus_glib_ms2_server_object_info);
 }
 
 /* Object init function */
@@ -516,8 +569,6 @@ ms2_server_get_children (MS2Server *server,
 }
 
 /********************* PUBLIC API *********************/
-
-/********** SERVER API **********/
 
 /**
  * ms2_server_new:

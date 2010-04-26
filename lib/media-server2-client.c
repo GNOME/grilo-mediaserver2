@@ -25,7 +25,6 @@
 #include <string.h>
 
 #include "media-server2-private.h"
-#include "media-server2-client-glue.h"
 #include "media-server2-client.h"
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
@@ -156,6 +155,7 @@ get_children_list (GPtrArray *result,
   return children;
 }
 
+#if 0
 /* Callback invoked by dbus as answer to get_properties_async() */
 static void
 get_properties_async_reply (DBusGProxy *proxy,
@@ -176,7 +176,9 @@ get_properties_async_reply (DBusGProxy *proxy,
   g_simple_async_result_complete (res);
   g_object_unref (res);
 }
+#endif
 
+#if 0
 /* Callback invoked by dbus as answer to get_children_async() */
 static void
 get_children_async_reply (DBusGProxy *proxy,
@@ -198,6 +200,7 @@ get_children_async_reply (DBusGProxy *proxy,
   g_simple_async_result_complete (res);
   g_object_unref (res);
 }
+#endif
 
 /* Dispose function */
 static void
@@ -465,13 +468,13 @@ ms2_client_get_properties (MS2Client *client,
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
-  if (!org_gnome_UPnP_MediaServer2_get_properties (client->priv->proxy_provider,
-                                                   id,
-                                                   properties,
-                                                   &result,
-                                                   error)) {
-    return NULL;
-  }
+  /* if (!org_gnome_UPnP_MediaServer2_get_properties (client->priv->proxy_provider, */
+  /*                                                  id, */
+  /*                                                  properties, */
+  /*                                                  &result, */
+  /*                                                  error)) { */
+  /*   return NULL; */
+  /* } */
 
   prop_result = get_properties_table (result, properties);
   g_boxed_free (DBUS_TYPE_PROPERTIES, result);
@@ -522,11 +525,11 @@ void ms2_client_get_properties_async (MS2Client *client,
                                              adata,
                                              (GDestroyNotify) free_async_data);
 
-  org_gnome_UPnP_MediaServer2_get_properties_async (client->priv->proxy_provider,
-                                                    id,
-                                                    properties,
-                                                    get_properties_async_reply,
-                                                    res);
+  /* org_gnome_UPnP_MediaServer2_get_properties_async (client->priv->proxy_provider, */
+  /*                                                   id, */
+  /*                                                   properties, */
+  /*                                                   get_properties_async_reply, */
+  /*                                                   res); */
 }
 
 /**
@@ -583,15 +586,15 @@ ms2_client_get_children (MS2Client *client,
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
-  if (!org_gnome_UPnP_MediaServer2_get_children (client->priv->proxy_provider,
-                                                 id,
-                                                 offset,
-                                                 max_count,
-                                                 properties,
-                                                 &result,
-                                                 error)) {
-    return NULL;
-  }
+  /* if (!org_gnome_UPnP_MediaServer2_get_children (client->priv->proxy_provider, */
+  /*                                                id, */
+  /*                                                offset, */
+  /*                                                max_count, */
+  /*                                                properties, */
+  /*                                                &result, */
+  /*                                                error)) { */
+  /*   return NULL; */
+  /* } */
 
 
   children = get_children_list (result, properties);
@@ -648,13 +651,13 @@ void ms2_client_get_children_async (MS2Client *client,
                                              adata,
                                              (GDestroyNotify) free_async_data);
 
-  org_gnome_UPnP_MediaServer2_get_children_async (client->priv->proxy_provider,
-                                                  id,
-                                                  offset,
-                                                  max_count,
-                                                  properties,
-                                                  get_children_async_reply,
-                                                  res);
+  /* org_gnome_UPnP_MediaServer2_get_children_async (client->priv->proxy_provider, */
+  /*                                                 id, */
+  /*                                                 offset, */
+  /*                                                 max_count, */
+  /*                                                 properties, */
+  /*                                                 get_children_async_reply, */
+  /*                                                 res); */
 }
 
 /**
