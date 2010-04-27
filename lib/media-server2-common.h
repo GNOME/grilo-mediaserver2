@@ -26,41 +26,35 @@
 #define MS2_ERROR                                       \
   g_quark_from_static_string("media_server2_error")
 
-/* Common properties */
-#define MS2_PROP_ID           "id"
-#define MS2_PROP_PARENT       "parent"
-#define MS2_PROP_DISPLAY_NAME "display-name"
-#define MS2_PROP_TYPE         "type"
+/* MediaObject2 properties */
+#define MS2_PROP_DISPLAY_NAME "DisplayName"
+#define MS2_PROP_PARENT       "Parent"
+#define MS2_PROP_ID           "Path"
 
-/* Container properties */
-#define MS2_PROP_CHILD_COUNT "child-count"
-#define MS2_PROP_ICON        "icon"
+/* MediaItem2 properties */
+#define MS2_PROP_ALBUM     "Album"
+#define MS2_PROP_ARTIST    "Artist"
+#define MS2_PROP_BITRATE   "Bitrate"
+#define MS2_PROP_DURATION  "Duration"
+#define MS2_PROP_GENRE     "Genre"
+#define MS2_PROP_HEIGHT    "Height"
+#define MS2_PROP_MIME_TYPE "MIMEType"
+#define MS2_PROP_TYPE      "Type"
+#define MS2_PROP_URLS      "URLs"
+#define MS2_PROP_WIDTH     "Width"
 
-/* Item properties */
-#define MS2_PROP_URLS         "URLs"
-#define MS2_PROP_MIME_TYPE    "mime-type"
-#define MS2_PROP_SIZE         "size"
-#define MS2_PROP_ARTIST       "artist"
-#define MS2_PROP_ALBUM        "album"
-#define MS2_PROP_DATE         "date"
-#define MS2_PROP_DLNA_PROFILE "dlna-profile"
-
-/* Audio/Video items properties */
-#define MS2_PROP_DURATION        "duration"
-#define MS2_PROP_BITRATE         "bitrate"
+/* Other undefined properties; pending to add to spec */
+#define MS2_PROP_CHILD_COUNT     "child-count"
+#define MS2_PROP_ICON            "icon"
+#define MS2_PROP_SIZE            "size"
+#define MS2_PROP_DATE            "date"
+#define MS2_PROP_DLNA_PROFILE    "dlna-profile"
 #define MS2_PROP_SAMPLE_RATE     "sample-rate"
 #define MS2_PROP_BITS_PER_SAMPLE "bits-per-sample"
-
-/* Video/Image items properties */
-#define MS2_PROP_WIDTH        "width"
-#define MS2_PROP_HEIGHT       "height"
-#define MS2_PROP_COLOR_DEPTH  "color-depth"
-#define MS2_PROP_PIXEL_WIDTH  "pixel-width"
-#define MS2_PROP_PIXEL_HEIGHT "pixel-height"
-#define MS2_PROP_THUMBNAIL    "thumbnail"
-
-/* Audio items properties */
-#define MS2_PROP_GENRE "genre"
+#define MS2_PROP_COLOR_DEPTH     "color-depth"
+#define MS2_PROP_PIXEL_WIDTH     "pixel-width"
+#define MS2_PROP_PIXEL_HEIGHT    "pixel-height"
+#define MS2_PROP_THUMBNAIL       "thumbnail"
 
 /* Type items */
 #define MS2_TYPE_CONTAINER "container"
@@ -76,7 +70,7 @@
 #define MS2_UNKNOWN_STR ""
 
 /* Root category */
-#define MS2_ROOT "0"
+#define MS2_ROOT ""
 
 typedef enum {
   MS2_ERROR_GENERAL = 1

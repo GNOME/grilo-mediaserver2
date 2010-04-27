@@ -25,6 +25,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <dbus/dbus.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "media-server2-private.h"
 #include "media-server2-server.h"
@@ -58,6 +59,24 @@ struct _MS2ServerPrivate {
 };
 
 static const gchar introspect_sgn[] = { DBUS_TYPE_INVALID };
+static const gchar get_sgn[]  = { DBUS_TYPE_STRING, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
+
+static const gchar *mediaobject2_properties[] = { MS2_PROP_DISPLAY_NAME,
+                                                  MS2_PROP_PARENT,
+                                                  MS2_PROP_ID,
+                                                  NULL };
+
+static const gchar *mediaitem2_properties[] = { MS2_PROP_ALBUM,
+                                                MS2_PROP_ARTIST,
+                                                MS2_PROP_BITRATE,
+                                                MS2_PROP_DURATION,
+                                                MS2_PROP_GENRE,
+                                                MS2_PROP_HEIGHT,
+                                                MS2_PROP_MIME_TYPE,
+                                                MS2_PROP_TYPE,
+                                                MS2_PROP_URLS,
+                                                MS2_PROP_WIDTH,
+                                                NULL };
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
@@ -249,6 +268,167 @@ get_introspection ()
   return introspection;
 }
 
+static gboolean
+is_property_valid (const gchar *interface,
+                   const gchar *property)
+{
+  const gchar *prop_intern;
+  gboolean found;
+  int i;
+  static gchar **mo2_properties_intern = NULL;
+  static gchar **mi2_properties_intern = NULL;
+
+  /* Initialize MediaObject2 properties interns */
+  if (!mo2_properties_intern) {
+    mo2_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediaobject2_properties) + 1);
+    for (i = 0; mediaobject2_properties[i]; i++) {
+      mo2_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediaobject2_properties[i]);
+    }
+    mo2_properties_intern[i] = NULL;
+  }
+
+  /* Initialize MediaItem2 properties interns */
+  if (!mi2_properties_intern) {
+    mi2_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediaitem2_properties) + 1);
+    for (i = 0; mediaitem2_properties[i]; i++) {
+      mi2_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediaitem2_properties[i]);
+    }
+    mi2_properties_intern[i] = NULL;
+  }
+
+  prop_intern = g_intern_string (property);
+
+  /* Check MediaObject2 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
+    found = FALSE;
+    i = 0;
+    while (!found && mo2_properties_intern[i]) {
+      found = (prop_intern == mo2_properties_intern[i]);
+      i++;
+    }
+
+    if (found) {
+      return TRUE;
+    }
+
+    /* If not found, but interface is NULL, maybe property is in next interface */
+    if (!found && interface) {
+      return FALSE;
+    }
+  }
+
+  /* Check MediaItem2 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
+    found = FALSE;
+    i = 0;
+    while (!found && mi2_properties_intern[i]) {
+      found = (prop_intern == mi2_properties_intern[i]);
+      i++;
+    }
+
+    return found;
+  }
+
+  return FALSE;
+}
+
+static GValue *
+get_property_value (MS2Server *server,
+                    const gchar *id,
+                    const gchar *interface,
+                    const gchar *property)
+{
+  GHashTable *propresult;
+  GValue *propvalue;
+  GValue *v;
+  const gchar *prop[2] = { NULL };
+
+  /* Check everything is right */
+  if (!id ||
+      !property ||
+      !is_property_valid (interface, property) ||
+      !server->priv->get_properties) {
+    return NULL;
+  }
+
+  prop[0] = property;
+  propresult = server->priv->get_properties (id,
+                                             prop,
+                                             server->priv->data,
+                                             NULL);
+  if (!propresult) {
+    return NULL;
+  }
+
+  propvalue = g_hash_table_lookup (propresult, property);
+
+  if (propvalue) {
+    /* Make a copy */
+    v = g_new0 (GValue, 1);
+    g_value_init (v, G_VALUE_TYPE (propvalue));
+    g_value_copy (propvalue, v);
+  }
+
+  g_hash_table_unref (propresult);
+
+  return v;
+}
+
+static gchar *
+get_id (DBusMessage *m)
+{
+  gchar **path;
+  gchar *id;
+  gint path_length;
+
+  dbus_message_get_path_decomposed (m, &path);
+
+  /* Path can of type:
+     /org/gnome/UPnP/MediaServer2/<name>
+     /org/gnome/UPnP/MediaServer2/<name>/items/<id>
+     /org/gnome/UPnP/MediaServer2/<name>/containers/<id>
+  */
+  path_length = g_strv_length (path);
+
+  if (path_length == 5) {
+    id = g_strdup (MS2_ROOT);
+  } else if (path_length == 7) {
+    id =  g_strdup (g_quark_to_string (atoi (path[6])));
+  } else {
+    id = NULL;
+  }
+
+  dbus_free_string_array (path);
+
+  return id;
+}
+
+static void
+append_variant_arg (DBusMessage *m, const GValue *v)
+{
+  DBusMessageIter iter;
+  DBusMessageIter sub;
+  const gchar *str_value;
+  gint int_value;
+
+  dbus_message_iter_init_append (m, &iter);
+  if (G_VALUE_HOLDS_STRING (v)) {
+    str_value = g_value_get_string (v);
+    dbus_message_iter_open_container (&iter, DBUS_TYPE_VARIANT, "s", &sub);
+    dbus_message_iter_append_basic (&sub, DBUS_TYPE_STRING, &str_value);
+    dbus_message_iter_close_container (&iter, &sub);
+  } else if (G_VALUE_HOLDS_INT (v)) {
+    int_value = g_value_get_int (v);
+    dbus_message_iter_open_container (&iter, DBUS_TYPE_VARIANT, "i", &sub);
+    dbus_message_iter_append_basic (&sub, DBUS_TYPE_INT32, &int_value);
+    dbus_message_iter_close_container (&iter, &sub);
+  }
+}
+
 static DBusHandlerResult
 handle_introspect_message (DBusConnection *c,
                            DBusMessage *m,
@@ -271,6 +451,44 @@ handle_introspect_message (DBusConnection *c,
 }
 
 static DBusHandlerResult
+handle_get_message (DBusConnection *c,
+                    DBusMessage *m,
+                    void *userdata)
+{
+  GValue *value;
+  DBusMessage *r;
+  gchar *interface = NULL;
+  gchar *property = NULL;
+  gchar *id;
+  MS2Server *server = MS2_SERVER (userdata);
+
+  /* Check signature */
+  if (dbus_message_has_signature (m, get_sgn)) {
+    dbus_message_get_args (m, NULL,
+                           DBUS_TYPE_STRING, &interface,
+                           DBUS_TYPE_STRING, &property,
+                           DBUS_TYPE_INVALID);
+    id = get_id (m);
+    value = get_property_value (server, id, interface, property);
+    g_free (id);
+    if (!value) {
+      g_printerr ("Invalid property %s in interface %s\n",
+                  property,
+                  interface);
+    } else {
+      r = dbus_message_new_method_return (m);
+      append_variant_arg (r, value);
+      dbus_connection_send (c, r, NULL);
+      dbus_message_unref (r);
+      free_value (value);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
+static DBusHandlerResult
 root_handler (DBusConnection *c,
               DBusMessage *m,
               void *userdata)
@@ -279,8 +497,14 @@ root_handler (DBusConnection *c,
 
   iface = dbus_message_get_interface (m);
 
-  if (dbus_message_is_method_call (m, "org.freedesktop.DBus.Introspectable", "Introspect")) {
+  if (dbus_message_is_method_call (m,
+                                   "org.freedesktop.DBus.Introspectable",
+                                   "Introspect")) {
     return handle_introspect_message (c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.freedesktop.DBus.Properties",
+                                          "Get")) {
+    return handle_get_message (c, m, userdata);
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }

@@ -13,24 +13,20 @@
   </interface>
 
   <interface name="org.gnome.UPnP.MediaItem2">
-    <property name="URLs"     type="as" access="read"/>
+    <property name="Album"    type="s"  access="read"/>
+    <property name="Artist"   type="s"  access="read"/>
+    <property name="Bitrate"  type="i"  access="read"/>
+    <property name="Duration" type="i"  access="read"/>
+    <property name="Genre"    type="s"  access="read"/>
+    <property name="Height"   type="i"  access="read"/>
     <property name="MIMEType" type="s"  access="read"/>
     <property name="Type"     type="s"  access="read"/>
-    <property name="Artist"   type="s"  access="read"/>
-    <property name="Album"    type="s"  access="read"/>
-    <property name="Genre"    type="s"  access="read"/>
-    <property name="Duration" type="i"  access="read"/>
-    <property name="Bitrate"  type="i"  access="read"/>
+    <property name="URLs"     type="as" access="read"/>
     <property name="Width"    type="i"  access="read"/>
-    <property name="Height"   type="i"  access="read"/>
   </interface>
 
   <interface name="org.gnome.UPnP.MediaContainer2">
     <property name="CanSearch"      type="b"  access="read"/>
-    <property name="ContainerCount" type="u"  access="read"/>
-    <property name="Containers"     type="ao" access="read"/>
-    <property name="ItemCount"      type="u"  access="read"/>
-    <property name="Items"          type="ao" access="read"/>
 
     <method name="ListObjects">
       <arg name="offset"  direction="in"  type="u"/>
