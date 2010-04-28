@@ -16,6 +16,7 @@ libmediaserver2_la_LIBADD =	\
 	$(DEPS_LIBS)
 
 libmediaserver2_la_SOURCES =		\
+	media-server2-introspection.h	\
 	media-server2-common.h		\
 	media-server2-server.h		\
 	media-server2-server-table.c	\

@@ -29,6 +29,7 @@
 
 #include "media-server2-private.h"
 #include "media-server2-server.h"
+#include "media-server2-introspection.h"
 
 #define INTROSPECTION_FILE                                              \
   "/home/jasuarez/Projects/grilo/rygel-grilo/data/media-server2.xml"
@@ -249,25 +250,6 @@ check_properties (const gchar **filter)
   return NULL;
 }
 
-static const gchar *
-get_introspection ()
-{
-  GError *error = NULL;
-  GFile *uri;
-  static gchar *introspection = NULL;
-
-  if (!introspection) {
-    uri = g_vfs_get_file_for_path (g_vfs_get_default (), INTROSPECTION_FILE);
-    if (!g_file_load_contents (uri, NULL, &introspection, NULL, NULL, &error)) {
-      g_printerr ("Unable to load introspection data, %s\n", error->message);
-      g_error_free (error);
-    }
-    g_object_unref (uri);
-  }
-
-  return introspection;
-}
-
 static gboolean
 is_property_valid (const gchar *interface,
                    const gchar *property)
@@ -430,16 +412,15 @@ append_variant_arg (DBusMessage *m, const GValue *v)
 }
 
 static DBusHandlerResult
-handle_introspect_message (DBusConnection *c,
-                           DBusMessage *m,
-                           void *userdata)
+handle_introspect_container_message (DBusConnection *c,
+                                     DBusMessage *m,
+                                     void *userdata)
 {
-  const gchar *xml;
+  static const gchar *xml = CONTAINER_INTROSPECTION;
   DBusMessage *r;
 
   /* Check signature */
   if (dbus_message_has_signature (m, introspect_sgn)) {
-    xml = get_introspection ();
     r = dbus_message_new_method_return (m);
     dbus_message_append_args (r, DBUS_TYPE_STRING, &xml, DBUS_TYPE_INVALID);
     dbus_connection_send (c, r, NULL);
@@ -500,7 +481,7 @@ root_handler (DBusConnection *c,
   if (dbus_message_is_method_call (m,
                                    "org.freedesktop.DBus.Introspectable",
                                    "Introspect")) {
-    return handle_introspect_message (c, m, userdata);
+    return handle_introspect_container_message (c, m, userdata);
   } else if (dbus_message_is_method_call (m,
                                           "org.freedesktop.DBus.Properties",
                                           "Get")) {
