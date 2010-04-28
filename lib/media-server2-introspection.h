@@ -34,8 +34,6 @@
 #define MEDIAOBJECT2_IFACE                                              \
   "  <interface name=\"org.gnome.UPnP.MediaObject2\">"                  \
   "    <property name=\"DisplayName\" type=\"s\" access=\"read\"/>"     \
-  "    <property name=\"IsContainer\" type=\"b\" access=\"read\"/>"     \
-  "    <property name=\"IsItem\"      type=\"b\" access=\"read\"/>"     \
   "    <property name=\"Parent\"      type=\"o\" access=\"read\"/>"     \
   "    <property name=\"Path\"        type=\"o\" access=\"read\"/>"     \
   "  </interface>"
