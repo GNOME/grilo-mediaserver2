@@ -251,6 +251,78 @@ check_properties (const gchar **filter)
 }
 
 static gboolean
+lookup_in_strv (gchar **strv,
+                const gchar *needle)
+{
+  gint i;
+  if (!strv || !needle) {
+    return FALSE;
+  }
+
+  for (i = 0; strv[i] && strv[i] != needle; i++);
+  return (strv[i] != NULL);
+}
+
+static GValue *
+properties_lookup_with_default (GHashTable *properties,
+                                const gchar *property)
+{
+  GPtrArray *ptrarray;
+  GValue *ret_value;
+  GValue *propvalue;
+  const gchar *intern_property;
+  static gchar **int_type_properties = NULL;
+  static gchar **gptrarray_type_properties = NULL;
+
+  /* Initialize data */
+  if (!int_type_properties) {
+    int_type_properties = g_new (gchar *, 12);
+    int_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_CHILD_COUNT);
+    int_type_properties[1] = (gchar *) g_intern_static_string (MS2_PROP_SIZE);
+    int_type_properties[2] = (gchar *) g_intern_static_string (MS2_PROP_DURATION);
+    int_type_properties[3] = (gchar *) g_intern_static_string (MS2_PROP_BITRATE);
+    int_type_properties[4] = (gchar *) g_intern_static_string (MS2_PROP_SAMPLE_RATE);
+    int_type_properties[5] = (gchar *) g_intern_static_string (MS2_PROP_BITS_PER_SAMPLE);
+    int_type_properties[6] = (gchar *) g_intern_static_string (MS2_PROP_WIDTH);
+    int_type_properties[7] = (gchar *) g_intern_static_string (MS2_PROP_HEIGHT);
+    int_type_properties[8] = (gchar *) g_intern_static_string (MS2_PROP_COLOR_DEPTH);
+    int_type_properties[9] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_WIDTH);
+    int_type_properties[10] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_HEIGHT);
+    int_type_properties[11] = NULL;
+  }
+
+  if (!gptrarray_type_properties) {
+    gptrarray_type_properties = g_new (gchar *, 2);
+    gptrarray_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_URLS);
+    gptrarray_type_properties[1] = NULL;
+  }
+
+  propvalue = g_hash_table_lookup (properties, property);
+  if (propvalue) {
+    /* Make a copy and return it */
+    ret_value = g_new0 (GValue, 1);
+    g_value_init (ret_value, G_VALUE_TYPE (propvalue));
+    g_value_copy (propvalue, ret_value);
+
+    return ret_value;
+  }
+
+  /* Use a default value */
+  intern_property = g_intern_string (property);
+  if (lookup_in_strv (int_type_properties, intern_property)) {
+    ret_value = int_to_value (MS2_UNKNOWN_INT);
+  } else if (lookup_in_strv (gptrarray_type_properties, intern_property)) {
+    ptrarray = g_ptr_array_sized_new (1);
+    g_ptr_array_add (ptrarray, g_strdup (MS2_UNKNOWN_STR));
+    ret_value = ptrarray_to_value (ptrarray);
+  } else {
+    ret_value = str_to_value (MS2_UNKNOWN_STR);
+  }
+
+  return ret_value;
+}
+
+static gboolean
 is_property_valid (const gchar *interface,
                    const gchar *property)
 {
@@ -286,12 +358,7 @@ is_property_valid (const gchar *interface,
 
   /* Check MediaObject2 interface */
   if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
-    found = FALSE;
-    i = 0;
-    while (!found && mo2_properties_intern[i]) {
-      found = (prop_intern == mo2_properties_intern[i]);
-      i++;
-    }
+    found = lookup_in_strv (mo2_properties_intern, prop_intern);
 
     if (found) {
       return TRUE;
@@ -305,17 +372,23 @@ is_property_valid (const gchar *interface,
 
   /* Check MediaItem2 interface */
   if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
-    found = FALSE;
-    i = 0;
-    while (!found && mi2_properties_intern[i]) {
-      found = (prop_intern == mi2_properties_intern[i]);
-      i++;
-    }
-
-    return found;
+    return lookup_in_strv (mi2_properties_intern, prop_intern);
   }
 
   return FALSE;
+}
+
+static gchar *
+get_path_from_id (MS2Server *server,
+                  const gchar *id)
+{
+  gchar *path;
+
+  path = g_strconcat (MS2_DBUS_PATH_PREFIX,
+                      server->priv->name,
+                      NULL);
+
+  return path;
 }
 
 static GValue *
@@ -325,9 +398,9 @@ get_property_value (MS2Server *server,
                     const gchar *property)
 {
   GHashTable *propresult;
-  GValue *propvalue;
   GValue *v;
   const gchar *prop[2] = { NULL };
+  gchar *path;
 
   /* Check everything is right */
   if (!id ||
@@ -337,31 +410,31 @@ get_property_value (MS2Server *server,
     return NULL;
   }
 
-  prop[0] = property;
-  propresult = server->priv->get_properties (id,
-                                             prop,
-                                             server->priv->data,
-                                             NULL);
-  if (!propresult) {
-    return NULL;
-  }
-
-  propvalue = g_hash_table_lookup (propresult, property);
-
-  if (propvalue) {
-    /* Make a copy */
+  /* If asking for Path, we already can use id */
+  if (g_strcmp0 (property, MS2_PROP_ID) == 0) {
     v = g_new0 (GValue, 1);
-    g_value_init (v, G_VALUE_TYPE (propvalue));
-    g_value_copy (propvalue, v);
-  }
+    g_value_init (v, G_TYPE_STRING);
+    path = get_path_from_id (server, id);
+    g_value_take_string (v, path);
+  } else {
+    prop[0] = property;
+    propresult = server->priv->get_properties (server, id,
+                                               prop,
+                                               server->priv->data,
+                                               NULL);
+    if (!propresult) {
+      return NULL;
+    }
 
-  g_hash_table_unref (propresult);
+    v = properties_lookup_with_default (propresult, property);
+    g_hash_table_unref (propresult);
+  }
 
   return v;
 }
 
 static gchar *
-get_id (DBusMessage *m)
+get_id_from_message (DBusMessage *m)
 {
   gchar **path;
   gchar *id;
@@ -412,11 +485,11 @@ append_variant_arg (DBusMessage *m, const GValue *v)
 }
 
 static DBusHandlerResult
-handle_introspect_container_message (DBusConnection *c,
-                                     DBusMessage *m,
-                                     void *userdata)
+handle_introspect_message (DBusConnection *c,
+                           DBusMessage *m,
+                           void *userdata,
+                           const gchar *xml)
 {
-  static const gchar *xml = CONTAINER_INTROSPECTION;
   DBusMessage *r;
 
   /* Check signature */
@@ -449,7 +522,7 @@ handle_get_message (DBusConnection *c,
                            DBUS_TYPE_STRING, &interface,
                            DBUS_TYPE_STRING, &property,
                            DBUS_TYPE_INVALID);
-    id = get_id (m);
+    id = get_id_from_message (m);
     value = get_property_value (server, id, interface, property);
     g_free (id);
     if (!value) {
@@ -470,18 +543,15 @@ handle_get_message (DBusConnection *c,
 }
 
 static DBusHandlerResult
-root_handler (DBusConnection *c,
-              DBusMessage *m,
-              void *userdata)
+items_handler (DBusConnection *c,
+               DBusMessage *m,
+               void *userdata)
 {
-  const gchar *iface;
-
-  iface = dbus_message_get_interface (m);
-
   if (dbus_message_is_method_call (m,
                                    "org.freedesktop.DBus.Introspectable",
                                    "Introspect")) {
-    return handle_introspect_container_message (c, m, userdata);
+    return handle_introspect_message (c, m, userdata,
+                                      ITEM_INTROSPECTION);
   } else if (dbus_message_is_method_call (m,
                                           "org.freedesktop.DBus.Properties",
                                           "Get")) {
@@ -489,6 +559,33 @@ root_handler (DBusConnection *c,
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
+}
+
+static DBusHandlerResult
+containers_handler (DBusConnection *c,
+                    DBusMessage *m,
+                    void *userdata)
+{
+  if (dbus_message_is_method_call (m,
+                                   "org.freedesktop.DBus.Introspectable",
+                                   "Introspect")) {
+    return handle_introspect_message (c, m, userdata,
+                                      CONTAINER_INTROSPECTION);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.freedesktop.DBus.Properties",
+                                          "Get")) {
+    return handle_get_message (c, m, userdata);
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
+static DBusHandlerResult
+root_handler (DBusConnection *c,
+              DBusMessage *m,
+              void *userdata)
+{
+  return containers_handler (c, m, userdata);
 }
 
 /* Registers the MS2Server object in dbus */
@@ -500,8 +597,16 @@ ms2_server_dbus_register (MS2Server *server,
   DBusError error;
   gchar *dbus_name;
   gchar *dbus_path;
+  gchar *dbus_path_items;
+  gchar *dbus_path_containers;
   static const DBusObjectPathVTable vtable_root = {
     .message_function = root_handler,
+  };
+  static const DBusObjectPathVTable vtable_items = {
+    .message_function = items_handler,
+  };
+  static const DBusObjectPathVTable vtable_containers = {
+    .message_function = containers_handler
   };
 
   dbus_error_init (&error);
@@ -525,9 +630,16 @@ ms2_server_dbus_register (MS2Server *server,
   g_free (dbus_name);
 
   dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, name, NULL);
+  dbus_path_items = g_strconcat (dbus_path, "/items", NULL);
+  dbus_path_containers = g_strconcat (dbus_path, "/containers", NULL);
+
   dbus_connection_register_object_path (connection, dbus_path, &vtable_root, server);
+  dbus_connection_register_fallback (connection, dbus_path_items, &vtable_items, server);
+  dbus_connection_register_fallback (connection, dbus_path_containers, &vtable_containers, server);
 
   g_free (dbus_path);
+  g_free (dbus_path_items);
+  g_free (dbus_path_containers);
 
   dbus_connection_setup_with_g_main(connection, NULL);
 
@@ -557,7 +669,10 @@ ms2_server_dbus_unregister (MS2Server *server,
                                       DBUS_INTERFACE_DBUS);
 
   /* Release name */
-  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, name, NULL);
+  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX,
+                           server->priv->name,
+                           NULL);
+
   org_freedesktop_DBus_release_name (gproxy,
                                      dbus_name,
                                      &request_name_result,
@@ -643,7 +758,8 @@ ms2_server_get_properties (MS2Server *server,
     wrong_prop = check_properties (filter);
 
     if (!wrong_prop) {
-      properties = server->priv->get_properties (id,
+      properties = server->priv->get_properties (server,
+                                                 id,
                                                  filter,
                                                  server->priv->data,
                                                  &prop_error);
@@ -729,7 +845,8 @@ ms2_server_get_children (MS2Server *server,
 
     if (!wrong_prop) {
       children =
-        server->priv->get_children (id,
+        server->priv->get_children (server,
+                                    id,
                                     offset,
                                     max_count < 0? G_MAXINT: max_count,
                                     filter,
@@ -864,4 +981,20 @@ ms2_server_updated (MS2Server *server,
   g_return_if_fail (MS2_IS_SERVER (server));
 
   g_signal_emit (server, signals[UPDATED], 0, id);
+}
+
+/**
+ * ms2_server_get_name:
+ * @server: a #MS2Server
+ *
+ * Returns name used for this server.
+ *
+ * Returns: server name. Should not be freed.
+ **/
+const gchar *
+ms2_server_get_name (MS2Server *server)
+{
+  g_return_val_if_fail (MS2_IS_SERVER (server), NULL);
+
+  return server->priv->name;
 }

@@ -65,6 +65,7 @@ typedef struct {
   GList *children;
   GList *keys;
   GrlMediaSource *source;
+  MS2Server *server;
   gboolean updated;
   gchar *parent_id;
 } RygelGriloData;
@@ -145,10 +146,18 @@ static gchar *
 serialize_media (const gchar *parent_id,
                  GrlMedia *media)
 {
+  const gchar *media_id;
   gchar *escaped_id;
   gchar *ms_id;
 
-  escaped_id = g_uri_escape_string (grl_media_get_id (media), NULL, TRUE);
+  media_id = grl_media_get_id (media);
+
+  /* Check if it is root media */
+  if (!media_id) {
+    return g_strdup (ID_PREFIX_CONTAINER);
+  }
+
+  escaped_id = g_uri_escape_string (media_id, NULL, TRUE);
 
   if (g_strcmp0 (parent_id, MS2_ROOT) == 0) {
     ms_id = g_strconcat (ID_PREFIX_CONTAINER, escaped_id, NULL);
@@ -246,7 +255,8 @@ get_grilo_keys (const gchar **ms_keys)
 }
 
 static void
-fill_properties_table (GHashTable *properties_table,
+fill_properties_table (MS2Server *server,
+                       GHashTable *properties_table,
                        GList *keys,
                        GrlMedia *media,
                        const gchar *parent_id)
@@ -260,53 +270,63 @@ fill_properties_table (GHashTable *properties_table,
     if (grl_data_key_is_known (GRL_DATA (media), key)) {
       switch (key) {
       case GRL_METADATA_KEY_TITLE:
-        ms2_server_set_display_name (properties_table,
+        ms2_server_set_display_name (server,
+                                     properties_table,
                                      grl_media_get_title (media));
         break;
       case GRL_METADATA_KEY_ALBUM:
-        ms2_server_set_album (properties_table,
+        ms2_server_set_album (server,
+                              properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_ALBUM));
         break;
       case GRL_METADATA_KEY_ARTIST:
-        ms2_server_set_artist (properties_table,
+        ms2_server_set_artist (server,
+                               properties_table,
                                grl_data_get_string (GRL_DATA (media),
                                                     GRL_METADATA_KEY_ARTIST));
         break;
       case GRL_METADATA_KEY_GENRE:
-        ms2_server_set_genre (properties_table,
+        ms2_server_set_genre (server,
+                              properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_GENRE));
         break;
       case GRL_METADATA_KEY_MIME:
-        ms2_server_set_mime_type (properties_table,
+        ms2_server_set_mime_type (server,
+                                  properties_table,
                                   grl_media_get_mime (media));
         break;
       case GRL_METADATA_KEY_CHILDCOUNT:
-        ms2_server_set_child_count (properties_table,
+        ms2_server_set_child_count (server,
+                                    properties_table,
                                     grl_data_get_int (GRL_DATA (media),
                                                       GRL_METADATA_KEY_CHILDCOUNT));
         break;
       case GRL_METADATA_KEY_URL:
         urls[0] = (gchar *) grl_media_get_url (media);
-        ms2_server_set_urls (properties_table, urls);
+        ms2_server_set_urls (server, properties_table, urls);
         break;
       case GRL_METADATA_KEY_BITRATE:
-        ms2_server_set_bitrate (properties_table,
+        ms2_server_set_bitrate (server,
+                                properties_table,
                                 grl_data_get_int (GRL_DATA (media),
                                                   GRL_METADATA_KEY_BITRATE));
         break;
       case GRL_METADATA_KEY_DURATION:
-        ms2_server_set_duration (properties_table,
+        ms2_server_set_duration (server,
+                                 properties_table,
                                  grl_media_get_duration (media));
         break;
       case GRL_METADATA_KEY_HEIGHT:
-        ms2_server_set_height (properties_table,
+        ms2_server_set_height (server,
+                               properties_table,
                                grl_data_get_int (GRL_DATA (media),
                                                  GRL_METADATA_KEY_HEIGHT));
         break;
       case GRL_METADATA_KEY_WIDTH:
-        ms2_server_set_width (properties_table,
+        ms2_server_set_width (server,
+                              properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
         break;
@@ -315,7 +335,7 @@ fill_properties_table (GHashTable *properties_table,
   }
 
   if (parent_id) {
-    ms2_server_set_parent (properties_table, parent_id);
+    ms2_server_set_parent (server, properties_table, parent_id);
   }
 }
 
@@ -326,14 +346,25 @@ metadata_cb (GrlMediaSource *source,
              const GError *error)
 {
   RygelGriloData *rgdata = (RygelGriloData *) user_data;
+  gchar *id;
 
   if (error) {
     rgdata->error = g_error_copy (error);
     rgdata->updated = TRUE;
     return;
   }
-
-  fill_properties_table (rgdata->properties, rgdata->keys, media, rgdata->parent_id);
+  id = serialize_media (rgdata->parent_id, media);
+  if (id) {
+    rgdata->properties = ms2_server_new_properties_hashtable (rgdata->server,
+                                                              id,
+                                                              GRL_IS_MEDIA_BOX (media));
+    fill_properties_table (rgdata->server,
+                           rgdata->properties,
+                           rgdata->keys,
+                           media,
+                           rgdata->parent_id);
+    g_free (id);
+  }
 
   rgdata->updated = TRUE;
 }
@@ -359,8 +390,14 @@ browse_cb (GrlMediaSource *source,
   if (media) {
     id = serialize_media (rgdata->parent_id, media);
     if (id) {
-      prop_table = ms2_server_new_properties_hashtable (id);
-      fill_properties_table (prop_table, rgdata->keys, media, rgdata->parent_id);
+      prop_table = ms2_server_new_properties_hashtable (rgdata->server,
+                                                        id,
+                                                        GRL_IS_MEDIA_BOX (media));
+      fill_properties_table (rgdata->server,
+                             prop_table,
+                             rgdata->keys,
+                             media,
+                             rgdata->parent_id);
       rgdata->children = g_list_prepend (rgdata->children, prop_table);
       g_free (id);
     }
@@ -388,7 +425,8 @@ wait_for_result (RygelGriloData *rgdata)
 }
 
 static GHashTable *
-get_properties_cb (const gchar *id,
+get_properties_cb (MS2Server *server,
+                   const gchar *id,
                    const gchar **properties,
                    gpointer data,
                    GError **error)
@@ -398,8 +436,8 @@ get_properties_cb (const gchar *id,
   RygelGriloData *rgdata;
 
   rgdata = g_slice_new0 (RygelGriloData);
+  rgdata->server = g_object_ref (server);
   rgdata->source = (GrlMediaSource *) data;
-  rgdata->properties = ms2_server_new_properties_hashtable (id);
   rgdata->keys = get_grilo_keys (properties);
   rgdata->parent_id = get_parent_id (id);
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
@@ -421,7 +459,6 @@ get_properties_cb (const gchar *id,
     if (error) {
       *error = rgdata->error;
     }
-    g_hash_table_unref (rgdata->properties);
   } else {
     properties_table = rgdata->properties;
   }
@@ -429,13 +466,15 @@ get_properties_cb (const gchar *id,
   g_object_unref (media);
   g_list_free (rgdata->keys);
   g_free (rgdata->parent_id);
+  g_object_unref (rgdata->server);
   g_slice_free (RygelGriloData, rgdata);
 
   return properties_table;
 }
 
 static GList *
-get_children_cb (const gchar *id,
+get_children_cb (MS2Server *server,
+                 const gchar *id,
                  guint offset,
                  gint max_count,
                  const gchar **properties,
@@ -447,6 +486,7 @@ get_children_cb (const gchar *id,
   RygelGriloData *rgdata;
 
   rgdata = g_slice_new0 (RygelGriloData);
+  rgdata->server = g_object_ref (server);
   rgdata->source = (GrlMediaSource *) data;
   rgdata->keys = get_grilo_keys (properties);
   rgdata->parent_id = g_strdup (id);
@@ -477,6 +517,7 @@ get_children_cb (const gchar *id,
   g_object_unref (media);
   g_list_free (rgdata->keys);
   g_free (rgdata->parent_id);
+  g_object_unref (rgdata->server);
   g_slice_free (RygelGriloData, rgdata);
 
   return children;

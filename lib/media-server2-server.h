@@ -54,18 +54,6 @@
                               MS2_TYPE_SERVER,  \
                               MS2ServerClass))
 
-typedef GHashTable * (*GetPropertiesFunc) (const gchar *id,
-                                           const gchar **properties,
-                                           gpointer data,
-                                           GError **error);
-
-typedef GList * (*GetChildrenFunc) (const gchar *id,
-                                    guint offset,
-                                    gint max_count,
-                                    const gchar **properties,
-                                    gpointer data,
-                                    GError **error);
-
 typedef struct _MS2Server        MS2Server;
 typedef struct _MS2ServerPrivate MS2ServerPrivate;
 
@@ -87,6 +75,20 @@ struct _MS2ServerClass {
                    const gchar *id);
 };
 
+typedef GHashTable * (*GetPropertiesFunc) (MS2Server *server,
+                                           const gchar *id,
+                                           const gchar **properties,
+                                           gpointer data,
+                                           GError **error);
+
+typedef GList * (*GetChildrenFunc) (MS2Server *server,
+                                    const gchar *id,
+                                    guint offset,
+                                    gint max_count,
+                                    const gchar **properties,
+                                    gpointer data,
+                                    GError **error);
+
 GType ms2_server_get_type (void);
 
 MS2Server *ms2_server_new (const gchar *name,
@@ -101,75 +103,102 @@ void ms2_server_set_get_children_func (MS2Server *server,
 void ms2_server_updated (MS2Server *server,
                          const gchar *id);
 
-GHashTable *ms2_server_new_properties_hashtable (const gchar *id);
+const gchar *ms2_server_get_name (MS2Server *server);
 
-void ms2_server_set_parent (GHashTable *properties,
+GHashTable *ms2_server_new_properties_hashtable (MS2Server *server,
+                                                 const gchar *id,
+                                                 gboolean is_container);
+
+void ms2_server_set_parent (MS2Server *server,
+                            GHashTable *properties,
                             const gchar *parent);
 
-void ms2_server_set_display_name (GHashTable *properties,
+void ms2_server_set_display_name (MS2Server *server,
+                                  GHashTable *properties,
                                   const gchar *display_name);
 
-void ms2_server_set_item_type (GHashTable *properties,
+void ms2_server_set_item_type (MS2Server *server,
+                               GHashTable *properties,
                                MS2ItemType type);
 
-void ms2_server_set_icon (GHashTable *properties,
+void ms2_server_set_icon (MS2Server *server,
+                          GHashTable *properties,
                           const gchar *icon);
 
-void ms2_server_set_mime_type (GHashTable *properties,
+void ms2_server_set_mime_type (MS2Server *server,
+                               GHashTable *properties,
                                const gchar *mime_type);
 
-void ms2_server_set_artist (GHashTable *properties,
+void ms2_server_set_artist (MS2Server *server,
+                            GHashTable *properties,
                             const gchar *artist);
 
-void ms2_server_set_album (GHashTable *properties,
+void ms2_server_set_album (MS2Server *server,
+                           GHashTable *properties,
                            const gchar *album);
 
-void ms2_server_set_date (GHashTable *properties,
+void ms2_server_set_date (MS2Server *server,
+                          GHashTable *properties,
                           const gchar *date);
 
-void ms2_server_set_dlna_profile (GHashTable *properties,
+void ms2_server_set_dlna_profile (MS2Server *server,
+                                  GHashTable *properties,
                                   const gchar *dlna_profile);
 
-void ms2_server_set_thumbnail (GHashTable *properties,
+void ms2_server_set_thumbnail (MS2Server *server,
+                               GHashTable *properties,
                                const gchar *thumbnail);
 
-void ms2_server_set_genre (GHashTable *properties,
+void ms2_server_set_genre (MS2Server *server,
+                           GHashTable *properties,
                            const gchar *genre);
 
-void ms2_server_set_child_count (GHashTable *properties,
+void ms2_server_set_child_count (MS2Server *server,
+                                 GHashTable *properties,
                                  gint child_count);
 
-void ms2_server_set_size (GHashTable *properties,
+void ms2_server_set_size (MS2Server *server,
+                          GHashTable *properties,
                           gint size);
 
-void ms2_server_set_duration (GHashTable *properties,
+void ms2_server_set_duration (MS2Server *server,
+                              GHashTable *properties,
                               gint duration);
 
-void ms2_server_set_bitrate (GHashTable *properties,
+void ms2_server_set_bitrate (MS2Server *server,
+                             GHashTable *properties,
                              gint bitrate);
 
-void ms2_server_set_sample_rate (GHashTable *properties,
+void ms2_server_set_sample_rate (MS2Server *server,
+                                 GHashTable *properties,
                                  gint sample_rate);
 
-void ms2_server_set_bits_per_sample (GHashTable *properties,
+void ms2_server_set_bits_per_sample (MS2Server *server,
+                                     GHashTable *properties,
                                      gint bits_per_sample);
 
-void ms2_server_set_width (GHashTable *properties,
+void ms2_server_set_width (MS2Server *server,
+                           GHashTable *properties,
                            gint width);
 
-void ms2_server_set_height (GHashTable *properties,
+void ms2_server_set_height (MS2Server *server,
+                            GHashTable *properties,
                             gint height);
 
-void ms2_server_set_color_depth (GHashTable *properties,
+void ms2_server_set_color_depth (MS2Server *server,
+                                 GHashTable *properties,
                                  gint depth);
 
-void ms2_server_set_pixel_width (GHashTable *properties,
+void ms2_server_set_pixel_width (MS2Server *server,
+                                 GHashTable *properties,
                                  gint pixel_width);
 
-void ms2_server_set_pixel_height (GHashTable *properties,
+void ms2_server_set_pixel_height (MS2Server *server,
+                                  GHashTable *properties,
                                   gint pixel_height);
 
-void ms2_server_set_urls (GHashTable *properties,
+void ms2_server_set_urls (MS2Server *server,
+                          GHashTable *properties,
                           gchar **urls);
 
 #endif /* _MEDIA_SERVER2_SERVER_H_ */
