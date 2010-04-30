@@ -54,7 +54,6 @@
 
 #define MEDIACONTAINER2_IFACE                                           \
   "  <interface name=\"org.gnome.UPnP.MediaContainer2\">"               \
-  "    <property name=\"CanSearch\" type=\"b\"  access=\"read\"/>"      \
   "    <method name=\"ListObjects\">"                                   \
   "      <arg name=\"offset\"  direction=\"in\"  type=\"u\"/>"          \
   "      <arg name=\"max\"     direction=\"in\"  type=\"u\"/>"          \
