@@ -85,8 +85,8 @@
   "      <arg name=\"value\"     direction=\"out\" type=\"v\"/>"        \
   "    </method>"                                                       \
   "    <method name=\"GetAll\">"                                        \
-  "      <arg name=\"interface\" direction=\"in\"  type=\"s\"/>"        \
-  "      <arg name=\"propeties\" direction=\"out\" type=\"a{sv}\"/>"    \
+  "      <arg name=\"interface\"  direction=\"in\"  type=\"s\"/>"       \
+  "      <arg name=\"properties\" direction=\"out\" type=\"a{sv}\"/>"   \
   "    </method>"                                                       \
   "  </interface>"
 
