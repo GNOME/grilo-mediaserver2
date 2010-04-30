@@ -59,8 +59,10 @@ struct _MS2ServerPrivate {
   GetPropertiesFunc get_properties;
 };
 
+/* dbus message signatures */
 static const gchar introspect_sgn[] = { DBUS_TYPE_INVALID };
 static const gchar get_sgn[]  = { DBUS_TYPE_STRING, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
+static const gchar getall_sgn[] = { DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 
 static const gchar *mediaobject2_properties[] = { MS2_PROP_DISPLAY_NAME,
                                                   MS2_PROP_PARENT,
@@ -418,7 +420,8 @@ get_property_value (MS2Server *server,
     g_value_take_string (v, path);
   } else {
     prop[0] = property;
-    propresult = server->priv->get_properties (server, id,
+    propresult = server->priv->get_properties (server,
+                                               id,
                                                prop,
                                                server->priv->data,
                                                NULL);
@@ -463,25 +466,66 @@ get_id_from_message (DBusMessage *m)
 }
 
 static void
-append_variant_arg (DBusMessage *m, const GValue *v)
+append_variant_arg (DBusMessage *m,
+                    DBusMessageIter *iter,
+                    const GValue *v)
 {
-  DBusMessageIter iter;
+  DBusMessageIter iternew;
   DBusMessageIter sub;
   const gchar *str_value;
   gint int_value;
 
-  dbus_message_iter_init_append (m, &iter);
+  if (!iter) {
+    dbus_message_iter_init_append (m, &iternew);
+    iter = &iternew;
+  }
+
   if (G_VALUE_HOLDS_STRING (v)) {
     str_value = g_value_get_string (v);
-    dbus_message_iter_open_container (&iter, DBUS_TYPE_VARIANT, "s", &sub);
+    dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "s", &sub);
     dbus_message_iter_append_basic (&sub, DBUS_TYPE_STRING, &str_value);
-    dbus_message_iter_close_container (&iter, &sub);
+    dbus_message_iter_close_container (iter, &sub);
   } else if (G_VALUE_HOLDS_INT (v)) {
     int_value = g_value_get_int (v);
-    dbus_message_iter_open_container (&iter, DBUS_TYPE_VARIANT, "i", &sub);
+    dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "i", &sub);
     dbus_message_iter_append_basic (&sub, DBUS_TYPE_INT32, &int_value);
-    dbus_message_iter_close_container (&iter, &sub);
+    dbus_message_iter_close_container (iter, &sub);
   }
+}
+
+static void
+append_hashtable_arg (DBusMessage *m,
+                      GHashTable *t)
+{
+  DBusMessageIter iter;
+  DBusMessageIter sub_array;
+  DBusMessageIter sub_dict;
+  GList *key;
+  GList *keys;
+  GValue *v;
+
+  dbus_message_iter_init_append (m, &iter);
+  /* Add an array of dict */
+  dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY, "{sv}", &sub_array);
+  /* Add hashtable */
+  if (t) {
+    keys = g_hash_table_get_keys (t);
+    for (key = keys; key; key = g_list_next (key)) {
+      v = g_hash_table_lookup (t, key->data);
+      if (!v) {
+        continue;
+      }
+
+      /* Add type dict */
+      dbus_message_iter_open_container (&sub_array, DBUS_TYPE_DICT_ENTRY, NULL, &sub_dict);
+      /* Add key & value */
+      dbus_message_iter_append_basic (&sub_dict, DBUS_TYPE_STRING, &key->data);
+      append_variant_arg (m, &sub_dict, v);
+      dbus_message_iter_close_container (&sub_array, &sub_dict);
+    }
+    g_list_free (keys);
+  }
+  dbus_message_iter_close_container (&iter, &sub_array);
 }
 
 static DBusHandlerResult
@@ -531,10 +575,66 @@ handle_get_message (DBusConnection *c,
                   interface);
     } else {
       r = dbus_message_new_method_return (m);
-      append_variant_arg (r, value);
+      append_variant_arg (r, NULL, value);
       dbus_connection_send (c, r, NULL);
       dbus_message_unref (r);
       free_value (value);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
+static DBusHandlerResult
+handle_get_all_message (DBusConnection *c,
+                        DBusMessage *m,
+                        void *userdata)
+{
+  DBusMessage *r;
+  GHashTable *propresult;
+  MS2Server *server = MS2_SERVER (userdata);
+  const gchar **prop;
+  gchar *id;
+  gchar *interface;
+
+  /* Check signature */
+  if (dbus_message_has_signature (m, getall_sgn)) {
+    dbus_message_get_args (m, NULL,
+                           DBUS_TYPE_STRING, &interface,
+                           DBUS_TYPE_INVALID);
+    /* Get what properties we should ask */
+    if (g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
+      prop = mediaobject2_properties;
+    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
+      prop = mediaitem2_properties;
+    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer2") == 0) {
+      prop = NULL;
+    } else {
+      return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
+    if (prop && server->priv->get_properties) {
+      id = get_id_from_message (m);
+      if (!id) {
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+      }
+
+      propresult = server->priv->get_properties (server,
+                                                 id,
+                                                 prop,
+                                                 server->priv->data,
+                                                 NULL);
+      g_free (id);
+    } else {
+      propresult = NULL;
+    }
+    r = dbus_message_new_method_return (m);
+    append_hashtable_arg (r, propresult);
+    dbus_connection_send (c, r, NULL);
+    dbus_message_unref (r);
+    if (propresult) {
+      g_hash_table_unref (propresult);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else {
@@ -556,6 +656,10 @@ items_handler (DBusConnection *c,
                                           "org.freedesktop.DBus.Properties",
                                           "Get")) {
     return handle_get_message (c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.freedesktop.DBusProperties",
+                                          "GetAll")) {
+    return handle_get_all_message (c, m, userdata);
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
@@ -575,6 +679,10 @@ containers_handler (DBusConnection *c,
                                           "org.freedesktop.DBus.Properties",
                                           "Get")) {
     return handle_get_message (c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.freedesktop.DBus.Properties",
+                                          "GetAll")) {
+    return handle_get_all_message (c, m, userdata);
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }

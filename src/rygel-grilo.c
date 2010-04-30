@@ -154,7 +154,7 @@ serialize_media (const gchar *parent_id,
 
   /* Check if it is root media */
   if (!media_id) {
-    return g_strdup (ID_PREFIX_CONTAINER);
+    return g_strdup (MS2_ROOT);
   }
 
   escaped_id = g_uri_escape_string (media_id, NULL, TRUE);
