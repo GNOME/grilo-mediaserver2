@@ -105,9 +105,12 @@ void ms2_server_updated (MS2Server *server,
 
 const gchar *ms2_server_get_name (MS2Server *server);
 
-GHashTable *ms2_server_new_properties_hashtable (MS2Server *server,
-                                                 const gchar *id,
-                                                 gboolean is_container);
+GHashTable *ms2_server_new_properties_hashtable (void);
+
+void ms2_server_set_id (MS2Server *server,
+                        GHashTable *properties,
+                        const gchar *id,
+                        gboolean is_container);
 
 void ms2_server_set_parent (MS2Server *server,
                             GHashTable *properties,

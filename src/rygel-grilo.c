@@ -67,6 +67,7 @@ typedef struct {
   GrlMediaSource *source;
   MS2Server *server;
   gboolean updated;
+  gboolean parent_requested;
   gchar *parent_id;
 } RygelGriloData;
 
@@ -209,13 +210,20 @@ unserialize_media (GrlMetadataSource *source, const gchar *id)
 /* Given a null-terminated array of MediaServerSpec2 properties, returns a list
    with the corresponding Grilo metadata keys */
 static GList *
-get_grilo_keys (const gchar **ms_keys)
+get_grilo_keys (const gchar **ms_keys, gboolean *contains_parent)
 {
   GList *grl_keys = NULL;
   gint i;
 
+  if (contains_parent) {
+    *contains_parent = FALSE;
+  }
+
   for (i = 0; ms_keys[i]; i++) {
-    if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
+    if (g_strcmp0 (ms_keys[i], MS2_PROP_ID) == 0) {
+      grl_keys = g_list_append (grl_keys,
+                                GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ID));
+    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_TITLE));
     } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ALBUM) == 0) {
@@ -248,6 +256,8 @@ get_grilo_keys (const gchar **ms_keys)
     } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
+    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0 && contains_parent) {
+      *contains_parent = TRUE;
     }
   }
 
@@ -259,16 +269,29 @@ fill_properties_table (MS2Server *server,
                        GHashTable *properties_table,
                        GList *keys,
                        GrlMedia *media,
+                       gboolean parent_requested,
                        const gchar *parent_id)
 {
   GList *prop;
   GrlKeyID key;
+  gchar *id;
   gchar *urls[2] = { 0 };
 
   for (prop = keys; prop; prop = g_list_next (prop)) {
     key = POINTER_TO_GRLKEYID (prop->data);
-    if (grl_data_key_is_known (GRL_DATA (media), key)) {
+    if (key == GRL_METADATA_KEY_ID ||
+        grl_data_key_is_known (GRL_DATA (media), key)) {
       switch (key) {
+      case GRL_METADATA_KEY_ID:
+        id = serialize_media (parent_id, media);
+        if (id) {
+          ms2_server_set_id (server,
+                             properties_table,
+                             id,
+                             GRL_IS_MEDIA_BOX (media));
+          g_free (id);
+        }
+        break;
       case GRL_METADATA_KEY_TITLE:
         ms2_server_set_display_name (server,
                                      properties_table,
@@ -334,7 +357,7 @@ fill_properties_table (MS2Server *server,
     }
   }
 
-  if (parent_id) {
+  if (parent_requested && parent_id) {
     ms2_server_set_parent (server, properties_table, parent_id);
   }
 }
@@ -346,25 +369,20 @@ metadata_cb (GrlMediaSource *source,
              const GError *error)
 {
   RygelGriloData *rgdata = (RygelGriloData *) user_data;
-  gchar *id;
 
   if (error) {
     rgdata->error = g_error_copy (error);
     rgdata->updated = TRUE;
     return;
   }
-  id = serialize_media (rgdata->parent_id, media);
-  if (id) {
-    rgdata->properties = ms2_server_new_properties_hashtable (rgdata->server,
-                                                              id,
-                                                              GRL_IS_MEDIA_BOX (media));
-    fill_properties_table (rgdata->server,
-                           rgdata->properties,
-                           rgdata->keys,
-                           media,
-                           rgdata->parent_id);
-    g_free (id);
-  }
+
+  rgdata->properties = ms2_server_new_properties_hashtable ();
+  fill_properties_table (rgdata->server,
+                         rgdata->properties,
+                         rgdata->keys,
+                         media,
+                         rgdata->parent_requested,
+                         rgdata->parent_id);
 
   rgdata->updated = TRUE;
 }
@@ -379,7 +397,6 @@ browse_cb (GrlMediaSource *source,
 {
   GHashTable *prop_table;
   RygelGriloData *rgdata = (RygelGriloData *) user_data;
-  gchar *id;
 
   if (error) {
     rgdata->error = g_error_copy (error);
@@ -388,19 +405,14 @@ browse_cb (GrlMediaSource *source,
   }
 
   if (media) {
-    id = serialize_media (rgdata->parent_id, media);
-    if (id) {
-      prop_table = ms2_server_new_properties_hashtable (rgdata->server,
-                                                        id,
-                                                        GRL_IS_MEDIA_BOX (media));
-      fill_properties_table (rgdata->server,
-                             prop_table,
-                             rgdata->keys,
-                             media,
-                             rgdata->parent_id);
-      rgdata->children = g_list_prepend (rgdata->children, prop_table);
-      g_free (id);
-    }
+    prop_table = ms2_server_new_properties_hashtable ();
+    fill_properties_table (rgdata->server,
+                           prop_table,
+                           rgdata->keys,
+                           media,
+                           rgdata->parent_requested,
+                           rgdata->parent_id);
+    rgdata->children = g_list_prepend (rgdata->children, prop_table);
   }
 
   if (!remaining) {
@@ -438,7 +450,7 @@ get_properties_cb (MS2Server *server,
   rgdata = g_slice_new0 (RygelGriloData);
   rgdata->server = g_object_ref (server);
   rgdata->source = (GrlMediaSource *) data;
-  rgdata->keys = get_grilo_keys (properties);
+  rgdata->keys = get_grilo_keys (properties, &rgdata->parent_requested);
   rgdata->parent_id = get_parent_id (id);
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
 
@@ -488,7 +500,7 @@ get_children_cb (MS2Server *server,
   rgdata = g_slice_new0 (RygelGriloData);
   rgdata->server = g_object_ref (server);
   rgdata->source = (GrlMediaSource *) data;
-  rgdata->keys = get_grilo_keys (properties);
+  rgdata->keys = get_grilo_keys (properties, &rgdata->parent_requested);
   rgdata->parent_id = g_strdup (id);
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
 

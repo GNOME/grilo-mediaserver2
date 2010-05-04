@@ -111,37 +111,51 @@ id_to_object_path (MS2Server *server,
 
 /**
  * ms2_server_new_properties_hashtable:
- * @server: a #MS2Server
- * @id: identifier of item which properties will be stored in the table
- * @is_container: @TRUE if the item is a container, or @FALSE if it is an item.
  *
  * Creates a new #GHashTable suitable to store items properties.
- *
- * @id will be transformed in an object path.
  *
  * Returns: a new #GHashTable
  **/
 GHashTable *
-ms2_server_new_properties_hashtable (MS2Server *server,
-                                     const gchar *id,
-                                     gboolean is_container)
+ms2_server_new_properties_hashtable ()
 {
   GHashTable *properties;
-  gchar *object_path;
-
-  g_return_val_if_fail (MS2_IS_SERVER (server), NULL);
-  g_return_val_if_fail (id, NULL);
 
   properties = g_hash_table_new_full (g_str_hash,
                                       g_str_equal,
                                       NULL,
                                       (GDestroyNotify) free_value);
 
-  object_path = id_to_object_path (server, id, is_container);
-  g_hash_table_insert (properties, MS2_PROP_ID, str_to_value (object_path));
-  g_free (object_path);
-
   return properties;
+}
+
+/**
+ * ms2_server_set_id:
+ * @server: a #MS2Server
+ * @properties: a #GHashTable
+ * @id: identifier value
+ * @is_container: @TRUE if the @id identifies a a container
+ *
+ * Sets the "id" property. Mandatory property
+ *
+ * @id will be transformed in an object path
+ **/
+void
+ms2_server_set_id (MS2Server *server,
+                   GHashTable *properties,
+                   const gchar *id,
+                   gboolean is_container)
+{
+  gchar *object_path;
+
+  g_return_if_fail (MS2_IS_SERVER (server));
+  g_return_if_fail (properties);
+
+  if (id) {
+    object_path = id_to_object_path (server, id, is_container);
+    g_hash_table_insert (properties, MS2_PROP_ID, str_to_value (object_path));
+    g_free (object_path);
+  }
 }
 
 /**

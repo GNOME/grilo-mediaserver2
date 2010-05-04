@@ -63,6 +63,7 @@ struct _MS2ServerPrivate {
 static const gchar introspect_sgn[] = { DBUS_TYPE_INVALID };
 static const gchar get_sgn[]  = { DBUS_TYPE_STRING, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 static const gchar getall_sgn[] = { DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
+static const gchar listobjects_sgn[] = { DBUS_TYPE_UINT32, DBUS_TYPE_UINT32, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 
 static const gchar *mediaobject2_properties[] = { MS2_PROP_DISPLAY_NAME,
                                                   MS2_PROP_PARENT,
@@ -466,9 +467,9 @@ get_id_from_message (DBusMessage *m)
 }
 
 static void
-append_variant_arg (DBusMessage *m,
-                    DBusMessageIter *iter,
-                    const GValue *v)
+add_variant (DBusMessage *m,
+             DBusMessageIter *iter,
+             const GValue *v)
 {
   DBusMessageIter iternew;
   DBusMessageIter sub;
@@ -494,19 +495,24 @@ append_variant_arg (DBusMessage *m,
 }
 
 static void
-append_hashtable_arg (DBusMessage *m,
-                      GHashTable *t)
+add_hashtable_as_dict (DBusMessage *m,
+                       DBusMessageIter *iter,
+                       GHashTable *t)
 {
-  DBusMessageIter iter;
+  DBusMessageIter iternew;
   DBusMessageIter sub_array;
   DBusMessageIter sub_dict;
   GList *key;
   GList *keys;
   GValue *v;
 
-  dbus_message_iter_init_append (m, &iter);
+  if (!iter) {
+    dbus_message_iter_init_append (m, &iternew);
+    iter = &iternew;
+  }
+
   /* Add an array of dict */
-  dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY, "{sv}", &sub_array);
+  dbus_message_iter_open_container (iter, DBUS_TYPE_ARRAY, "{sv}", &sub_array);
   /* Add hashtable */
   if (t) {
     keys = g_hash_table_get_keys (t);
@@ -520,12 +526,35 @@ append_hashtable_arg (DBusMessage *m,
       dbus_message_iter_open_container (&sub_array, DBUS_TYPE_DICT_ENTRY, NULL, &sub_dict);
       /* Add key & value */
       dbus_message_iter_append_basic (&sub_dict, DBUS_TYPE_STRING, &key->data);
-      append_variant_arg (m, &sub_dict, v);
+      add_variant (m, &sub_dict, v);
       dbus_message_iter_close_container (&sub_array, &sub_dict);
     }
     g_list_free (keys);
   }
-  dbus_message_iter_close_container (&iter, &sub_array);
+  dbus_message_iter_close_container (iter, &sub_array);
+}
+
+static void
+add_glist_as_array (DBusMessage *m,
+                    DBusMessageIter *iter,
+                    GList *l)
+{
+  DBusMessageIter iternew;
+  DBusMessageIter sub_array;
+
+  if (!iter) {
+    dbus_message_iter_init_append (m, &iternew);
+    iter = &iternew;
+  }
+
+  /* Add an array */
+  dbus_message_iter_open_container (iter, DBUS_TYPE_ARRAY, "a{sv}", &sub_array);
+  while (l) {
+    add_hashtable_as_dict (m, &sub_array, l->data);
+    l = g_list_next (l);
+  }
+
+  dbus_message_iter_close_container (iter, &sub_array);
 }
 
 static DBusHandlerResult
@@ -575,7 +604,7 @@ handle_get_message (DBusConnection *c,
                   interface);
     } else {
       r = dbus_message_new_method_return (m);
-      append_variant_arg (r, NULL, value);
+      add_variant (r, NULL, value);
       dbus_connection_send (c, r, NULL);
       dbus_message_unref (r);
       free_value (value);
@@ -630,11 +659,64 @@ handle_get_all_message (DBusConnection *c,
       propresult = NULL;
     }
     r = dbus_message_new_method_return (m);
-    append_hashtable_arg (r, propresult);
+    add_hashtable_as_dict (r, NULL, propresult);
     dbus_connection_send (c, r, NULL);
     dbus_message_unref (r);
     if (propresult) {
       g_hash_table_unref (propresult);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
+static DBusHandlerResult
+handle_list_objects_message (DBusConnection *c,
+                             DBusMessage *m,
+                             void *userdata)
+{
+  DBusMessage *r;
+  GList *children;
+  gchar **filter;
+  gchar *id;
+  guint max_count;
+  guint offset;
+  gint nitems;
+  MS2Server *server = MS2_SERVER (userdata);
+
+  /* Check signature */
+  if (dbus_message_has_signature (m, listobjects_sgn)) {
+    dbus_message_get_args (m, NULL,
+                           DBUS_TYPE_UINT32, &offset,
+                           DBUS_TYPE_UINT32, &max_count,
+                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &filter, &nitems,
+                           DBUS_TYPE_INVALID);
+    if (!server->priv->get_children || nitems == 0) {
+      children = NULL;
+    } else {
+      id = get_id_from_message (m);
+      if (!id) {
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+      }
+      children = server->priv->get_children (server,
+                                             id,
+                                             offset,
+                                             max_count? max_count: G_MAXUINT,
+                                             (const gchar **) filter,
+                                             server->priv->data,
+                                             NULL);
+      g_free (id);
+      dbus_free_string_array (filter);
+    }
+
+    r = dbus_message_new_method_return (m);
+    add_glist_as_array (r, NULL, children);
+    dbus_connection_send (c, r, NULL);
+    dbus_message_unref (r);
+    if (children) {
+      g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
+      g_list_free (children);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else {
@@ -683,6 +765,10 @@ containers_handler (DBusConnection *c,
                                           "org.freedesktop.DBus.Properties",
                                           "GetAll")) {
     return handle_get_all_message (c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.gnome.UPnP.MediaContainer2",
+                                          "ListObjects")) {
+    return handle_list_objects_message (c, m, userdata);
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
