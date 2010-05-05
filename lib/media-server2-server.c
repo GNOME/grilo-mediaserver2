@@ -707,6 +707,7 @@ ms2_server_dbus_register (MS2Server *server,
   }
   g_free (dbus_name);
 
+  /* Register object paths */
   dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, name, NULL);
   dbus_path_items = g_strconcat (dbus_path, "/items", NULL);
   dbus_path_containers = g_strconcat (dbus_path, "/containers", NULL);
@@ -728,35 +729,39 @@ static void
 ms2_server_dbus_unregister (MS2Server *server,
                             const gchar *name)
 {
-  DBusGConnection *connection;
-  DBusGProxy *gproxy;
-  GError *error = NULL;
+  DBusConnection *connection;
+  DBusError error;
   gchar *dbus_name;
-  guint request_name_result;
+  gchar *dbus_path;
+  gchar *dbus_path_containers;
+  gchar *dbus_path_items;
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  dbus_error_init (&error);
+
+  connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
-    g_printerr ("Could not connect to session bus, %s\n", error->message);
-    g_error_free (error);
+    g_printerr ("Could not connect to session bus, %s\n", error.message);
     return;
   }
 
-  gproxy = dbus_g_proxy_new_for_name (connection,
-                                      DBUS_SERVICE_DBUS,
-                                      DBUS_PATH_DBUS,
-                                      DBUS_INTERFACE_DBUS);
+  /* Unregister object paths */
+  dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, server->priv->name, NULL);
+  dbus_path_items = g_strconcat (dbus_path, "/items", NULL);
+  dbus_path_containers = g_strconcat (dbus_path, "/containers", NULL);
+  dbus_connection_unregister_object_path (connection, dbus_path);
+  dbus_connection_unregister_object_path (connection, dbus_path_items);
+  dbus_connection_unregister_object_path (connection, dbus_path_containers);
+  g_free (dbus_path);
+  g_free (dbus_path_items);
+  g_free (dbus_path_containers);
 
   /* Release name */
-  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX,
-                           server->priv->name,
-                           NULL);
+  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, server->priv->name, NULL);
+  dbus_bus_release_name (connection,
+                         dbus_name,
+                         NULL);
 
-  org_freedesktop_DBus_release_name (gproxy,
-                                     dbus_name,
-                                     &request_name_result,
-                                     NULL);
   g_free (dbus_name);
-  g_object_unref (gproxy);
 }
 
 static void
