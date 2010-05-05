@@ -7,7 +7,7 @@
 
 INCLUDES = @DEPS_CFLAGS@
 
-rygel-grilo-%-glue.h: $(top_srcdir)/data/%2.xml
+rygel-grilo-%-glue.h: $(top_srcdir)/data/%1.xml
 	$(DBUSBINDINGTOOL)			\
 	--mode=glib-server			\
 	--output=$@				\
@@ -28,7 +28,7 @@ rygel_grilo_CFLAGS =			\
 rygel_grilo_LDADD =	\
 	-ldl -lpthread	\
 	@DEPS_LIBS@	\
-	$(top_builddir)/lib/libmediaserver2.la
+	$(top_builddir)/lib/libmediaserver1.la
 
 test_client_SOURCES =	\
 	test-client.c
@@ -40,7 +40,7 @@ test_client_CFLAGS =		\
 test_client_LDADD =	\
 	-ldl -lpthread	\
 	@DEPS_LIBS@	\
-	$(top_builddir)/lib/libmediaserver2.la
+	$(top_builddir)/lib/libmediaserver1.la
 
 MAINTAINERCLEANFILES =	\
 	*.in

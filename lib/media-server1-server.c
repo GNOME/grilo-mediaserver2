@@ -27,18 +27,18 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "media-server2-private.h"
-#include "media-server2-server.h"
-#include "media-server2-introspection.h"
+#include "media-server1-private.h"
+#include "media-server1-server.h"
+#include "media-server1-introspection.h"
 
 #define INTROSPECTION_FILE                                              \
-  "/home/jasuarez/Projects/grilo/rygel-grilo/data/media-server2.xml"
+  "/home/jasuarez/Projects/grilo/rygel-grilo/data/media-server1.xml"
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
 
-#define MS2_SERVER_GET_PRIVATE(o)                                       \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_SERVER, MS2ServerPrivate)
+#define MS1_SERVER_GET_PRIVATE(o)                                       \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), MS1_TYPE_SERVER, MS1ServerPrivate)
 
 enum {
   UPDATED,
@@ -46,13 +46,13 @@ enum {
 };
 
 /*
- * Private MS2Server structure
+ * Private MS1Server structure
  *   name: provider name
  *   data: holds stuff for owner
  *   get_children: function to get children
  *   get_properties: function to get properties
  */
-struct _MS2ServerPrivate {
+struct _MS1ServerPrivate {
   gchar *name;
   gpointer *data;
   GetChildrenFunc get_children;
@@ -65,26 +65,26 @@ static const gchar get_sgn[]  = { DBUS_TYPE_STRING, DBUS_TYPE_STRING, DBUS_TYPE_
 static const gchar getall_sgn[] = { DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 static const gchar listobjects_sgn[] = { DBUS_TYPE_UINT32, DBUS_TYPE_UINT32, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 
-static const gchar *mediaobject2_properties[] = { MS2_PROP_DISPLAY_NAME,
-                                                  MS2_PROP_PARENT,
-                                                  MS2_PROP_PATH,
+static const gchar *mediaobject1_properties[] = { MS1_PROP_DISPLAY_NAME,
+                                                  MS1_PROP_PARENT,
+                                                  MS1_PROP_PATH,
                                                   NULL };
 
-static const gchar *mediaitem2_properties[] = { MS2_PROP_ALBUM,
-                                                MS2_PROP_ARTIST,
-                                                MS2_PROP_BITRATE,
-                                                MS2_PROP_DURATION,
-                                                MS2_PROP_GENRE,
-                                                MS2_PROP_HEIGHT,
-                                                MS2_PROP_MIME_TYPE,
-                                                MS2_PROP_TYPE,
-                                                MS2_PROP_URLS,
-                                                MS2_PROP_WIDTH,
+static const gchar *mediaitem1_properties[] = { MS1_PROP_ALBUM,
+                                                MS1_PROP_ARTIST,
+                                                MS1_PROP_BITRATE,
+                                                MS1_PROP_DURATION,
+                                                MS1_PROP_GENRE,
+                                                MS1_PROP_HEIGHT,
+                                                MS1_PROP_MIME_TYPE,
+                                                MS1_PROP_TYPE,
+                                                MS1_PROP_URLS,
+                                                MS1_PROP_WIDTH,
                                                 NULL };
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
-G_DEFINE_TYPE (MS2Server, ms2_server, G_TYPE_OBJECT);
+G_DEFINE_TYPE (MS1Server, ms1_server, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
 
@@ -164,23 +164,23 @@ properties_lookup_with_default (GHashTable *properties,
   /* Initialize data */
   if (!int_type_properties) {
     int_type_properties = g_new (gchar *, 12);
-    int_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_CHILD_COUNT);
-    int_type_properties[1] = (gchar *) g_intern_static_string (MS2_PROP_SIZE);
-    int_type_properties[2] = (gchar *) g_intern_static_string (MS2_PROP_DURATION);
-    int_type_properties[3] = (gchar *) g_intern_static_string (MS2_PROP_BITRATE);
-    int_type_properties[4] = (gchar *) g_intern_static_string (MS2_PROP_SAMPLE_RATE);
-    int_type_properties[5] = (gchar *) g_intern_static_string (MS2_PROP_BITS_PER_SAMPLE);
-    int_type_properties[6] = (gchar *) g_intern_static_string (MS2_PROP_WIDTH);
-    int_type_properties[7] = (gchar *) g_intern_static_string (MS2_PROP_HEIGHT);
-    int_type_properties[8] = (gchar *) g_intern_static_string (MS2_PROP_COLOR_DEPTH);
-    int_type_properties[9] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_WIDTH);
-    int_type_properties[10] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_HEIGHT);
+    int_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_CHILD_COUNT);
+    int_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_SIZE);
+    int_type_properties[2] = (gchar *) g_intern_static_string (MS1_PROP_DURATION);
+    int_type_properties[3] = (gchar *) g_intern_static_string (MS1_PROP_BITRATE);
+    int_type_properties[4] = (gchar *) g_intern_static_string (MS1_PROP_SAMPLE_RATE);
+    int_type_properties[5] = (gchar *) g_intern_static_string (MS1_PROP_BITS_PER_SAMPLE);
+    int_type_properties[6] = (gchar *) g_intern_static_string (MS1_PROP_WIDTH);
+    int_type_properties[7] = (gchar *) g_intern_static_string (MS1_PROP_HEIGHT);
+    int_type_properties[8] = (gchar *) g_intern_static_string (MS1_PROP_COLOR_DEPTH);
+    int_type_properties[9] = (gchar *) g_intern_static_string (MS1_PROP_PIXEL_WIDTH);
+    int_type_properties[10] = (gchar *) g_intern_static_string (MS1_PROP_PIXEL_HEIGHT);
     int_type_properties[11] = NULL;
   }
 
   if (!gptrarray_type_properties) {
     gptrarray_type_properties = g_new (gchar *, 2);
-    gptrarray_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_URLS);
+    gptrarray_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_URLS);
     gptrarray_type_properties[1] = NULL;
   }
 
@@ -197,13 +197,13 @@ properties_lookup_with_default (GHashTable *properties,
   /* Use a default value */
   intern_property = g_intern_string (property);
   if (lookup_in_strv (int_type_properties, intern_property)) {
-    ret_value = int_to_value (MS2_UNKNOWN_INT);
+    ret_value = int_to_value (MS1_UNKNOWN_INT);
   } else if (lookup_in_strv (gptrarray_type_properties, intern_property)) {
     ptrarray = g_ptr_array_sized_new (1);
-    g_ptr_array_add (ptrarray, g_strdup (MS2_UNKNOWN_STR));
+    g_ptr_array_add (ptrarray, g_strdup (MS1_UNKNOWN_STR));
     ret_value = ptrarray_to_value (ptrarray);
   } else {
-    ret_value = str_to_value (MS2_UNKNOWN_STR);
+    ret_value = str_to_value (MS1_UNKNOWN_STR);
   }
 
   return ret_value;
@@ -216,36 +216,36 @@ is_property_valid (const gchar *interface,
   const gchar *prop_intern;
   gboolean found;
   int i;
-  static gchar **mo2_properties_intern = NULL;
-  static gchar **mi2_properties_intern = NULL;
+  static gchar **mo1_properties_intern = NULL;
+  static gchar **mi1_properties_intern = NULL;
 
-  /* Initialize MediaObject2 properties interns */
-  if (!mo2_properties_intern) {
-    mo2_properties_intern = g_new (gchar *,
-                                   g_strv_length ((gchar **) mediaobject2_properties) + 1);
-    for (i = 0; mediaobject2_properties[i]; i++) {
-      mo2_properties_intern[i] =
-        (gchar *) g_intern_static_string (mediaobject2_properties[i]);
+  /* Initialize MediaObject1 properties interns */
+  if (!mo1_properties_intern) {
+    mo1_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediaobject1_properties) + 1);
+    for (i = 0; mediaobject1_properties[i]; i++) {
+      mo1_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediaobject1_properties[i]);
     }
-    mo2_properties_intern[i] = NULL;
+    mo1_properties_intern[i] = NULL;
   }
 
-  /* Initialize MediaItem2 properties interns */
-  if (!mi2_properties_intern) {
-    mi2_properties_intern = g_new (gchar *,
-                                   g_strv_length ((gchar **) mediaitem2_properties) + 1);
-    for (i = 0; mediaitem2_properties[i]; i++) {
-      mi2_properties_intern[i] =
-        (gchar *) g_intern_static_string (mediaitem2_properties[i]);
+  /* Initialize MediaItem1 properties interns */
+  if (!mi1_properties_intern) {
+    mi1_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediaitem1_properties) + 1);
+    for (i = 0; mediaitem1_properties[i]; i++) {
+      mi1_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediaitem1_properties[i]);
     }
-    mi2_properties_intern[i] = NULL;
+    mi1_properties_intern[i] = NULL;
   }
 
   prop_intern = g_intern_string (property);
 
-  /* Check MediaObject2 interface */
-  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
-    found = lookup_in_strv (mo2_properties_intern, prop_intern);
+  /* Check MediaObject1 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaObject1") == 0) {
+    found = lookup_in_strv (mo1_properties_intern, prop_intern);
 
     if (found) {
       return TRUE;
@@ -257,21 +257,21 @@ is_property_valid (const gchar *interface,
     }
   }
 
-  /* Check MediaItem2 interface */
-  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
-    return lookup_in_strv (mi2_properties_intern, prop_intern);
+  /* Check MediaItem1 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem1") == 0) {
+    return lookup_in_strv (mi1_properties_intern, prop_intern);
   }
 
   return FALSE;
 }
 
 static gchar *
-get_path_from_id (MS2Server *server,
+get_path_from_id (MS1Server *server,
                   const gchar *id)
 {
   gchar *path;
 
-  path = g_strconcat (MS2_DBUS_PATH_PREFIX,
+  path = g_strconcat (MS1_DBUS_PATH_PREFIX,
                       server->priv->name,
                       NULL);
 
@@ -279,7 +279,7 @@ get_path_from_id (MS2Server *server,
 }
 
 static GValue *
-get_property_value (MS2Server *server,
+get_property_value (MS1Server *server,
                     const gchar *id,
                     const gchar *interface,
                     const gchar *property)
@@ -298,7 +298,7 @@ get_property_value (MS2Server *server,
   }
 
   /* If asking for Path, we already can use id */
-  if (g_strcmp0 (property, MS2_PROP_PATH) == 0) {
+  if (g_strcmp0 (property, MS1_PROP_PATH) == 0) {
     v = g_new0 (GValue, 1);
     g_value_init (v, G_TYPE_STRING);
     path = get_path_from_id (server, id);
@@ -331,14 +331,14 @@ get_id_from_message (DBusMessage *m)
   dbus_message_get_path_decomposed (m, &path);
 
   /* Path can of type:
-     /org/gnome/UPnP/MediaServer2/<name>
-     /org/gnome/UPnP/MediaServer2/<name>/items/<id>
-     /org/gnome/UPnP/MediaServer2/<name>/containers/<id>
+     /org/gnome/UPnP/MediaServer1/<name>
+     /org/gnome/UPnP/MediaServer1/<name>/items/<id>
+     /org/gnome/UPnP/MediaServer1/<name>/containers/<id>
   */
   path_length = g_strv_length (path);
 
   if (path_length == 5) {
-    id = g_strdup (MS2_ROOT);
+    id = g_strdup (MS1_ROOT);
   } else if (path_length == 7) {
     id =  g_strdup (g_quark_to_string (atoi (path[6])));
   } else {
@@ -471,7 +471,7 @@ handle_get_message (DBusConnection *c,
   gchar *interface = NULL;
   gchar *property = NULL;
   gchar *id;
-  MS2Server *server = MS2_SERVER (userdata);
+  MS1Server *server = MS1_SERVER (userdata);
 
   /* Check signature */
   if (dbus_message_has_signature (m, get_sgn)) {
@@ -506,7 +506,7 @@ handle_get_all_message (DBusConnection *c,
 {
   DBusMessage *r;
   GHashTable *propresult;
-  MS2Server *server = MS2_SERVER (userdata);
+  MS1Server *server = MS1_SERVER (userdata);
   const gchar **prop;
   gchar *id;
   gchar *interface;
@@ -517,11 +517,11 @@ handle_get_all_message (DBusConnection *c,
                            DBUS_TYPE_STRING, &interface,
                            DBUS_TYPE_INVALID);
     /* Get what properties we should ask */
-    if (g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
-      prop = mediaobject2_properties;
-    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
-      prop = mediaitem2_properties;
-    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer2") == 0) {
+    if (g_strcmp0 (interface, "org.gnome.UPnP.MediaObject1") == 0) {
+      prop = mediaobject1_properties;
+    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaItem1") == 0) {
+      prop = mediaitem1_properties;
+    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
       prop = NULL;
     } else {
       return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -567,7 +567,7 @@ handle_list_objects_message (DBusConnection *c,
   guint max_count;
   guint offset;
   gint nitems;
-  MS2Server *server = MS2_SERVER (userdata);
+  MS1Server *server = MS1_SERVER (userdata);
 
   /* Check signature */
   if (dbus_message_has_signature (m, listobjects_sgn)) {
@@ -650,7 +650,7 @@ containers_handler (DBusConnection *c,
                                           "GetAll")) {
     return handle_get_all_message (c, m, userdata);
   } else if (dbus_message_is_method_call (m,
-                                          "org.gnome.UPnP.MediaContainer2",
+                                          "org.gnome.UPnP.MediaContainer1",
                                           "ListObjects")) {
     return handle_list_objects_message (c, m, userdata);
   } else {
@@ -666,9 +666,9 @@ root_handler (DBusConnection *c,
   return containers_handler (c, m, userdata);
 }
 
-/* Registers the MS2Server object in dbus */
+/* Registers the MS1Server object in dbus */
 static gboolean
-ms2_server_dbus_register (MS2Server *server,
+ms1_server_dbus_register (MS1Server *server,
                           const gchar *name)
 {
   DBusConnection *connection;
@@ -696,7 +696,7 @@ ms2_server_dbus_register (MS2Server *server,
   }
 
   /* Request name */
-  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, name, NULL);
+  dbus_name = g_strconcat (MS1_DBUS_SERVICE_PREFIX, name, NULL);
   if (dbus_bus_request_name (connection,
                              dbus_name,
                              DBUS_NAME_FLAG_DO_NOT_QUEUE,
@@ -708,7 +708,7 @@ ms2_server_dbus_register (MS2Server *server,
   g_free (dbus_name);
 
   /* Register object paths */
-  dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, name, NULL);
+  dbus_path = g_strconcat (MS1_DBUS_PATH_PREFIX, name, NULL);
   dbus_path_items = g_strconcat (dbus_path, "/items", NULL);
   dbus_path_containers = g_strconcat (dbus_path, "/containers", NULL);
 
@@ -726,7 +726,7 @@ ms2_server_dbus_register (MS2Server *server,
 }
 
 static void
-ms2_server_dbus_unregister (MS2Server *server,
+ms1_server_dbus_unregister (MS1Server *server,
                             const gchar *name)
 {
   DBusConnection *connection;
@@ -745,7 +745,7 @@ ms2_server_dbus_unregister (MS2Server *server,
   }
 
   /* Unregister object paths */
-  dbus_path = g_strconcat (MS2_DBUS_PATH_PREFIX, server->priv->name, NULL);
+  dbus_path = g_strconcat (MS1_DBUS_PATH_PREFIX, server->priv->name, NULL);
   dbus_path_items = g_strconcat (dbus_path, "/items", NULL);
   dbus_path_containers = g_strconcat (dbus_path, "/containers", NULL);
   dbus_connection_unregister_object_path (connection, dbus_path);
@@ -756,7 +756,7 @@ ms2_server_dbus_unregister (MS2Server *server,
   g_free (dbus_path_containers);
 
   /* Release name */
-  dbus_name = g_strconcat (MS2_DBUS_SERVICE_PREFIX, server->priv->name, NULL);
+  dbus_name = g_strconcat (MS1_DBUS_SERVICE_PREFIX, server->priv->name, NULL);
   dbus_bus_release_name (connection,
                          dbus_name,
                          NULL);
@@ -765,30 +765,30 @@ ms2_server_dbus_unregister (MS2Server *server,
 }
 
 static void
-ms2_server_finalize (GObject *object)
+ms1_server_finalize (GObject *object)
 {
-  MS2Server *server = MS2_SERVER (object);
+  MS1Server *server = MS1_SERVER (object);
 
-  ms2_server_dbus_unregister (server, server->priv->name);
+  ms1_server_dbus_unregister (server, server->priv->name);
   g_free (server->priv->name);
 
-  G_OBJECT_CLASS (ms2_server_parent_class)->finalize (object);
+  G_OBJECT_CLASS (ms1_server_parent_class)->finalize (object);
 }
 
 /* Class init function */
 static void
-ms2_server_class_init (MS2ServerClass *klass)
+ms1_server_class_init (MS1ServerClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (MS2ServerPrivate));
+  g_type_class_add_private (klass, sizeof (MS1ServerPrivate));
 
-  gobject_class->finalize = ms2_server_finalize;
+  gobject_class->finalize = ms1_server_finalize;
 
   signals[UPDATED] = g_signal_new ("updated",
                                    G_TYPE_FROM_CLASS (klass),
                                    G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
-                                   G_STRUCT_OFFSET (MS2ServerClass, updated),
+                                   G_STRUCT_OFFSET (MS1ServerClass, updated),
                                    NULL,
                                    NULL,
                                    g_cclosure_marshal_VOID__STRING,
@@ -799,41 +799,41 @@ ms2_server_class_init (MS2ServerClass *klass)
 
 /* Object init function */
 static void
-ms2_server_init (MS2Server *server)
+ms1_server_init (MS1Server *server)
 {
-  server->priv = MS2_SERVER_GET_PRIVATE (server);
+  server->priv = MS1_SERVER_GET_PRIVATE (server);
 }
 
 /********************* PUBLIC API *********************/
 
 /**
- * ms2_server_new:
+ * ms1_server_new:
  * @name: the name used when registered in DBus
  * @data: user defined data
  *
- * Creates a new #MS2Server that will be registered in DBus under name
- * "org.gnome.UPnP.MediaServer2.<name>".
+ * Creates a new #MS1Server that will be registered in DBus under name
+ * "org.gnome.UPnP.MediaServer1.<name>".
  *
  * @data will be used as parameter when invoking the functions to retrieve
  * properties or children.
  *
- * Returns: a new #MS2Server registed in DBus, or @NULL if fails
+ * Returns: a new #MS1Server registed in DBus, or @NULL if fails
  **/
-MS2Server *
-ms2_server_new (const gchar *name,
+MS1Server *
+ms1_server_new (const gchar *name,
                 gpointer data)
 {
-  MS2Server *server;
+  MS1Server *server;
 
   g_return_val_if_fail (name, NULL);
 
-  server = g_object_new (MS2_TYPE_SERVER, NULL);
+  server = g_object_new (MS1_TYPE_SERVER, NULL);
 
   server->priv->data = data;
   server->priv->name = g_strdup (name);
 
   /* Register object in DBus */
-  if (!ms2_server_dbus_register (server, name)) {
+  if (!ms1_server_dbus_register (server, name)) {
     g_object_unref (server);
     return NULL;
   } else {
@@ -842,40 +842,40 @@ ms2_server_new (const gchar *name,
 }
 
 /**
- * ms2_server_set_get_properties_func:
- * @server: a #MS2Server
+ * ms1_server_set_get_properties_func:
+ * @server: a #MS1Server
  * @get_properties_func: user-defined function to request properties
  *
  * Defines which function must be used when requesting properties.
  **/
 void
-ms2_server_set_get_properties_func (MS2Server *server,
+ms1_server_set_get_properties_func (MS1Server *server,
                                     GetPropertiesFunc get_properties_func)
 {
-  g_return_if_fail (MS2_IS_SERVER (server));
+  g_return_if_fail (MS1_IS_SERVER (server));
 
   server->priv->get_properties = get_properties_func;
 }
 
 /**
- * ms2_server_set_get_children_func:
- * @server: a #MS2Server
+ * ms1_server_set_get_children_func:
+ * @server: a #MS1Server
  * @get_children_func: user-defined function to request children
  *
  * Defines which function must be used when requesting children.
  **/
 void
-ms2_server_set_get_children_func (MS2Server *server,
+ms1_server_set_get_children_func (MS1Server *server,
                                   GetChildrenFunc get_children_func)
 {
-  g_return_if_fail (MS2_IS_SERVER (server));
+  g_return_if_fail (MS1_IS_SERVER (server));
 
   server->priv->get_children = get_children_func;
 }
 
 /**
- * ms2_server_updated:
- * @server: a #MS2Server
+ * ms1_server_updated:
+ * @server: a #MS1Server
  * @id: item identifier that has changed
  *
  * Emit a signal notifying an item has changed.
@@ -889,26 +889,26 @@ ms2_server_set_get_children_func (MS2Server *server,
  * this method
  **/
 void
-ms2_server_updated (MS2Server *server,
+ms1_server_updated (MS1Server *server,
                     const gchar *id)
 {
-  g_return_if_fail (MS2_IS_SERVER (server));
+  g_return_if_fail (MS1_IS_SERVER (server));
 
   g_signal_emit (server, signals[UPDATED], 0, id);
 }
 
 /**
- * ms2_server_get_name:
- * @server: a #MS2Server
+ * ms1_server_get_name:
+ * @server: a #MS1Server
  *
  * Returns name used for this server.
  *
  * Returns: server name. Should not be freed.
  **/
 const gchar *
-ms2_server_get_name (MS2Server *server)
+ms1_server_get_name (MS1Server *server)
 {
-  g_return_val_if_fail (MS2_IS_SERVER (server), NULL);
+  g_return_val_if_fail (MS1_IS_SERVER (server), NULL);
 
   return server->priv->name;
 }

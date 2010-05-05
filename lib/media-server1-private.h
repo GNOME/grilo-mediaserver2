@@ -20,26 +20,26 @@
  *
  */
 
-#ifndef _MEDIA_SERVER2_PRIVATE_H_
-#define _MEDIA_SERVER2_PRIVATE_H_
+#ifndef _MEDIA_SERVER1_PRIVATE_H_
+#define _MEDIA_SERVER1_PRIVATE_H_
 
-#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
-#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
+#define MS1_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer1."
+#define MS1_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer1/"
 
-#define MS2_DBUS_SERVICE_PREFIX_LENGTH 28
+#define MS1_DBUS_SERVICE_PREFIX_LENGTH 28
 
-#define MS2_DBUS_IFACE "org.gnome.UPnP.MediaServer"
+#define MS1_DBUS_IFACE "org.gnome.UPnP.MediaServer"
 
-#include "media-server2-server.h"
-#include "media-server2-client.h"
+#include "media-server1-server.h"
+#include "media-server1-client.h"
 
-gboolean ms2_server_get_properties (MS2Server *server,
+gboolean ms1_server_get_properties (MS1Server *server,
                                     const gchar *id,
                                     const gchar **filter,
                                     DBusGMethodInvocation *context,
                                     GError **error);
 
-gboolean ms2_server_get_children (MS2Server *server,
+gboolean ms1_server_get_children (MS1Server *server,
                                   const gchar *id,
                                   guint offset,
                                   gint max_count,
@@ -47,10 +47,10 @@ gboolean ms2_server_get_children (MS2Server *server,
                                   DBusGMethodInvocation *context,
                                   GError **error);
 
-void ms2_client_notify_unref (MS2Client *client);
+void ms1_client_notify_unref (MS1Client *client);
 
-void ms2_observer_add_client (MS2Client *client, const gchar *provider);
+void ms1_observer_add_client (MS1Client *client, const gchar *provider);
 
-void ms2_observer_remove_client (MS2Client *client, const gchar *provider);
+void ms1_observer_remove_client (MS1Client *client, const gchar *provider);
 
-#endif /* _MEDIA_SERVER2_PRIVATE_H_ */
+#endif /* _MEDIA_SERVER1_PRIVATE_H_ */

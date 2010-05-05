@@ -20,26 +20,26 @@
  *
  */
 
-#ifndef _MEDIA_SERVER2_INTROSPECTION_H_
-#define _MEDIA_SERVER2_INTROSPECTION_H_
+#ifndef _MEDIA_SERVER1_INTROSPECTION_H_
+#define _MEDIA_SERVER1_INTROSPECTION_H_
 
 #define INTROSPECTION_OPEN                                      \
   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"                  \
   "<node>"                                                      \
-  "  <!-- http://live.gnome.org/Rygel/MediaServer2Spec -->"
+  "  <!-- http://live.gnome.org/Rygel/MediaServerSpec -->"
 
 #define INTROSPECTION_CLOSE                     \
   "</node>"
 
-#define MEDIAOBJECT2_IFACE                                              \
-  "  <interface name=\"org.gnome.UPnP.MediaObject2\">"                  \
+#define MEDIAOBJECT1_IFACE                                              \
+  "  <interface name=\"org.gnome.UPnP.MediaObject1\">"                  \
   "    <property name=\"DisplayName\" type=\"s\" access=\"read\"/>"     \
   "    <property name=\"Parent\"      type=\"o\" access=\"read\"/>"     \
   "    <property name=\"Path\"        type=\"o\" access=\"read\"/>"     \
   "  </interface>"
 
-#define MEDIAITEM2_IFACE                                                \
-  "  <interface name=\"org.gnome.UPnP.MediaItem2\">"                    \
+#define MEDIAITEM1_IFACE                                                \
+  "  <interface name=\"org.gnome.UPnP.MediaItem1\">"                    \
   "    <property name=\"Album\"    type=\"s\"  access=\"read\"/>"       \
   "    <property name=\"Artist\"   type=\"s\"  access=\"read\"/>"       \
   "    <property name=\"Bitrate\"  type=\"i\"  access=\"read\"/>"       \
@@ -52,8 +52,8 @@
   "    <property name=\"Width\"    type=\"i\"  access=\"read\"/>"       \
   "  </interface>"
 
-#define MEDIACONTAINER2_IFACE                                           \
-  "  <interface name=\"org.gnome.UPnP.MediaContainer2\">"               \
+#define MEDIACONTAINER1_IFACE                                           \
+  "  <interface name=\"org.gnome.UPnP.MediaContainer1\">"               \
   "    <method name=\"ListObjects\">"                                   \
   "      <arg name=\"offset\"  direction=\"in\"  type=\"u\"/>"          \
   "      <arg name=\"max\"     direction=\"in\"  type=\"u\"/>"          \
@@ -91,18 +91,18 @@
 
 #define CONTAINER_INTROSPECTION                 \
   INTROSPECTION_OPEN                            \
-  MEDIAOBJECT2_IFACE                            \
-  MEDIACONTAINER2_IFACE                         \
+  MEDIAOBJECT1_IFACE                            \
+  MEDIACONTAINER1_IFACE                         \
   INTROSPECTABLE_IFACE                          \
   PROPERTIES_IFACE                              \
   INTROSPECTION_CLOSE
 
 #define ITEM_INTROSPECTION                      \
   INTROSPECTION_OPEN                            \
-  MEDIAOBJECT2_IFACE                            \
-  MEDIAITEM2_IFACE                              \
+  MEDIAOBJECT1_IFACE                            \
+  MEDIAITEM1_IFACE                              \
   INTROSPECTABLE_IFACE                          \
   PROPERTIES_IFACE                              \
   INTROSPECTION_CLOSE
 
-#endif /* _MEDIA_SERVER2_INTROSPECTION_H_ */
+#endif /* _MEDIA_SERVER1_INTROSPECTION_H_ */

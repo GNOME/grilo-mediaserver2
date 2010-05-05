@@ -25,7 +25,7 @@
 #include <grilo.h>
 #include <stdio.h>
 
-#include <media-server2-server.h>
+#include <media-server1-server.h>
 
 #define RYGEL_GRILO_CONFIG_FILE "rygel-grilo.conf"
 
@@ -65,7 +65,7 @@ typedef struct {
   GList *children;
   GList *keys;
   GrlMediaSource *source;
-  MS2Server *server;
+  MS1Server *server;
   gboolean updated;
   gboolean parent_requested;
   gchar *parent_id;
@@ -98,7 +98,7 @@ get_parent_id (const gchar *child_id)
   gchar *parent_id;
   gsize bytes_to_copy;
 
-  if (g_strcmp0 (child_id, MS2_ROOT) == 0) {
+  if (g_strcmp0 (child_id, MS1_ROOT) == 0) {
     return NULL;
   }
 
@@ -107,7 +107,7 @@ get_parent_id (const gchar *child_id)
 
   /* Check if parent is a root */
   if (bytes_to_copy < 6) {
-    return g_strdup (MS2_ROOT);
+    return g_strdup (MS1_ROOT);
   }
 
   /* Save parent id */
@@ -125,7 +125,7 @@ get_grl_id (const gchar *ms_id)
   gchar **offspring;
   gchar *grl_id;
 
-  if (g_strcmp0 (ms_id, MS2_ROOT) == 0) {
+  if (g_strcmp0 (ms_id, MS1_ROOT) == 0) {
     return NULL;
   }
 
@@ -155,12 +155,12 @@ serialize_media (const gchar *parent_id,
 
   /* Check if it is root media */
   if (!media_id) {
-    return g_strdup (MS2_ROOT);
+    return g_strdup (MS1_ROOT);
   }
 
   escaped_id = g_uri_escape_string (media_id, NULL, TRUE);
 
-  if (g_strcmp0 (parent_id, MS2_ROOT) == 0) {
+  if (g_strcmp0 (parent_id, MS1_ROOT) == 0) {
     ms_id = g_strconcat (ID_PREFIX_CONTAINER, escaped_id, NULL);
   } else {
     ms_id = g_strconcat (parent_id, ID_SEPARATOR, escaped_id, NULL);
@@ -186,7 +186,7 @@ unserialize_media (GrlMetadataSource *source, const gchar *id)
   GrlMedia *media = NULL;
   gchar *grl_id;
 
-  if (g_strcmp0 (id, MS2_ROOT) == 0 ||
+  if (g_strcmp0 (id, MS1_ROOT) == 0 ||
       g_str_has_prefix (id, ID_PREFIX_CONTAINER)) {
     media = grl_media_box_new ();
   } else if (g_str_has_prefix (id, ID_PREFIX_AUDIO)) {
@@ -207,7 +207,7 @@ unserialize_media (GrlMetadataSource *source, const gchar *id)
   return media;
 }
 
-/* Given a null-terminated array of MediaServerSpec2 properties, returns a list
+/* Given a null-terminated array of MediaServerSpec1 properties, returns a list
    with the corresponding Grilo metadata keys */
 static GList *
 get_grilo_keys (const gchar **ms_keys, gboolean *contains_parent)
@@ -220,43 +220,43 @@ get_grilo_keys (const gchar **ms_keys, gboolean *contains_parent)
   }
 
   for (i = 0; ms_keys[i]; i++) {
-    if (g_strcmp0 (ms_keys[i], MS2_PROP_PATH) == 0) {
+    if (g_strcmp0 (ms_keys[i], MS1_PROP_PATH) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ID));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_DISPLAY_NAME) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_TITLE));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ALBUM) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_ALBUM) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ALBUM));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ARTIST) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_ARTIST) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ARTIST));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_GENRE) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_GENRE) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_GENRE));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_MIME_TYPE) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_MIME_TYPE) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_MIME));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_CHILD_COUNT) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_CHILDCOUNT));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_URLS) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_URLS) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_URL));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_BITRATE) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_BITRATE) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_BITRATE));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DURATION) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_DURATION) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_DURATION));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_HEIGHT) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_HEIGHT) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_HEIGHT));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_WIDTH) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0 && contains_parent) {
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_PARENT) == 0 && contains_parent) {
       *contains_parent = TRUE;
     }
   }
@@ -265,7 +265,7 @@ get_grilo_keys (const gchar **ms_keys, gboolean *contains_parent)
 }
 
 static void
-fill_properties_table (MS2Server *server,
+fill_properties_table (MS1Server *server,
                        GHashTable *properties_table,
                        GList *keys,
                        GrlMedia *media,
@@ -285,7 +285,7 @@ fill_properties_table (MS2Server *server,
       case GRL_METADATA_KEY_ID:
         id = serialize_media (parent_id, media);
         if (id) {
-          ms2_server_set_path (server,
+          ms1_server_set_path (server,
                                properties_table,
                                id,
                                GRL_IS_MEDIA_BOX (media));
@@ -293,62 +293,62 @@ fill_properties_table (MS2Server *server,
         }
         break;
       case GRL_METADATA_KEY_TITLE:
-        ms2_server_set_display_name (server,
+        ms1_server_set_display_name (server,
                                      properties_table,
                                      grl_media_get_title (media));
         break;
       case GRL_METADATA_KEY_ALBUM:
-        ms2_server_set_album (server,
+        ms1_server_set_album (server,
                               properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_ALBUM));
         break;
       case GRL_METADATA_KEY_ARTIST:
-        ms2_server_set_artist (server,
+        ms1_server_set_artist (server,
                                properties_table,
                                grl_data_get_string (GRL_DATA (media),
                                                     GRL_METADATA_KEY_ARTIST));
         break;
       case GRL_METADATA_KEY_GENRE:
-        ms2_server_set_genre (server,
+        ms1_server_set_genre (server,
                               properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_GENRE));
         break;
       case GRL_METADATA_KEY_MIME:
-        ms2_server_set_mime_type (server,
+        ms1_server_set_mime_type (server,
                                   properties_table,
                                   grl_media_get_mime (media));
         break;
       case GRL_METADATA_KEY_CHILDCOUNT:
-        ms2_server_set_child_count (server,
+        ms1_server_set_child_count (server,
                                     properties_table,
                                     grl_data_get_int (GRL_DATA (media),
                                                       GRL_METADATA_KEY_CHILDCOUNT));
         break;
       case GRL_METADATA_KEY_URL:
         urls[0] = (gchar *) grl_media_get_url (media);
-        ms2_server_set_urls (server, properties_table, urls);
+        ms1_server_set_urls (server, properties_table, urls);
         break;
       case GRL_METADATA_KEY_BITRATE:
-        ms2_server_set_bitrate (server,
+        ms1_server_set_bitrate (server,
                                 properties_table,
                                 grl_data_get_int (GRL_DATA (media),
                                                   GRL_METADATA_KEY_BITRATE));
         break;
       case GRL_METADATA_KEY_DURATION:
-        ms2_server_set_duration (server,
+        ms1_server_set_duration (server,
                                  properties_table,
                                  grl_media_get_duration (media));
         break;
       case GRL_METADATA_KEY_HEIGHT:
-        ms2_server_set_height (server,
+        ms1_server_set_height (server,
                                properties_table,
                                grl_data_get_int (GRL_DATA (media),
                                                  GRL_METADATA_KEY_HEIGHT));
         break;
       case GRL_METADATA_KEY_WIDTH:
-        ms2_server_set_width (server,
+        ms1_server_set_width (server,
                               properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
@@ -358,7 +358,7 @@ fill_properties_table (MS2Server *server,
   }
 
   if (parent_requested && parent_id) {
-    ms2_server_set_parent (server, properties_table, parent_id);
+    ms1_server_set_parent (server, properties_table, parent_id);
   }
 }
 
@@ -376,7 +376,7 @@ metadata_cb (GrlMediaSource *source,
     return;
   }
 
-  rgdata->properties = ms2_server_new_properties_hashtable ();
+  rgdata->properties = ms1_server_new_properties_hashtable ();
   fill_properties_table (rgdata->server,
                          rgdata->properties,
                          rgdata->keys,
@@ -405,7 +405,7 @@ browse_cb (GrlMediaSource *source,
   }
 
   if (media) {
-    prop_table = ms2_server_new_properties_hashtable ();
+    prop_table = ms1_server_new_properties_hashtable ();
     fill_properties_table (rgdata->server,
                            prop_table,
                            rgdata->keys,
@@ -437,7 +437,7 @@ wait_for_result (RygelGriloData *rgdata)
 }
 
 static GHashTable *
-get_properties_cb (MS2Server *server,
+get_properties_cb (MS1Server *server,
                    const gchar *id,
                    const gchar **properties,
                    gpointer data,
@@ -485,7 +485,7 @@ get_properties_cb (MS2Server *server,
 }
 
 static GList *
-get_children_cb (MS2Server *server,
+get_children_cb (MS1Server *server,
                  const gchar *id,
                  guint offset,
                  gint max_count,
@@ -540,7 +540,7 @@ static void
 source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 {
   GrlSupportedOps supported_ops;
-  MS2Server *server;
+  MS1Server *server;
   const gchar *source_name;
   gchar *source_id;
 
@@ -572,14 +572,14 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 
     sanitize (source_id);
 
-    server = ms2_server_new (source_id, GRL_MEDIA_SOURCE (user_data));
+    server = ms1_server_new (source_id, GRL_MEDIA_SOURCE (user_data));
 
     if (!server) {
       g_warning ("Cannot register %s", source_id);
       g_free (source_id);
     } else {
-      ms2_server_set_get_properties_func (server, get_properties_cb);
-      ms2_server_set_get_children_func (server, get_children_cb);
+      ms1_server_set_get_properties_func (server, get_properties_cb);
+      ms1_server_set_get_children_func (server, get_children_cb);
       /* Save reference */
       if (!dups) {
         providers_names = g_list_prepend (providers_names,
@@ -719,7 +719,7 @@ main (gint argc, gchar **argv)
   /* Load configuration */
   load_config ();
 
-  /* Initialize <grilo-plugin, ms2-server> pairs */
+  /* Initialize <grilo-plugin, ms1-server> pairs */
   servers = g_hash_table_new_full (g_str_hash,
                                    g_str_equal,
                                    g_free,

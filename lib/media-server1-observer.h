@@ -20,64 +20,64 @@
  *
  */
 
-#ifndef _MEDIA_SERVER2_OBSERVER_H_
-#define _MEDIA_SERVER2_OBSERVER_H_
+#ifndef _MEDIA_SERVER1_OBSERVER_H_
+#define _MEDIA_SERVER1_OBSERVER_H_
 
 /* #include <gio/gio.h> */
 #include <glib-object.h>
 /* #include <glib.h> */
 
-#include "media-server2-common.h"
+#include "media-server1-common.h"
 
-#define MS2_TYPE_OBSERVER                       \
-  (ms2_observer_get_type ())
+#define MS1_TYPE_OBSERVER                       \
+  (ms1_observer_get_type ())
 
-#define MS2_OBSERVER(obj)                               \
+#define MS1_OBSERVER(obj)                               \
   (G_TYPE_CHECK_INSTANCE_CAST ((obj),                   \
-                               MS2_TYPE_OBSERVER,       \
-                               MS2Observer))
+                               MS1_TYPE_OBSERVER,       \
+                               MS1Observer))
 
-#define MS2_IS_OBSERVER(obj)                            \
+#define MS1_IS_OBSERVER(obj)                            \
   (G_TYPE_CHECK_INSTANCE_TYPE ((obj),                   \
-                               MS2_TYPE_OBSERVER))
+                               MS1_TYPE_OBSERVER))
 
-#define MS2_OBSERVER_CLASS(klass)               \
+#define MS1_OBSERVER_CLASS(klass)               \
   (G_TYPE_CHECK_CLASS_CAST((klass),             \
-                           MS2_TYPE_OBSERVER,   \
-                           MS2ObserverClass))
+                           MS1_TYPE_OBSERVER,   \
+                           MS1ObserverClass))
 
-#define MS2_IS_OBSERVER_CLASS(klass)            \
+#define MS1_IS_OBSERVER_CLASS(klass)            \
   (G_TYPE_CHECK_CLASS_TYPE((klass),             \
-                           MS2_TYPE_OBSERVER))
+                           MS1_TYPE_OBSERVER))
 
-#define MS2_OBSERVER_GET_CLASS(obj)                     \
+#define MS1_OBSERVER_GET_CLASS(obj)                     \
   (G_TYPE_INSTANCE_GET_CLASS ((obj),                    \
-                              MS2_TYPE_OBSERVER,        \
-                              MS2ObserverClass))
+                              MS1_TYPE_OBSERVER,        \
+                              MS1ObserverClass))
 
-typedef struct _MS2Observer        MS2Observer;
-typedef struct _MS2ObserverPrivate MS2ObserverPrivate;
+typedef struct _MS1Observer        MS1Observer;
+typedef struct _MS1ObserverPrivate MS1ObserverPrivate;
 
-struct _MS2Observer {
+struct _MS1Observer {
 
   GObject parent;
 
   /*< private >*/
-  MS2ObserverPrivate *priv;
+  MS1ObserverPrivate *priv;
 };
 
-typedef struct _MS2ObserverClass MS2ObserverClass;
+typedef struct _MS1ObserverClass MS1ObserverClass;
 
-struct _MS2ObserverClass {
+struct _MS1ObserverClass {
 
   GObjectClass parent_class;
 
-  void (*new) (MS2Observer *observer,
+  void (*new) (MS1Observer *observer,
                const gchar *provider);
 };
 
-GType ms2_observer_get_type (void);
+GType ms1_observer_get_type (void);
 
-MS2Observer *ms2_observer_get_instance (void);
+MS1Observer *ms1_observer_get_instance (void);
 
-#endif /* _MEDIA_SERVER2_OBSERVER_H_ */
+#endif /* _MEDIA_SERVER1_OBSERVER_H_ */
