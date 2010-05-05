@@ -91,34 +91,12 @@ GHashTable *ms2_client_get_properties (MS2Client *client,
                                        gchar **properties,
                                        GError **error);
 
-void ms2_client_get_properties_async (MS2Client *client,
-                                      const gchar *id,
-                                      const gchar **properties,
-                                      GAsyncReadyCallback callback,
-                                      gpointer user_data);
-
-GHashTable *ms2_client_get_properties_finish (MS2Client *client,
-                                              GAsyncResult *res,
-                                              GError **error);
-
 GList *ms2_client_get_children (MS2Client *client,
                                 const gchar *id,
                                 guint offset,
                                 gint max_count,
                                 const gchar **properties,
                                 GError **error);
-
-void ms2_client_get_children_async (MS2Client *client,
-                                    const gchar *id,
-                                    guint offset,
-                                    gint max_count,
-                                    const gchar **properties,
-                                    GAsyncReadyCallback callback,
-                                    gpointer user_data);
-
-GList *ms2_client_get_children_finish (MS2Client *client,
-                                       GAsyncResult *res,
-                                       GError **error);
 
 const gchar *ms2_client_get_root_path (MS2Client *client);
 

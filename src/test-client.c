@@ -9,139 +9,7 @@ static const gchar *properties[] = { MS2_PROP_PATH,
                                      NULL };
 
 static void
-children_reply (GObject *source,
-                GAsyncResult *res,
-                gpointer user_data)
-{
-  GError *error = NULL;
-  GList *children;
-  GList *child;
-  gchar *provider = (gchar *) user_data;
-
-  children = ms2_client_get_children_finish (MS2_CLIENT (source), res, &error);
-
-  g_print ("\n* Provider '%s'\n", provider);
-  g_free (provider);
-
-  if (!children) {
-    g_print ("\tDid not get any child, %s\n", error? error->message: "no error");
-    return;
-  }
-
-  for (child = children; child; child = g_list_next (child)) {
-    g_print ("\t* '%s', '%s'\n",
-             ms2_client_get_path (child->data),
-             ms2_client_get_display_name(child->data));
-  }
-
-  g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
-  g_list_free (children);
-  g_object_unref (source);
-}
-
-static void
-test_children_async ()
-{
-  MS2Client *client;
-  gchar **provider;
-  gchar **providers;
-
-  providers = ms2_client_get_providers ();
-
-  if (!providers) {
-    g_print ("There is no MediaServer2 provider\n");
-    return;
-  }
-
-  for (provider = providers; *provider; provider ++) {
-    client = ms2_client_new (*provider);
-
-    if (!client) {
-      g_printerr ("Unable to create a client\n");
-      return;
-    }
-
-    ms2_client_get_children_async (client,
-                                   ms2_client_get_root_path (client),
-                                   0,
-                                   -1,
-                                   properties,
-                                   children_reply,
-                                   g_strdup (*provider));
-  }
-
-  g_strfreev (providers);
-}
-
-static void
-properties_reply (GObject *source,
-                  GAsyncResult *res,
-                  gpointer user_data)
-{
-  GError *error = NULL;
-  GHashTable *result;
-  GValue *v;
-  const gchar **p;
-  gchar *provider = (gchar *) user_data;
-
-  result = ms2_client_get_properties_finish (MS2_CLIENT (source), res, &error);
-
-  g_print ("\n* Provider '%s'\n", provider);
-  g_free (provider);
-
-  if (!result) {
-    g_print ("\tDid not get any property, %s\n", error? error->message: "no error");
-    return;
-  }
-
-  for (p = properties; *p; p++) {
-    v = g_hash_table_lookup (result, *p);
-    if (v && G_VALUE_HOLDS_INT (v)) {
-      g_print ("\t* '%s' value: '%d'\n", *p, g_value_get_int (v));
-    } else if (v && G_VALUE_HOLDS_STRING (v)) {
-      g_print ("\t* '%s' value: '%s'\n", *p, g_value_get_string (v));
-    } else {
-      g_print ("\t* '%s' value: ---\n", *p);
-    }
-  }
-  g_hash_table_unref (result);
-  g_object_unref (source);
-}
-
-static void
-test_properties_async ()
-{
-  MS2Client *client;
-  gchar **provider;
-  gchar **providers;
-
-  providers = ms2_client_get_providers ();
-
-  if (!providers) {
-    g_print ("There is no MediaServer2 provider\n");
-    return;
-  }
-
-  for (provider = providers; *provider; provider++) {
-    client = ms2_client_new (*provider);
-
-    if (!client) {
-      g_printerr ("Unable to create a client\n");
-      return;
-    }
-
-    ms2_client_get_properties_async (client,
-                                     ms2_client_get_root_path (client),
-                                     properties,
-                                     properties_reply,
-                                     g_strdup (*provider));
-  }
-
-  g_strfreev (providers);
-}
-
-static void
-test_properties_sync ()
+test_properties ()
 {
   GError *error = NULL;
   GHashTable *result;
@@ -195,7 +63,7 @@ test_properties_sync ()
 }
 
 static void
-test_children_sync ()
+test_children ()
 {
   GError *error = NULL;
   GList *children;
@@ -336,10 +204,8 @@ int main (int argc, char **argv)
 
   g_type_init ();
 
-  if (1) test_properties_sync ();
-  if (0) test_children_sync ();
-  if (0) test_properties_async ();
-  if (0) test_children_async ();
+  if (1) test_properties ();
+  if (0) test_children ();
   if (0) test_provider_free ();
   if (0) test_dynamic_providers ();
 

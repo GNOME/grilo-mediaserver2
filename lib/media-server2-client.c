@@ -49,24 +49,6 @@ enum {
 };
 
 /*
- * AsyncData: used to pack needed data when dealing with async functions
- *   properties_result: when using get_properties_async() functions, it will
- *                      store the properties table result
- *   children_result: when using get_children_async() functions, it will store
- *                    the list of children result
- *   client: a reference to MS2Client
- *   properties: list of properties requested
- *   id: id of MediaObject to get properties/children from
- */
-typedef struct {
-  GHashTable *properties_result;
-  GList *children_result;
-  MS2Client *client;
-  gchar **properties;
-  gchar *id;
-} AsyncData;
-
-/*
  * Private MS2Client structure
  *   bus: connection to DBus session
  *   name: name of provider
@@ -106,16 +88,6 @@ free_gvalue (GValue *v)
 {
   g_value_unset (v);
   g_free (v);
-}
-
-/* Free AsyncData struct */
-static void
-free_async_data (AsyncData *adata)
-{
-  g_object_unref (adata->client);
-  g_free (adata->id);
-  g_strfreev (adata->properties);
-  g_slice_free (AsyncData, adata);
 }
 
 static gboolean
@@ -201,53 +173,6 @@ get_children_list (GPtrArray *result,
 
   return children;
 }
-
-#if 0
-/* Callback invoked by dbus as answer to get_properties_async() */
-static void
-get_properties_async_reply (DBusGProxy *proxy,
-                            GPtrArray *result,
-                            GError *error,
-                            gpointer data)
-{
-  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (data);
-  AsyncData *adata;
-
-  adata = g_simple_async_result_get_op_res_gpointer (res);
-
-  adata->properties_result =
-    get_properties_table (result,
-                          (const gchar **) adata->properties);
-  g_boxed_free (DBUS_TYPE_PROPERTIES, result);
-
-  g_simple_async_result_complete (res);
-  g_object_unref (res);
-}
-#endif
-
-#if 0
-/* Callback invoked by dbus as answer to get_children_async() */
-static void
-get_children_async_reply (DBusGProxy *proxy,
-                          GPtrArray *result,
-                          GError *error,
-                          gpointer data)
-{
-  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (data);
-  AsyncData *adata;
-
-  adata = g_simple_async_result_get_op_res_gpointer (res);
-
-  adata->children_result =
-    get_children_list (result,
-                       (const gchar **) adata->properties);
-
-  g_boxed_free (DBUS_TYPE_CHILDREN, result);
-
-  g_simple_async_result_complete (res);
-  g_object_unref (res);
-}
-#endif
 
 /* Dispose function */
 static void
@@ -562,82 +487,6 @@ ms2_client_get_properties (MS2Client *client,
 }
 
 /**
- * ms2_client_get_properties_async:
- * @client: a #MS2Client
- * @id: media identifier to obtain properties from
- * @properties: @NULL-terminated array of properties to request
- * @callback: a #GAsyncReadyCallback to call when request is satisfied
- * @user_data: the data to pass to callback function
- *
- * Starts an asynchronous get properties.
- *
- * For more details, see ms2_client_get_properties(), which is the synchronous
- * version of this call.
- *
- * When the properties have been obtained, @callback will be called with
- * @user_data. To finish the operation, call ms2_client_get_properties_finish()
- * with the #GAsyncResult returned by the @callback.
- **/
-void ms2_client_get_properties_async (MS2Client *client,
-                                      const gchar *id,
-                                      const gchar **properties,
-                                      GAsyncReadyCallback callback,
-                                      gpointer user_data)
-{
-  AsyncData *adata;
-  GSimpleAsyncResult *res;
-
-  g_return_if_fail (MS2_IS_CLIENT (client));
-
-  adata = g_slice_new0 (AsyncData);
-
-  res = g_simple_async_result_new (G_OBJECT (client),
-                                   callback,
-                                   user_data,
-                                   ms2_client_get_properties_async);
-
-  adata->client = g_object_ref (client);
-  adata->id = g_strdup (id);
-  adata->properties = g_strdupv ((gchar **) properties);
-
-  g_simple_async_result_set_op_res_gpointer (res,
-                                             adata,
-                                             (GDestroyNotify) free_async_data);
-
-  /* org_gnome_UPnP_MediaServer2_get_properties_async (client->priv->proxy_provider, */
-  /*                                                   id, */
-  /*                                                   properties, */
-  /*                                                   get_properties_async_reply, */
-  /*                                                   res); */
-}
-
-/**
- * ms2_client_get_properties_finish:
- * @client: a #MS2Client
- * @res: a #GAsyncResult
- * @error: a #GError location to store the error ocurring, or @NULL to ignore
- *
- * Finishes an asynchronous getting properties operation. Properties are
- * returned in a #GHashTable.
- *
- * Returns: a new #GHashTable
- **/
-GHashTable *
-ms2_client_get_properties_finish (MS2Client *client,
-                                  GAsyncResult *res,
-                                  GError **error)
-{
-  AsyncData *adata;
-
-  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
-                        ms2_client_get_properties_async, NULL);
-
-  adata =
-    g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
-  return adata->properties_result;
-}
-
-/**
  * ms2_client_get_children:
  * @client: a #MS2Client
  * @id: container identifier to get children from
@@ -681,88 +530,6 @@ ms2_client_get_children (MS2Client *client,
   g_boxed_free (DBUS_TYPE_CHILDREN, result);
 
   return children;
-}
-
-/**
- * ms2_client_get_children_async:
- * @client: a #MS2Client
- * @id: container identifier to get children from
- * @offset: number of children to skip
- * @max_count: maximum number of children to return, or -1 for no limit
- * @properties: @NULL-terminated array of properties to request for each child
- * @callback: a #GAsyncReadyCallback to call when request is satisfied
- * @user_data: the data to pass to callback function
- *
- * Starts an asynchronous get children.
- *
- * For more details, see ms2_client_get_children(), which is the synchronous
- * version of this call.
- *
- * When the children have been obtained, @callback will be called with
- * @user_data. To finish the operation, call ms2_client_get_children_finish()
- * with the #GAsyncResult returned by the @callback.
- **/
-void ms2_client_get_children_async (MS2Client *client,
-                                    const gchar *id,
-                                    guint offset,
-                                    gint max_count,
-                                    const gchar **properties,
-                                    GAsyncReadyCallback callback,
-                                    gpointer user_data)
-{
-  AsyncData *adata;
-  GSimpleAsyncResult *res;
-
-  g_return_if_fail (MS2_IS_CLIENT (client));
-
-  adata = g_slice_new0 (AsyncData);
-
-  res = g_simple_async_result_new (G_OBJECT (client),
-                                   callback,
-                                   user_data,
-                                   ms2_client_get_children_async);
-
-  adata->client = g_object_ref (client);
-  adata->id = g_strdup (id);
-  adata->properties = g_strdupv ((gchar **) properties);
-
-  g_simple_async_result_set_op_res_gpointer (res,
-                                             adata,
-                                             (GDestroyNotify) free_async_data);
-
-  /* org_gnome_UPnP_MediaServer2_get_children_async (client->priv->proxy_provider, */
-  /*                                                 id, */
-  /*                                                 offset, */
-  /*                                                 max_count, */
-  /*                                                 properties, */
-  /*                                                 get_children_async_reply, */
-  /*                                                 res); */
-}
-
-/**
- * ms2_client_get_children_finish:
- * @client: a #MS2Client
- * @res: a #GAsyncResult
- * @error: a #GError location to store the error ocurring, or @NULL to ignore
- *
- * Finishes an asynchronous getting children operation.
- *
- * Returns: a new #GList of #GHashTAble. To free it, free first each element
- * (g_hash_table_unref()) and finally the list itself (g_list_free())
- **/
-GList *
-ms2_client_get_children_finish (MS2Client *client,
-                                GAsyncResult *res,
-                                GError **error)
-{
-  AsyncData *adata;
-
-  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
-                        ms2_client_get_children_async, NULL);
-
-  adata =
-    g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
-  return adata->children_result;
 }
 
 const gchar *
