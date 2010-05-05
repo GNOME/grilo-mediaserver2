@@ -23,29 +23,13 @@
 #ifndef _MEDIA_SERVER1_PRIVATE_H_
 #define _MEDIA_SERVER1_PRIVATE_H_
 
+#include "media-server1-client.h"
+#include "media-server1-server.h"
+
 #define MS1_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer1."
 #define MS1_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer1/"
 
 #define MS1_DBUS_SERVICE_PREFIX_LENGTH 28
-
-#define MS1_DBUS_IFACE "org.gnome.UPnP.MediaServer"
-
-#include "media-server1-server.h"
-#include "media-server1-client.h"
-
-gboolean ms1_server_get_properties (MS1Server *server,
-                                    const gchar *id,
-                                    const gchar **filter,
-                                    DBusGMethodInvocation *context,
-                                    GError **error);
-
-gboolean ms1_server_get_children (MS1Server *server,
-                                  const gchar *id,
-                                  guint offset,
-                                  gint max_count,
-                                  const gchar **filter,
-                                  DBusGMethodInvocation *context,
-                                  GError **error);
 
 void ms1_client_notify_unref (MS1Client *client);
 
