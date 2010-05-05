@@ -3,7 +3,7 @@
 #include <glib.h>
 #include <string.h>
 
-static const gchar *properties[] = { MS2_PROP_ID,
+static const gchar *properties[] = { MS2_PROP_PATH,
 				     MS2_PROP_DISPLAY_NAME,
                                      MS2_PROP_PARENT,
                                      MS2_PROP_CHILD_COUNT,
@@ -31,7 +31,7 @@ children_reply (GObject *source,
 
   for (child = children; child; child = g_list_next (child)) {
     g_print ("\t* '%s', '%s'\n",
-             ms2_client_get_id (child->data),
+             ms2_client_get_path (child->data),
              ms2_client_get_display_name(child->data));
   }
 
@@ -227,7 +227,7 @@ test_children_sync ()
 
     for (child = children; child; child = g_list_next (child)) {
       g_print ("\t* '%s', '%s'\n",
-               ms2_client_get_id (child->data),
+               ms2_client_get_path (child->data),
                ms2_client_get_display_name(child->data));
     }
 

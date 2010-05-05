@@ -697,13 +697,13 @@ ms2_client_get_children_finish (MS2Client *client,
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms2_client_get_id (GHashTable *properties)
+ms2_client_get_path (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS2_PROP_ID);
+  val = g_hash_table_lookup (properties, MS2_PROP_PATH);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }

@@ -130,21 +130,21 @@ ms2_server_new_properties_hashtable ()
 }
 
 /**
- * ms2_server_set_id:
+ * ms2_server_set_path:
  * @server: a #MS2Server
  * @properties: a #GHashTable
  * @id: identifier value
- * @is_container: @TRUE if the @id identifies a a container
+ * @is_container: @TRUE if the @id identifies a container
  *
- * Sets the "id" property. Mandatory property
+ * Sets the "Path" property. Mandatory property
  *
  * @id will be transformed in an object path
  **/
 void
-ms2_server_set_id (MS2Server *server,
-                   GHashTable *properties,
-                   const gchar *id,
-                   gboolean is_container)
+ms2_server_set_path (MS2Server *server,
+                     GHashTable *properties,
+                     const gchar *id,
+                     gboolean is_container)
 {
   gchar *object_path;
 
@@ -153,7 +153,7 @@ ms2_server_set_id (MS2Server *server,
 
   if (id) {
     object_path = id_to_object_path (server, id, is_container);
-    g_hash_table_insert (properties, MS2_PROP_ID, str_to_value (object_path));
+    g_hash_table_insert (properties, MS2_PROP_PATH, str_to_value (object_path));
     g_free (object_path);
   }
 }

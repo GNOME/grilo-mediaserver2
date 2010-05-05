@@ -29,7 +29,7 @@
 /* MediaObject2 properties */
 #define MS2_PROP_DISPLAY_NAME "DisplayName"
 #define MS2_PROP_PARENT       "Parent"
-#define MS2_PROP_ID           "Path"
+#define MS2_PROP_PATH         "Path"
 
 /* MediaItem2 properties */
 #define MS2_PROP_ALBUM     "Album"

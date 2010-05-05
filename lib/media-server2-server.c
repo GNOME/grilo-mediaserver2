@@ -67,7 +67,7 @@ static const gchar listobjects_sgn[] = { DBUS_TYPE_UINT32, DBUS_TYPE_UINT32, DBU
 
 static const gchar *mediaobject2_properties[] = { MS2_PROP_DISPLAY_NAME,
                                                   MS2_PROP_PARENT,
-                                                  MS2_PROP_ID,
+                                                  MS2_PROP_PATH,
                                                   NULL };
 
 static const gchar *mediaitem2_properties[] = { MS2_PROP_ALBUM,
@@ -298,7 +298,7 @@ get_property_value (MS2Server *server,
   }
 
   /* If asking for Path, we already can use id */
-  if (g_strcmp0 (property, MS2_PROP_ID) == 0) {
+  if (g_strcmp0 (property, MS2_PROP_PATH) == 0) {
     v = g_new0 (GValue, 1);
     g_value_init (v, G_TYPE_STRING);
     path = get_path_from_id (server, id);

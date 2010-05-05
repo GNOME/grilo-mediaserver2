@@ -120,7 +120,7 @@ GList *ms2_client_get_children_finish (MS2Client *client,
                                        GAsyncResult *res,
                                        GError **error);
 
-const gchar *ms2_client_get_id (GHashTable *properties);
+const gchar *ms2_client_get_path (GHashTable *properties);
 
 const gchar *ms2_client_get_parent (GHashTable *properties);
 

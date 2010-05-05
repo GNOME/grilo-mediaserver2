@@ -220,7 +220,7 @@ get_grilo_keys (const gchar **ms_keys, gboolean *contains_parent)
   }
 
   for (i = 0; ms_keys[i]; i++) {
-    if (g_strcmp0 (ms_keys[i], MS2_PROP_ID) == 0) {
+    if (g_strcmp0 (ms_keys[i], MS2_PROP_PATH) == 0) {
       grl_keys = g_list_append (grl_keys,
                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ID));
     } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
@@ -285,10 +285,10 @@ fill_properties_table (MS2Server *server,
       case GRL_METADATA_KEY_ID:
         id = serialize_media (parent_id, media);
         if (id) {
-          ms2_server_set_id (server,
-                             properties_table,
-                             id,
-                             GRL_IS_MEDIA_BOX (media));
+          ms2_server_set_path (server,
+                               properties_table,
+                               id,
+                               GRL_IS_MEDIA_BOX (media));
           g_free (id);
         }
         break;
