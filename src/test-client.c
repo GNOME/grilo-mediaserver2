@@ -6,7 +6,6 @@
 static const gchar *properties[] = { MS2_PROP_PATH,
 				     MS2_PROP_DISPLAY_NAME,
                                      MS2_PROP_PARENT,
-                                     MS2_PROP_CHILD_COUNT,
                                      NULL };
 
 static void
@@ -63,7 +62,7 @@ test_children_async ()
     }
 
     ms2_client_get_children_async (client,
-                                   MS2_ROOT,
+                                   ms2_client_get_root_path (client),
                                    0,
                                    -1,
                                    properties,
@@ -132,7 +131,7 @@ test_properties_async ()
     }
 
     ms2_client_get_properties_async (client,
-                                     MS2_ROOT,
+                                     ms2_client_get_root_path (client),
                                      properties,
                                      properties_reply,
                                      g_strdup (*provider));
@@ -167,7 +166,10 @@ test_properties_sync ()
       return;
     }
 
-    result = ms2_client_get_properties (client, MS2_ROOT, properties, &error);
+    result = ms2_client_get_properties (client,
+                                        ms2_client_get_root_path (client),
+                                        (gchar **) properties,
+                                        &error);
 
     g_print ("\n* Provider '%s'\n", *provider);
     if (!result) {
@@ -217,7 +219,12 @@ test_children_sync ()
       return;
     }
 
-    children  = ms2_client_get_children (client, MS2_ROOT, 0, -1, properties, &error);
+    children  = ms2_client_get_children (client,
+                                         ms2_client_get_root_path (client),
+                                         0,
+                                         -1,
+                                         properties,
+                                         &error);
 
     g_print ("\n* Provider '%s'\n", *provider);
     if (!children) {
@@ -329,12 +336,12 @@ int main (int argc, char **argv)
 
   g_type_init ();
 
-  if (0) test_properties_sync ();
+  if (1) test_properties_sync ();
   if (0) test_children_sync ();
   if (0) test_properties_async ();
   if (0) test_children_async ();
   if (0) test_provider_free ();
-  if (1) test_dynamic_providers ();
+  if (0) test_dynamic_providers ();
 
   mainloop = g_main_loop_new (NULL, FALSE);
   g_main_loop_run (mainloop);

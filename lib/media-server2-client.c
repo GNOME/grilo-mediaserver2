@@ -36,6 +36,9 @@
 #define DBUS_TYPE_CHILDREN                                              \
   dbus_g_type_get_collection ("GPtrArray", DBUS_TYPE_PROPERTIES)
 
+#define IMEDIAOBJECT2_INDEX 0
+#define IMEDIAITEM2_INDEX   1
+
 #define MS2_CLIENT_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
 
@@ -65,20 +68,28 @@ typedef struct {
 
 /*
  * Private MS2Client structure
- *   proxy_provider: a dbus proxy of content provider
+ *   bus: connection to DBus session
  *   name: name of provider
+ *   fullname: full dbus service name of provider
+ *   root_path: object path to reach root category
  */
 struct _MS2ClientPrivate {
-  DBusGProxy *proxy_provider;
+  DBusGConnection *bus;
   gchar *name;
+  gchar *fullname;
+  gchar *root_path;
 };
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
+
+static gchar *IFACES[] = { "org.gnome.UPnP.MediaObject2",
+                           "org.gnome.UPnP.MediaItem2" };
 
 G_DEFINE_TYPE (MS2Client, ms2_client, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
 
+#if 0
 /* Callback invoked when "Updated" dbus signal is received */
 static void
 updated (DBusGProxy *proxy,
@@ -87,6 +98,7 @@ updated (DBusGProxy *proxy,
 {
   g_signal_emit (client, signals[UPDATED], 0, id);
 }
+#endif
 
 /* Free gvalue */
 static void
@@ -104,6 +116,41 @@ free_async_data (AsyncData *adata)
   g_free (adata->id);
   g_strfreev (adata->properties);
   g_slice_free (AsyncData, adata);
+}
+
+static gboolean
+collect_value (gpointer key,
+               gpointer value,
+               GHashTable *collection)
+{
+  g_hash_table_insert (collection, key, value);
+  return TRUE;
+}
+
+static gchar ***
+split_properties_by_interface (gchar **properties)
+{
+  gchar ***split;
+  gint prop_length;
+  gint mo_index = 0;
+  gint mi_index = 0;
+  gchar **property;
+
+  prop_length = g_strv_length (properties) + 1;
+  split = g_new (gchar **, 2);
+  split[IMEDIAOBJECT2_INDEX] = g_new0 (gchar *, prop_length);
+  split[IMEDIAITEM2_INDEX] = g_new0 (gchar *, prop_length);
+  for (property = properties; *property; property++) {
+    if (g_strcmp0 (*property, MS2_PROP_DISPLAY_NAME) == 0 ||
+        g_strcmp0 (*property, MS2_PROP_PARENT) == 0 ||
+        g_strcmp0 (*property, MS2_PROP_PATH) == 0) {
+      split[IMEDIAOBJECT2_INDEX][mo_index++] = *property;
+    } else {
+      split[IMEDIAITEM2_INDEX][mi_index++] = *property;
+    }
+  }
+
+  return split;
 }
 
 /* Given a GPtrArray result (dbus answer of getting properties), returns a
@@ -210,11 +257,6 @@ ms2_client_dispose (GObject *object)
 
   ms2_observer_remove_client (client, client->priv->name);
 
-  if (client->priv->proxy_provider) {
-    g_object_unref (client->priv->proxy_provider);
-    client->priv->proxy_provider = NULL;
-  }
-
   G_OBJECT_CLASS (ms2_client_parent_class)->dispose (object);
 }
 
@@ -224,6 +266,8 @@ ms2_client_finalize (GObject *object)
   MS2Client *client = MS2_CLIENT (object);
 
   g_free (client->priv->name);
+  g_free (client->priv->fullname);
+  g_free (client->priv->root_path);
 
   G_OBJECT_CLASS (ms2_client_parent_class)->finalize (object);
 }
@@ -383,11 +427,8 @@ ms2_client_get_providers ()
 MS2Client *ms2_client_new (const gchar *provider)
 {
   DBusGConnection *connection;
-  DBusGProxy *gproxy;
   GError *error = NULL;
   MS2Client *client;
-  gchar *service_provider;
-  gchar *path_provider;
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
@@ -396,35 +437,13 @@ MS2Client *ms2_client_new (const gchar *provider)
     return NULL;
   }
 
-  service_provider = g_strconcat (MS2_DBUS_SERVICE_PREFIX, provider, NULL);
-  path_provider = g_strconcat (MS2_DBUS_PATH_PREFIX, provider, NULL);
-
-  gproxy = dbus_g_proxy_new_for_name_owner (connection,
-                                            service_provider,
-                                            path_provider,
-                                            MS2_DBUS_IFACE,
-                                            &error);
-
-  g_free (service_provider);
-  g_free (path_provider);
-
-  if (!gproxy) {
-    g_printerr ("Could not connect to %s provider, %s\n",
-                provider,
-                error->message);
-    g_clear_error (&error);
-    return NULL;
-  }
-
   client = g_object_new (MS2_TYPE_CLIENT, NULL);
-  client->priv->proxy_provider = gproxy;
+  client->priv->bus = connection;
   client->priv->name = g_strdup (provider);
+  client->priv->fullname = g_strconcat (MS2_DBUS_SERVICE_PREFIX, provider, NULL);
+  client->priv->root_path = g_strconcat (MS2_DBUS_PATH_PREFIX, provider, NULL);
 
   ms2_observer_add_client (client, provider);
-
-  /* Listen to "updated" signal */
-  dbus_g_proxy_add_signal (gproxy, "Updated", G_TYPE_STRING, G_TYPE_INVALID);
-  dbus_g_proxy_connect_signal (gproxy, "Updated", G_CALLBACK (updated), client, NULL);
 
   return client;
 }
@@ -459,27 +478,87 @@ ms2_client_get_provider_name (MS2Client *client)
  **/
 GHashTable *
 ms2_client_get_properties (MS2Client *client,
-                           const gchar *id,
-                           const gchar **properties,
+                           const gchar *object_path,
+                           gchar **properties,
                            GError **error)
 {
+  DBusGProxy *gproxy;
+  GHashTable *collected_properties;
   GHashTable *prop_result;
-  GPtrArray *result = NULL;
+  GValue *v;
+  gboolean error_happened = FALSE;
+  gchar ***prop_by_iface;
+  gint i;
+  gint num_props;
 
   g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (properties, NULL);
 
-  /* if (!org_gnome_UPnP_MediaServer2_get_properties (client->priv->proxy_provider, */
-  /*                                                  id, */
-  /*                                                  properties, */
-  /*                                                  &result, */
-  /*                                                  error)) { */
-  /*   return NULL; */
-  /* } */
+  gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                      client->priv->fullname,
+                                      object_path,
+                                      "org.freedesktop.DBus.Properties");
 
-  prop_result = get_properties_table (result, properties);
-  g_boxed_free (DBUS_TYPE_PROPERTIES, result);
+  collected_properties = g_hash_table_new_full (g_str_hash,
+                                                g_str_equal,
+                                                (GDestroyNotify) g_free,
+                                                (GDestroyNotify) free_gvalue);
 
-  return prop_result;
+  prop_by_iface = split_properties_by_interface (properties);
+  for (i = 0; i < 2; i++) {
+    num_props = g_strv_length (prop_by_iface[i]);
+    /* If only one property is required, then invoke "Get" method */
+    if (num_props == 1) {
+      v = g_new0 (GValue, 1);
+      if (dbus_g_proxy_call (gproxy,
+                             "Get", error,
+                             G_TYPE_STRING, IFACES[i],
+                             G_TYPE_STRING, prop_by_iface[i][0],
+                             G_TYPE_INVALID,
+                             G_TYPE_VALUE, &v,
+                             G_TYPE_INVALID)) {
+        g_hash_table_insert (collected_properties,
+                             g_strdup (prop_by_iface[i][0]),
+                             v);
+      } else {
+        error_happened = TRUE;
+        break;
+      }
+    } else if (num_props > 1) {
+      /* If several properties are required, use "GetAll" method */
+      if (dbus_g_proxy_call (gproxy,
+                             "GetAll", error,
+                             G_TYPE_STRING, IFACES[i],
+                             G_TYPE_INVALID,
+                             dbus_g_type_get_map ("GHashTable",
+                                                  G_TYPE_STRING,
+                                                  G_TYPE_VALUE), &prop_result,
+                            G_TYPE_INVALID)) {
+        g_hash_table_foreach_steal (prop_result,
+                                    (GHRFunc) collect_value,
+                                    collected_properties);
+        g_hash_table_unref (prop_result);
+      } else {
+        error_happened = TRUE;
+        break;
+      }
+    }
+  }
+
+  g_object_unref (gproxy);
+
+  g_free (prop_by_iface[0]);
+  g_free (prop_by_iface[1]);
+  g_free (prop_by_iface);
+
+  if (error_happened) {
+    if (collected_properties) {
+      g_hash_table_unref (collected_properties);
+    }
+    return NULL;
+  } else {
+    return collected_properties;
+  }
 }
 
 /**
@@ -684,6 +763,14 @@ ms2_client_get_children_finish (MS2Client *client,
   adata =
     g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
   return adata->children_result;
+}
+
+const gchar *
+ms2_client_get_root_path (MS2Client *client)
+{
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
+
+  return client->priv->root_path;
 }
 
 /******************** PROPERTIES TABLE API ********************/
