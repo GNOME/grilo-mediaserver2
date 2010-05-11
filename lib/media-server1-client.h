@@ -108,8 +108,6 @@ const gchar *ms1_client_get_display_name (GHashTable *properties);
 
 MS1ItemType ms1_client_get_item_type (GHashTable *properties);
 
-const gchar *ms1_client_get_icon (GHashTable *properties);
-
 const gchar *ms1_client_get_mime_type (GHashTable *properties);
 
 const gchar *ms1_client_get_artist (GHashTable *properties);
@@ -122,9 +120,9 @@ const gchar *ms1_client_get_dlna_profile (GHashTable *properties);
 
 const gchar *ms1_client_get_thumbnail (GHashTable *properties);
 
-const gchar *ms1_client_get_genre (GHashTable *properties);
+const gchar *ms1_client_get_album_art (GHashTable *properties);
 
-gint ms1_client_get_child_count (GHashTable *properties);
+const gchar *ms1_client_get_genre (GHashTable *properties);
 
 gint  ms1_client_get_size (GHashTable *properties);
 

@@ -627,7 +627,7 @@ ms1_client_get_item_type (GHashTable *properties)
 
   g_return_val_if_fail (properties, MS1_ITEM_TYPE_UNKNOWN);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_DISPLAY_NAME);
+  val = g_hash_table_lookup (properties, MS1_PROP_TYPE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return MS1_ITEM_TYPE_UNKNOWN;
   }
@@ -636,8 +636,10 @@ ms1_client_get_item_type (GHashTable *properties)
 
   if (g_strcmp0 (type, MS1_TYPE_CONTAINER) == 0) {
     return MS1_ITEM_TYPE_CONTAINER;
-  } else if (g_strcmp0 (type, MS1_TYPE_VIDEO) == 0) {
-    return MS1_ITEM_TYPE_VIDEO;
+  }   if (g_strcmp0 (type, MS1_TYPE_CONTAINER) == 0) {
+    return MS1_ITEM_TYPE_CONTAINER;
+  } else if (g_strcmp0 (type, MS1_TYPE_ITEM) == 0) {
+    return MS1_ITEM_TYPE_ITEM;
   } else if (g_strcmp0 (type, MS1_TYPE_MOVIE) == 0) {
     return MS1_ITEM_TYPE_MOVIE;
   } else if (g_strcmp0 (type, MS1_TYPE_AUDIO) == 0) {
@@ -651,29 +653,6 @@ ms1_client_get_item_type (GHashTable *properties)
   } else {
     return MS1_ITEM_TYPE_UNKNOWN;
   }
-}
-
-/**
- * ms1_client_get_icon:
- * @properties: a #GHashTable
- *
- * Returns "icon" property value.
- *
- * Returns: property value or @NULL if it is not available
- **/
-const gchar *
-ms1_client_get_icon (GHashTable *properties)
-{
-  GValue *val;
-
-  g_return_val_if_fail (properties, NULL);
-
-  val = g_hash_table_lookup (properties, MS1_PROP_ICON);
-  if (!val || !G_VALUE_HOLDS_STRING (val)) {
-    return NULL;
-  }
-
-  return g_value_get_string (val);
 }
 
 /**
@@ -835,29 +814,6 @@ ms1_client_get_genre (GHashTable *properties)
   }
 
   return g_value_get_string (val);
-}
-
-/**
- * ms1_client_get_child_count:
- * @properties: a #GHashTable
- *
- * Returns "child-count" property value.
- *
- * Returns: property value or -1 if it is not available
- **/
-gint
-ms1_client_get_child_count (GHashTable *properties)
-{
-  GValue *val;
-
-  g_return_val_if_fail (properties, -1);
-
-  val = g_hash_table_lookup (properties, MS1_PROP_CHILD_COUNT);
-  if (!val || !G_VALUE_HOLDS_INT (val)) {
-    return -1;
-  }
-
-  return g_value_get_int (val);
 }
 
 /**

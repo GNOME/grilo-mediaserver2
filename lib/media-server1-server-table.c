@@ -66,6 +66,32 @@ int_to_value (gint number)
   return val;
 }
 
+/* Puts an uint in a gvalue */
+static GValue *
+uint_to_value (guint number)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_UINT);
+  g_value_set_uint (val, number);
+
+  return val;
+}
+
+/* Puts a boolean in a gvalue */
+static GValue *
+bool_to_value (gboolean boolean)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_BOOLEAN);
+  g_value_set_boolean (val, boolean);
+
+  return val;
+}
+
 /* Puts a gptrarray in a gvalue */
 static GValue *
 ptrarray_to_value (GPtrArray *array)
@@ -107,6 +133,23 @@ id_to_object_path (MS1Server *server,
   return object_path;
 }
 
+static GPtrArray *
+get_object_paths (GList *items)
+{
+  GList *item;
+  GPtrArray *op;
+  gchar *path;
+
+  op = g_ptr_array_sized_new (g_list_length (items));
+  for (item = items; item; item = g_list_next (item)) {
+    path = g_strdup (ms1_client_get_path (item->data));
+    if (path) {
+      g_ptr_array_add (op, path);
+    }
+  }
+
+  return op;
+}
 /********************* PUBLIC API *********************/
 
 /**
@@ -235,6 +278,11 @@ ms1_server_set_item_type (MS1Server *server,
                          MS1_PROP_TYPE,
                          str_to_value (MS1_TYPE_CONTAINER));
     break;
+  case MS1_ITEM_TYPE_ITEM:
+    g_hash_table_insert (properties,
+                         MS1_PROP_TYPE,
+                         str_to_value (MS1_TYPE_ITEM));
+    break;
   case MS1_ITEM_TYPE_VIDEO:
     g_hash_table_insert (properties,
                          MS1_PROP_TYPE,
@@ -265,31 +313,6 @@ ms1_server_set_item_type (MS1Server *server,
                          MS1_PROP_TYPE,
                          str_to_value (MS1_TYPE_PHOTO));
     break;
-  }
-}
-
-/**
- * ms1_server_set_icon:ç
- * @server: a #MS1Server
- * @properties: a #GHashTable
- * @icon: icon identifier value
- *
- * Sets the "icon" property. Recommended property for containers.
- *
- * Use this to provide an icon to be used by consumer UIs to represent the
- * provider. This is only relevant to root container.
- **/
-void
-ms1_server_set_icon (MS1Server *server,
-                     GHashTable *properties,
-                     const gchar *icon)
-{
-  g_return_if_fail (properties);
-
-  if (icon) {
-    g_hash_table_insert (properties,
-                         MS1_PROP_ICON,
-                         str_to_value (icon));
   }
 }
 
@@ -432,6 +455,28 @@ ms1_server_set_thumbnail (MS1Server *server,
 }
 
 /**
+ * ms1_server_set_album_art
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @album_art: albumart identifier value
+ *
+ * Sets the "AlbumArt" property. Optional property for video/image items.
+ **/
+void
+ms1_server_set_album_art (MS1Server *server,
+                          GHashTable *properties,
+                          const gchar *album_art)
+{
+  g_return_if_fail (properties);
+
+  if (album_art) {
+    g_hash_table_insert (properties,
+                         MS1_PROP_ALBUM_ART,
+                         str_to_value (album_art));
+  }
+}
+
+/**
  * ms1_server_set_genre:
  * @server: a #MS1Server
  * @properties: a #GHashTable
@@ -451,28 +496,6 @@ ms1_server_set_genre (MS1Server *server,
                          MS1_PROP_GENRE,
                          str_to_value (genre));
   }
-}
-
-/**
- * ms1_server_set_child_count:
- * @server: a #MS1Server
- * @properties: a #GHashTable
- * @child_count: childcount value
- *
- * Sets the "child-count" property. Recommended property for containers.
- *
- * It is the number of media objects directly under this container.
- **/
-void
-ms1_server_set_child_count (MS1Server *server,
-                            GHashTable *properties,
-                            gint child_count)
-{
-  g_return_if_fail (properties);
-
-  g_hash_table_insert (properties,
-                       MS1_PROP_CHILD_COUNT,
-                       int_to_value (child_count));
 }
 
 /**
@@ -708,4 +731,114 @@ ms1_server_set_urls (MS1Server *server,
                          MS1_PROP_URLS,
                          ptrarray_to_value (url_array));
   }
+}
+
+/**
+ * ms1_server_set_searchable:
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @searchable: @TRUE if item is searchable
+ *
+ * Sets the "Searchable" property. Optional property for video/image items.
+ **/
+void
+ms1_server_set_searchable (MS1Server *server,
+                           GHashTable *properties,
+                           gint searchable)
+{
+  g_return_if_fail (properties);
+
+  g_hash_table_insert (properties,
+                       MS1_PROP_SEARCHABLE,
+                       bool_to_value (searchable));
+}
+
+/**
+ * ms1_server_set_items:
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @items: a list of children
+ *
+ * Sets the "Items" property. Mandatory property for items.
+ **/
+void
+ms1_server_set_items (MS1Server *server,
+                      GHashTable *properties,
+                      GList *items)
+{
+  GPtrArray *object_paths;
+
+  g_return_if_fail (properties);
+
+  if (items) {
+    object_paths = get_object_paths (items);
+    g_hash_table_insert (properties,
+                         MS1_PROP_ITEMS,
+                         ptrarray_to_value (object_paths));
+  }
+}
+
+/**
+ * ms1_server_set_item_count:
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @item_count: how many items have this container
+ *
+ * Sets the "ItemCount" property. Optional property for video/image items.
+ **/
+void
+ms1_server_set_item_count (MS1Server *server,
+                           GHashTable *properties,
+                           guint item_count)
+{
+  g_return_if_fail (properties);
+
+  g_hash_table_insert (properties,
+                       MS1_PROP_ITEM_COUNT,
+                       uint_to_value (item_count));
+}
+
+/**
+ * ms1_server_set_containers:
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @containers: a list of children
+ *
+ * Sets the "Containers" property. Mandatory property for items.
+ **/
+void
+ms1_server_set_containers (MS1Server *server,
+                           GHashTable *properties,
+                           GList *containers)
+{
+  GPtrArray *object_paths;
+
+  g_return_if_fail (properties);
+
+  if (containers) {
+    object_paths = get_object_paths (containers);
+    g_hash_table_insert (properties,
+                         MS1_PROP_CONTAINERS,
+                         ptrarray_to_value (object_paths));
+  }
+}
+
+/**
+ * ms1_server_set_container_count:
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @container_count: how many containers have this container
+ *
+ * Sets the "ContainerCount" property. Optional property for video/image items.
+ **/
+void
+ms1_server_set_container_count (MS1Server *server,
+                                GHashTable *properties,
+                                guint container_count)
+{
+  g_return_if_fail (properties);
+
+  g_hash_table_insert (properties,
+                       MS1_PROP_CONTAINER_COUNT,
+                       uint_to_value (container_count));
 }

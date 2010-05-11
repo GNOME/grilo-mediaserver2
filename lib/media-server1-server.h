@@ -84,7 +84,7 @@ typedef GHashTable * (*GetPropertiesFunc) (MS1Server *server,
 typedef GList * (*GetChildrenFunc) (MS1Server *server,
                                     const gchar *id,
                                     guint offset,
-                                    gint max_count,
+                                    guint max_count,
                                     const gchar **properties,
                                     gpointer data,
                                     GError **error);
@@ -148,17 +148,17 @@ void ms1_server_set_dlna_profile (MS1Server *server,
                                   GHashTable *properties,
                                   const gchar *dlna_profile);
 
-void ms1_server_set_thumbnail (MS1Server *server,
-                               GHashTable *properties,
-                               const gchar *thumbnail);
-
 void ms1_server_set_genre (MS1Server *server,
                            GHashTable *properties,
                            const gchar *genre);
 
-void ms1_server_set_child_count (MS1Server *server,
-                                 GHashTable *properties,
-                                 gint child_count);
+void ms1_server_set_thumbnail (MS1Server *server,
+                               GHashTable *properties,
+                               const gchar *genre);
+
+void ms1_server_set_album_art (MS1Server *server,
+                               GHashTable *properties,
+                               const gchar *album_art);
 
 void ms1_server_set_size (MS1Server *server,
                           GHashTable *properties,
@@ -203,5 +203,25 @@ void ms1_server_set_pixel_height (MS1Server *server,
 void ms1_server_set_urls (MS1Server *server,
                           GHashTable *properties,
                           gchar **urls);
+
+void ms1_server_set_searchable (MS1Server *server,
+                                GHashTable *properties,
+                                gboolean searchable);
+
+void ms1_server_set_items (MS1Server *server,
+                           GHashTable *properties,
+                           GList *items);
+
+void ms1_server_set_item_count (MS1Server *server,
+                                GHashTable *properties,
+                                guint item_count);
+
+void ms1_server_set_containers (MS1Server *server,
+                                GHashTable *properties,
+                                GList *containers);
+
+void ms1_server_set_container_count (MS1Server *server,
+                                     GHashTable *properties,
+                                     guint container_count);
 
 #endif /* _MEDIA_SERVER1_SERVER_H_ */

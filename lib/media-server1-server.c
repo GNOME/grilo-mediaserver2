@@ -65,22 +65,39 @@ static const gchar get_sgn[]  = { DBUS_TYPE_STRING, DBUS_TYPE_STRING, DBUS_TYPE_
 static const gchar getall_sgn[] = { DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 static const gchar listobjects_sgn[] = { DBUS_TYPE_UINT32, DBUS_TYPE_UINT32, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 
-static const gchar *mediaobject1_properties[] = { MS1_PROP_DISPLAY_NAME,
-                                                  MS1_PROP_PARENT,
+static const gchar *mediaobject1_properties[] = { MS1_PROP_PARENT,
+                                                  MS1_PROP_TYPE,
                                                   MS1_PROP_PATH,
+                                                  MS1_PROP_DISPLAY_NAME,
                                                   NULL };
 
-static const gchar *mediaitem1_properties[] = { MS1_PROP_ALBUM,
-                                                MS1_PROP_ARTIST,
-                                                MS1_PROP_BITRATE,
-                                                MS1_PROP_DURATION,
-                                                MS1_PROP_GENRE,
-                                                MS1_PROP_HEIGHT,
+static const gchar *mediaitem1_properties[] = { MS1_PROP_URLS,
                                                 MS1_PROP_MIME_TYPE,
-                                                MS1_PROP_TYPE,
-                                                MS1_PROP_URLS,
+                                                MS1_PROP_SIZE,
+                                                MS1_PROP_ARTIST,
+                                                MS1_PROP_ALBUM,
+                                                MS1_PROP_DATE,
+                                                MS1_PROP_GENRE,
+                                                MS1_PROP_DLNA_PROFILE,
+                                                MS1_PROP_DURATION,
+                                                MS1_PROP_BITRATE,
+                                                MS1_PROP_SAMPLE_RATE,
+                                                MS1_PROP_BITS_PER_SAMPLE,
                                                 MS1_PROP_WIDTH,
+                                                MS1_PROP_HEIGHT,
+                                                MS1_PROP_COLOR_DEPTH,
+                                                MS1_PROP_PIXEL_WIDTH,
+                                                MS1_PROP_PIXEL_HEIGHT,
+                                                MS1_PROP_THUMBNAIL,
+                                                MS1_PROP_ALBUM_ART,
                                                 NULL };
+
+static const gchar *mediacontainer1_properties[] = { MS1_PROP_ITEMS,
+                                                     MS1_PROP_ITEM_COUNT,
+                                                     MS1_PROP_CONTAINERS,
+                                                     MS1_PROP_CONTAINER_COUNT,
+                                                     MS1_PROP_SEARCHABLE,
+                                                     NULL };
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
@@ -124,6 +141,32 @@ int_to_value (gint number)
   return val;
 }
 
+/* Puts an uint in a gvalue */
+static GValue *
+uint_to_value (guint number)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_UINT);
+  g_value_set_int (val, number);
+
+  return val;
+}
+
+/* Puts an bool in a gvalue */
+static GValue *
+bool_to_value (gboolean b)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_BOOLEAN);
+  g_value_set_boolean (val, b);
+
+  return val;
+}
+
 /* Puts a gptrarray in a gvalue */
 static GValue *
 ptrarray_to_value (GPtrArray *array)
@@ -159,29 +202,45 @@ properties_lookup_with_default (GHashTable *properties,
   GValue *propvalue;
   const gchar *intern_property;
   static gchar **int_type_properties = NULL;
+  static gchar **uint_type_properties = NULL;
+  static gchar **bool_type_properties = NULL;
   static gchar **gptrarray_type_properties = NULL;
 
   /* Initialize data */
   if (!int_type_properties) {
-    int_type_properties = g_new (gchar *, 12);
-    int_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_CHILD_COUNT);
-    int_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_SIZE);
-    int_type_properties[2] = (gchar *) g_intern_static_string (MS1_PROP_DURATION);
-    int_type_properties[3] = (gchar *) g_intern_static_string (MS1_PROP_BITRATE);
-    int_type_properties[4] = (gchar *) g_intern_static_string (MS1_PROP_SAMPLE_RATE);
-    int_type_properties[5] = (gchar *) g_intern_static_string (MS1_PROP_BITS_PER_SAMPLE);
-    int_type_properties[6] = (gchar *) g_intern_static_string (MS1_PROP_WIDTH);
-    int_type_properties[7] = (gchar *) g_intern_static_string (MS1_PROP_HEIGHT);
-    int_type_properties[8] = (gchar *) g_intern_static_string (MS1_PROP_COLOR_DEPTH);
-    int_type_properties[9] = (gchar *) g_intern_static_string (MS1_PROP_PIXEL_WIDTH);
-    int_type_properties[10] = (gchar *) g_intern_static_string (MS1_PROP_PIXEL_HEIGHT);
-    int_type_properties[11] = NULL;
+    int_type_properties = g_new (gchar *, 11);
+    int_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_SIZE);
+    int_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_DURATION);
+    int_type_properties[2] = (gchar *) g_intern_static_string (MS1_PROP_BITRATE);
+    int_type_properties[3] = (gchar *) g_intern_static_string (MS1_PROP_SAMPLE_RATE);
+    int_type_properties[4] = (gchar *) g_intern_static_string (MS1_PROP_BITS_PER_SAMPLE);
+    int_type_properties[5] = (gchar *) g_intern_static_string (MS1_PROP_WIDTH);
+    int_type_properties[6] = (gchar *) g_intern_static_string (MS1_PROP_HEIGHT);
+    int_type_properties[7] = (gchar *) g_intern_static_string (MS1_PROP_COLOR_DEPTH);
+    int_type_properties[8] = (gchar *) g_intern_static_string (MS1_PROP_PIXEL_WIDTH);
+    int_type_properties[9] = (gchar *) g_intern_static_string (MS1_PROP_PIXEL_HEIGHT);
+    int_type_properties[10] = NULL;
+  }
+
+  if (!uint_type_properties) {
+    uint_type_properties = g_new (gchar *, 3);
+    uint_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_ITEM_COUNT);
+    uint_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_CONTAINER_COUNT);
+    uint_type_properties[2] = NULL;
+  }
+
+  if (!bool_type_properties) {
+    bool_type_properties = g_new (gchar *, 2);
+    bool_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_SEARCHABLE);
+    bool_type_properties[1] = NULL;
   }
 
   if (!gptrarray_type_properties) {
-    gptrarray_type_properties = g_new (gchar *, 2);
+    gptrarray_type_properties = g_new (gchar *, 4);
     gptrarray_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_URLS);
-    gptrarray_type_properties[1] = NULL;
+    gptrarray_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_ITEMS);
+    gptrarray_type_properties[2] = (gchar *) g_intern_static_string (MS1_PROP_CONTAINERS);
+    gptrarray_type_properties[3] = NULL;
   }
 
   propvalue = g_hash_table_lookup (properties, property);
@@ -198,9 +257,12 @@ properties_lookup_with_default (GHashTable *properties,
   intern_property = g_intern_string (property);
   if (lookup_in_strv (int_type_properties, intern_property)) {
     ret_value = int_to_value (MS1_UNKNOWN_INT);
+  } else if (lookup_in_strv (uint_type_properties, intern_property)) {
+    ret_value = uint_to_value (MS1_UNKNOWN_UINT);
+  } else if (lookup_in_strv (bool_type_properties, intern_property)) {
+    ret_value = bool_to_value (FALSE);
   } else if (lookup_in_strv (gptrarray_type_properties, intern_property)) {
-    ptrarray = g_ptr_array_sized_new (1);
-    g_ptr_array_add (ptrarray, g_strdup (MS1_UNKNOWN_STR));
+    ptrarray = g_ptr_array_sized_new (0);
     ret_value = ptrarray_to_value (ptrarray);
   } else {
     ret_value = str_to_value (MS1_UNKNOWN_STR);
@@ -218,6 +280,7 @@ is_property_valid (const gchar *interface,
   int i;
   static gchar **mo1_properties_intern = NULL;
   static gchar **mi1_properties_intern = NULL;
+  static gchar **mc1_properties_intern = NULL;
 
   /* Initialize MediaObject1 properties interns */
   if (!mo1_properties_intern) {
@@ -241,6 +304,17 @@ is_property_valid (const gchar *interface,
     mi1_properties_intern[i] = NULL;
   }
 
+  /* Initialize MediaContainer1 properties interns */
+  if (!mc1_properties_intern) {
+    mc1_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediacontainer1_properties) + 1);
+    for (i = 0; mediacontainer1_properties[i]; i++) {
+      mc1_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediacontainer1_properties[i]);
+    }
+    mc1_properties_intern[i] = NULL;
+  }
+
   prop_intern = g_intern_string (property);
 
   /* Check MediaObject1 interface */
@@ -259,7 +333,21 @@ is_property_valid (const gchar *interface,
 
   /* Check MediaItem1 interface */
   if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem1") == 0) {
-    return lookup_in_strv (mi1_properties_intern, prop_intern);
+    found = lookup_in_strv (mi1_properties_intern, prop_intern);
+
+    if (found) {
+      return TRUE;
+    }
+
+    /* If not found, but interface is NULL, maybe property is in next interface */
+    if (!found && interface) {
+      return FALSE;
+    }
+  }
+
+  /* Check MediaContainer1 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
+    return lookup_in_strv (mc1_properties_intern, prop_intern);
   }
 
   return FALSE;
@@ -351,14 +439,67 @@ get_id_from_message (DBusMessage *m)
 }
 
 static void
+add_gptrarray_as_as (DBusMessage *m,
+                     DBusMessageIter *iter,
+                     GPtrArray *a)
+{
+  DBusMessageIter iternew;
+  DBusMessageIter sub_array;
+  gint i;
+
+  if (!iter) {
+    dbus_message_iter_init_append (m, &iternew);
+    iter = &iternew;
+  }
+
+  dbus_message_iter_open_container (iter, DBUS_TYPE_ARRAY, "s", &sub_array);
+  /* Add array */
+  for (i = 0; i < a->len; i++) {
+    dbus_message_iter_append_basic (&sub_array,
+                                    DBUS_TYPE_STRING,
+                                    &(g_ptr_array_index (a, i)));
+  }
+  dbus_message_iter_close_container (iter, &sub_array);
+}
+
+static void
+add_gptrarray_as_os (DBusMessage *m,
+                     DBusMessageIter *iter,
+                     GPtrArray *a)
+{
+  DBusMessageIter iternew;
+  DBusMessageIter sub_array;
+  gint i;
+
+  if (!iter) {
+    dbus_message_iter_init_append (m, &iternew);
+    iter = &iternew;
+  }
+
+  dbus_message_iter_open_container (iter, DBUS_TYPE_ARRAY, "o", &sub_array);
+
+  /* Add array */
+  for (i = 0; i < a->len; i++) {
+    dbus_message_iter_append_basic (&sub_array,
+                                    DBUS_TYPE_OBJECT_PATH,
+                                    &(g_ptr_array_index (a, i)));
+  }
+
+  dbus_message_iter_close_container (iter, &sub_array);
+}
+
+static void
 add_variant (DBusMessage *m,
              DBusMessageIter *iter,
+             const gchar *key,
              const GValue *v)
 {
   DBusMessageIter iternew;
   DBusMessageIter sub;
   const gchar *str_value;
+  gboolean bool_value;
   gint int_value;
+  guint uint_value;
 
   if (!iter) {
     dbus_message_iter_init_append (m, &iternew);
@@ -374,6 +515,25 @@ add_variant (DBusMessage *m,
     int_value = g_value_get_int (v);
     dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "i", &sub);
     dbus_message_iter_append_basic (&sub, DBUS_TYPE_INT32, &int_value);
+    dbus_message_iter_close_container (iter, &sub);
+  } else if (G_VALUE_HOLDS_UINT (v)) {
+    uint_value = g_value_get_uint (v);
+    dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "u", &sub);
+    dbus_message_iter_append_basic (&sub, DBUS_TYPE_UINT32, &uint_value);
+    dbus_message_iter_close_container (iter, &sub);
+  } else if (G_VALUE_HOLDS_BOOLEAN (v)) {
+    bool_value = g_value_get_boolean (v);
+    dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "b", &sub);
+    dbus_message_iter_append_basic (&sub, DBUS_TYPE_BOOLEAN, &bool_value);
+    dbus_message_iter_close_container (iter, &sub);
+  } else if (G_VALUE_HOLDS_BOXED (v)) {
+    if (g_strcmp0 (key, "URLs") == 0) {
+      dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "as", &sub);
+      add_gptrarray_as_as (m, &sub, g_value_get_boxed (v));
+    } else {
+      dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "ao", &sub);
+      add_gptrarray_as_os (m, &sub, g_value_get_boxed (v));
+    }
     dbus_message_iter_close_container (iter, &sub);
   }
 }
@@ -410,7 +570,7 @@ add_hashtable_as_dict (DBusMessage *m,
       dbus_message_iter_open_container (&sub_array, DBUS_TYPE_DICT_ENTRY, NULL, &sub_dict);
       /* Add key & value */
       dbus_message_iter_append_basic (&sub_dict, DBUS_TYPE_STRING, &key->data);
-      add_variant (m, &sub_dict, v);
+      add_variant (m, &sub_dict, key->data, v);
       dbus_message_iter_close_container (&sub_array, &sub_dict);
     }
     g_list_free (keys);
@@ -488,7 +648,7 @@ handle_get_message (DBusConnection *c,
                   interface);
     } else {
       r = dbus_message_new_method_return (m);
-      add_variant (r, NULL, value);
+      add_variant (r, NULL, property, value);
       dbus_connection_send (c, r, NULL);
       dbus_message_unref (r);
       free_value (value);
@@ -522,7 +682,7 @@ handle_get_all_message (DBusConnection *c,
     } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaItem1") == 0) {
       prop = mediaitem1_properties;
     } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
-      prop = NULL;
+      prop = mediacontainer1_properties;
     } else {
       return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
