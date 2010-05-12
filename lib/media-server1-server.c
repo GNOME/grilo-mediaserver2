@@ -40,11 +40,6 @@
 #define MS1_SERVER_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS1_TYPE_SERVER, MS1ServerPrivate)
 
-enum {
-  UPDATED,
-  LAST_SIGNAL
-};
-
 /*
  * Private MS1Server structure
  *   name: provider name
@@ -117,8 +112,6 @@ static const gchar *mediacontainer1_properties[] = { MS1_PROP_ITEMS,
                                                      MS1_PROP_CONTAINER_COUNT,
                                                      MS1_PROP_SEARCHABLE,
                                                      NULL };
-
-static guint32 signals[LAST_SIGNAL] = { 0 };
 
 G_DEFINE_TYPE (MS1Server, ms1_server, G_TYPE_OBJECT);
 
@@ -1029,17 +1022,6 @@ ms1_server_class_init (MS1ServerClass *klass)
   g_type_class_add_private (klass, sizeof (MS1ServerPrivate));
 
   gobject_class->finalize = ms1_server_finalize;
-
-  signals[UPDATED] = g_signal_new ("updated",
-                                   G_TYPE_FROM_CLASS (klass),
-                                   G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
-                                   G_STRUCT_OFFSET (MS1ServerClass, updated),
-                                   NULL,
-                                   NULL,
-                                   g_cclosure_marshal_VOID__STRING,
-                                   G_TYPE_NONE,
-                                   1,
-                                   G_TYPE_STRING);
 }
 
 /* Object init function */
@@ -1153,9 +1135,41 @@ void
 ms1_server_updated (MS1Server *server,
                     const gchar *id)
 {
+  DBusError error;
+  DBusConnection *connection;
+  DBusMessage *message;
+  gchar *object_path;
+
   g_return_if_fail (MS1_IS_SERVER (server));
 
-  g_signal_emit (server, signals[UPDATED], 0, id);
+  dbus_error_init (&error);
+
+  connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
+
+  if (!connection) {
+    g_printerr ("Could not connect to session bus, %s\n", error.message);
+    return;
+  }
+
+  /* Get object path */
+  if (g_strcmp0 (id, MS1_ROOT) == 0) {
+    object_path = g_strconcat (MS1_DBUS_PATH_PREFIX,
+                               server->priv->name,
+                               NULL);
+  } else {
+    object_path = g_strdup_printf (MS1_DBUS_PATH_PREFIX "%s/containers/%d",
+                                   server->priv->name,
+                                   g_quark_from_string (id));
+  }
+
+  message = dbus_message_new_signal (object_path,
+                                     "org.gnome.UPnP.MediaContainer1",
+                                     "Updated");
+
+  dbus_connection_send (connection, message, NULL);
+  dbus_message_unref (message);
+
+  g_free (object_path);
 }
 
 /**

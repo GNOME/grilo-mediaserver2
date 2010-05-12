@@ -70,9 +70,6 @@ typedef struct _MS1ServerClass MS1ServerClass;
 struct _MS1ServerClass {
 
   GObjectClass parent_class;
-
-  void (*updated) (MS1Server *server,
-                   const gchar *id);
 };
 
 typedef GHashTable * (*GetPropertiesFunc) (MS1Server *server,

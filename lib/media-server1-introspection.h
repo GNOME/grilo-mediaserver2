@@ -82,6 +82,7 @@
   "      <arg name=\"filter\"  direction=\"in\"  type=\"as\"/>"         \
   "      <arg name=\"objects\" direction=\"out\" type=\"a(a{sv})\"/>"   \
   "    </method>"                                                       \
+  "   <signal name=\"Updated\"/>"                                       \
   "  </interface>"
 
 #define INTROSPECTABLE_IFACE                                    \
