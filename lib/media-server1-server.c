@@ -372,62 +372,7 @@ is_property_valid (const gchar *interface,
   return FALSE;
 }
 
-static gchar *
-get_path_from_id (MS1Server *server,
-                  const gchar *id)
-{
-  gchar *path;
-
-  path = g_strconcat (MS1_DBUS_PATH_PREFIX,
-                      server->priv->name,
-                      NULL);
-
-  return path;
-}
-
-static GValue *
-get_property_value (MS1Server *server,
-                    const gchar *id,
-                    const gchar *interface,
-                    const gchar *property)
-{
-  GHashTable *propresult;
-  GValue *v;
-  const gchar *prop[2] = { NULL };
-  gchar *path;
-
-  /* Check everything is right */
-  if (!id ||
-      !property ||
-      !is_property_valid (interface, property) ||
-      !server->priv->get_properties) {
-    return NULL;
-  }
-
-  /* If asking for Path, we already can use id */
-  if (g_strcmp0 (property, MS1_PROP_PATH) == 0) {
-    v = g_new0 (GValue, 1);
-    g_value_init (v, G_TYPE_STRING);
-    path = get_path_from_id (server, id);
-    g_value_take_string (v, path);
-  } else {
-    prop[0] = property;
-    propresult = server->priv->get_properties (server,
-                                               id,
-                                               prop,
-                                               server->priv->data,
-                                               NULL);
-    if (!propresult) {
-      return NULL;
-    }
-
-    v = properties_lookup_with_default (propresult, property);
-    g_hash_table_unref (propresult);
-  }
-
-  return v;
-}
-
+/* Returns the id suitable to be used with server backend */
 static gchar *
 get_id_from_message (DBusMessage *m)
 {
@@ -457,6 +402,51 @@ get_id_from_message (DBusMessage *m)
   return id;
 }
 
+/* Request value of property in the interface */
+static GValue *
+get_property_value (MS1Server *server,
+                    DBusMessage *message,
+                    const gchar *interface,
+                    const gchar *property)
+{
+  GHashTable *propresult;
+  GValue *v;
+  const gchar *prop[2] = { NULL };
+  gchar *id;
+
+  /* Check everything is right */
+  if (!property ||
+      !is_property_valid (interface, property) ||
+      !server->priv->get_properties) {
+    return NULL;
+  }
+
+  /* If asking for Path, we already can use object_path */
+  if (g_strcmp0 (property, MS1_PROP_PATH) == 0) {
+    v = g_new0 (GValue, 1);
+    g_value_init (v, G_TYPE_STRING);
+    g_value_set_string (v, dbus_message_get_path (message));
+  } else {
+    id = get_id_from_message (message);
+    prop[0] = property;
+    propresult = server->priv->get_properties (server,
+                                               id,
+                                               prop,
+                                               server->priv->data,
+                                               NULL);
+    g_free (id);
+    if (!propresult) {
+      return NULL;
+    }
+
+    v = properties_lookup_with_default (propresult, property);
+    g_hash_table_unref (propresult);
+  }
+
+  return v;
+}
+
+/* Adds a GPtrArray as an array of strings to dbus message */
 static void
 add_gptrarray_as_as (DBusMessage *m,
                      DBusMessageIter *iter,
@@ -649,7 +639,6 @@ handle_get_message (DBusConnection *c,
   DBusMessage *r;
   gchar *interface = NULL;
   gchar *property = NULL;
-  gchar *id;
   MS1Server *server = MS1_SERVER (userdata);
 
   /* Check signature */
@@ -658,9 +647,7 @@ handle_get_message (DBusConnection *c,
                            DBUS_TYPE_STRING, &interface,
                            DBUS_TYPE_STRING, &property,
                            DBUS_TYPE_INVALID);
-    id = get_id_from_message (m);
-    value = get_property_value (server, id, interface, property);
-    g_free (id);
+    value = get_property_value (server, m, interface, property);
     if (!value) {
       g_printerr ("Invalid property %s in interface %s\n",
                   property,
