@@ -49,13 +49,14 @@ enum {
  * Private MS1Server structure
  *   name: provider name
  *   data: holds stuff for owner
- *   get_children: function to get children
+ *   list_children: function to get children
+ *   search_objects: function to search objects
  *   get_properties: function to get properties
  */
 struct _MS1ServerPrivate {
   gchar *name;
   gpointer *data;
-  GetChildrenFunc get_children;
+  ListChildrenFunc list_children;
   SearchObjectsFunc search_objects;
   GetPropertiesFunc get_properties;
 };
@@ -754,20 +755,20 @@ handle_list_children_message (DBusConnection *c,
                            DBUS_TYPE_UINT32, &max_count,
                            DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &filter, &nitems,
                            DBUS_TYPE_INVALID);
-    if (!server->priv->get_children || nitems == 0) {
+    if (!server->priv->list_children || nitems == 0) {
       children = NULL;
     } else {
       id = get_id_from_message (m);
       if (!id) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
       }
-      children = server->priv->get_children (server,
-                                             id,
-                                             offset,
-                                             max_count? max_count: G_MAXUINT,
-                                             (const gchar **) filter,
-                                             server->priv->data,
-                                             NULL);
+      children = server->priv->list_children (server,
+                                              id,
+                                              offset,
+                                              max_count? max_count: G_MAXUINT,
+                                              (const gchar **) filter,
+                                              server->priv->data,
+                                              NULL);
       g_free (id);
       dbus_free_string_array (filter);
     }
@@ -1096,19 +1097,19 @@ ms1_server_set_get_properties_func (MS1Server *server,
 }
 
 /**
- * ms1_server_set_get_children_func:
+ * ms1_server_set_list_children_func:
  * @server: a #MS1Server
- * @get_children_func: user-defined function to request children
+ * @list_children_func: user-defined function to request children
  *
  * Defines which function must be used when requesting children.
  **/
 void
-ms1_server_set_get_children_func (MS1Server *server,
-                                  GetChildrenFunc get_children_func)
+ms1_server_set_list_children_func (MS1Server *server,
+                                   ListChildrenFunc list_children_func)
 {
   g_return_if_fail (MS1_IS_SERVER (server));
 
-  server->priv->get_children = get_children_func;
+  server->priv->list_children = list_children_func;
 }
 
 /**

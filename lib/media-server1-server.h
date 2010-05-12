@@ -81,13 +81,13 @@ typedef GHashTable * (*GetPropertiesFunc) (MS1Server *server,
                                            gpointer data,
                                            GError **error);
 
-typedef GList * (*GetChildrenFunc) (MS1Server *server,
-                                    const gchar *id,
-                                    guint offset,
-                                    guint max_count,
-                                    const gchar **properties,
-                                    gpointer data,
-                                    GError **error);
+typedef GList * (*ListChildrenFunc) (MS1Server *server,
+                                     const gchar *id,
+                                     guint offset,
+                                     guint max_count,
+                                     const gchar **properties,
+                                     gpointer data,
+                                     GError **error);
 
 typedef GList * (*SearchObjectsFunc) (MS1Server *server,
                                       const gchar *id,
@@ -106,8 +106,8 @@ MS1Server *ms1_server_new (const gchar *name,
 void ms1_server_set_get_properties_func (MS1Server *server,
                                          GetPropertiesFunc get_properties_func);
 
-void ms1_server_set_get_children_func (MS1Server *server,
-                                       GetChildrenFunc get_children_func);
+void ms1_server_set_list_children_func (MS1Server *server,
+                                        ListChildrenFunc list_children_func);
 
 void ms1_server_set_search_objects_func (MS1Server *server,
                                          SearchObjectsFunc search_objects_func);

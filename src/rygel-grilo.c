@@ -85,13 +85,13 @@ get_properties_cb (MS1Server *server,
                    GError **error);
 
 static GList *
-get_children_cb (MS1Server *server,
-                 const gchar *id,
-                 guint offset,
-                 guint max_count,
-                 const gchar **properties,
-                 gpointer data,
-                 GError **error);
+list_children_cb (MS1Server *server,
+                  const gchar *id,
+                  guint offset,
+                  guint max_count,
+                  const gchar **properties,
+                  gpointer data,
+                  GError **error);
 
 /* Fix invalid characters so string can be used in a dbus name */
 static void
@@ -261,7 +261,7 @@ get_items_and_containers (MS1Server *server,
   }
 
   children =
-    get_children_cb (server, container_id, 0, (guint) limit, properties, source, NULL);
+    list_children_cb (server, container_id, 0, (guint) limit, properties, source, NULL);
 
   /* Separate containers from items */
   for (child = children; child; child = g_list_next (child)) {
@@ -672,13 +672,13 @@ get_properties_cb (MS1Server *server,
 }
 
 static GList *
-get_children_cb (MS1Server *server,
-                 const gchar *id,
-                 guint offset,
-                 guint max_count,
-                 const gchar **properties,
-                 gpointer data,
-                 GError **error)
+list_children_cb (MS1Server *server,
+                  const gchar *id,
+                  guint offset,
+                  guint max_count,
+                  const gchar **properties,
+                  gpointer data,
+                  GError **error)
 {
   GList *children;
   GrlMedia *media;
@@ -767,7 +767,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
       g_free (source_id);
     } else {
       ms1_server_set_get_properties_func (server, get_properties_cb);
-      ms1_server_set_get_children_func (server, get_children_cb);
+      ms1_server_set_list_children_func (server, list_children_cb);
       /* Save reference */
       if (!dups) {
         providers_names = g_list_prepend (providers_names,

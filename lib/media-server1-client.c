@@ -27,15 +27,6 @@
 #include "media-server1-private.h"
 #include "media-server1-client.h"
 
-#define DBUS_TYPE_G_ARRAY_OF_STRING                             \
-  (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
-
-#define DBUS_TYPE_PROPERTIES                                    \
-  dbus_g_type_get_collection ("GPtrArray", G_TYPE_VALUE)
-
-#define DBUS_TYPE_CHILDREN                                              \
-  dbus_g_type_get_collection ("GPtrArray", DBUS_TYPE_PROPERTIES)
-
 #define IMEDIAOBJECT1_INDEX 0
 #define IMEDIAITEM1_INDEX   1
 
@@ -125,53 +116,22 @@ split_properties_by_interface (gchar **properties)
   return split;
 }
 
-/* Given a GPtrArray result (dbus answer of getting properties), returns a
-   ghashtable with pairs <keys, values> */
-static GHashTable *
-get_properties_table (GPtrArray *result,
-                      const gchar **properties)
-{
-  GHashTable *table;
-  gint i;
-
-  table = g_hash_table_new_full (g_str_hash,
-                                 g_str_equal,
-                                 (GDestroyNotify) g_free,
-                                 (GDestroyNotify) free_gvalue);
-
-  for (i = 0; i < result->len; i++) {
-    g_hash_table_insert (table,
-                         g_strdup (properties[i]),
-                         g_boxed_copy (G_TYPE_VALUE,
-                                       g_ptr_array_index (result, i)));
-  }
-
-  return table;
-}
-
-/* Given a GPtrArray result (dbus answer of getting children), returns a list
-   of children, which in turn are tables with pairs <keys, values>. Note that
-   child id is included in those pairs */
+/* Converts GPtrArray in a GList */
 static GList *
-get_children_list (GPtrArray *result,
-                   const gchar **properties)
+gptrarray_to_glist (GPtrArray *result)
 {
-  GList *children = NULL;
-  GPtrArray *prop_array;
+  GList *list = NULL;
   gint i;
 
-  if (!result || result->len == 0) {
+  if (!result) {
     return NULL;
   }
 
   for (i = 0; i < result->len; i++) {
-    prop_array = g_ptr_array_index (result, i);
-    children = g_list_prepend (children,
-                               get_properties_table (prop_array,
-                                                     properties));
+    list = g_list_prepend (list, g_ptr_array_index (result, i));
   }
 
-  return children;
+  return g_list_reverse (list);
 }
 
 /* Dispose function */
@@ -392,7 +352,7 @@ ms1_client_get_provider_name (MS1Client *client)
 /**
  * ms1_client_get_properties:
  * @client: a #MS1Client
- * @id: media identifier to obtain properties from
+ * @object_path: media identifier to obtain properties from
  * @properties: @NULL-terminated array of properties to request
  * @error: a #GError location to store the error ocurring, or @NULL to ignore
  *
@@ -487,11 +447,11 @@ ms1_client_get_properties (MS1Client *client,
 }
 
 /**
- * ms1_client_get_children:
+ * ms1_client_list_children:
  * @client: a #MS1Client
- * @id: container identifier to get children from
+ * @object_path: container identifier to get children from
  * @offset: number of children to skip
- * @max_count: maximum number of children to return, or -1 for no limit
+ * @max_count: maximum number of children to return, or 0 for no limit
  * @properties: @NULL-terminated array of properties to request for each child
  * @error: a #GError location to store the error ocurring, or @NULL to ignore
  *
@@ -502,32 +462,41 @@ ms1_client_get_properties (MS1Client *client,
  * (g_hash_table_unref()) and finally the list itself (g_list_free())
  **/
 GList *
-ms1_client_get_children (MS1Client *client,
-                         const gchar *id,
-                         guint offset,
-                         gint max_count,
-                         const gchar **properties,
-                         GError **error)
+ms1_client_list_children (MS1Client *client,
+                          const gchar *object_path,
+                          guint offset,
+                          guint max_count,
+                          const gchar **properties,
+                          GError **error)
 {
-  GPtrArray *result = NULL;
+  DBusGProxy *gproxy;
   GList *children = NULL;
+  GPtrArray *result = NULL;
 
   g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (properties, NULL);
 
-  /* if (!org_gnome_UPnP_MediaServer1_get_children (client->priv->proxy_provider, */
-  /*                                                id, */
-  /*                                                offset, */
-  /*                                                max_count, */
-  /*                                                properties, */
-  /*                                                &result, */
-  /*                                                error)) { */
-  /*   return NULL; */
-  /* } */
+  gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                      client->priv->fullname,
+                                      object_path,
+                                      "org.gnome.UPnP.MediaContainer1");
 
+  if (dbus_g_proxy_call (gproxy,
+                         "ListChildren", error,
+                         G_TYPE_UINT, offset,
+                         G_TYPE_UINT, max_count,
+                         G_TYPE_STRV, properties,
+                         G_TYPE_INVALID,
+                         dbus_g_type_get_collection ("GPtrArray",
+                                                     dbus_g_type_get_map ("GHashTable",
+                                                                          G_TYPE_STRING,
+                                                                          G_TYPE_VALUE)), &result,
+                         G_TYPE_INVALID)) {
+    children = gptrarray_to_glist (result);
+    g_ptr_array_free (result, TRUE);
+  }
 
-  children = get_children_list (result, properties);
-
-  g_boxed_free (DBUS_TYPE_CHILDREN, result);
+  g_object_unref (gproxy);
 
   return children;
 }

@@ -87,12 +87,12 @@ test_children ()
       return;
     }
 
-    children  = ms1_client_get_children (client,
-                                         ms1_client_get_root_path (client),
-                                         0,
-                                         -1,
-                                         properties,
-                                         &error);
+    children  = ms1_client_list_children (client,
+                                          ms1_client_get_root_path (client),
+                                          0,
+                                          10,
+                                          properties,
+                                          &error);
 
     g_print ("\n* Provider '%s'\n", *provider);
     if (!children) {
@@ -204,8 +204,8 @@ int main (int argc, char **argv)
 
   g_type_init ();
 
-  if (1) test_properties ();
-  if (0) test_children ();
+  if (0) test_properties ();
+  if (1) test_children ();
   if (0) test_provider_free ();
   if (0) test_dynamic_providers ();
 

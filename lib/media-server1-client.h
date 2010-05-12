@@ -87,16 +87,16 @@ MS1Client *ms1_client_new (const gchar *provider);
 const gchar *ms1_client_get_provider_name (MS1Client *client);
 
 GHashTable *ms1_client_get_properties (MS1Client *client,
-                                       const gchar *id,
+                                       const gchar *object_path,
                                        gchar **properties,
                                        GError **error);
 
-GList *ms1_client_get_children (MS1Client *client,
-                                const gchar *id,
-                                guint offset,
-                                gint max_count,
-                                const gchar **properties,
-                                GError **error);
+GList *ms1_client_list_children (MS1Client *client,
+                                 const gchar *object_path,
+                                 guint offset,
+                                 guint max_count,
+                                 const gchar **properties,
+                                 GError **error);
 
 const gchar *ms1_client_get_root_path (MS1Client *client);
 
