@@ -501,6 +501,63 @@ ms1_client_list_children (MS1Client *client,
   return children;
 }
 
+/**
+ * ms1_client_search_objects:
+ * @client: a #MS1Client
+ * @object_path: container identifier to start search from
+ * @offset: number of children to skip
+ * @max_count: maximum number of children to return, or 0 for no limit
+ * @properties: @NULL-terminated array of properties to request for each child
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Searchs for children below this container. Each child consist
+ * of a hash table of <prop_id, prop_gvalue> pairs.
+ *
+ * Returns: a new #GList of #GHashTable. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
+GList *
+ms1_client_search_objects (MS1Client *client,
+                           const gchar *object_path,
+                           const gchar *query,
+                           guint offset,
+                           guint max_count,
+                           const gchar **properties,
+                           GError **error)
+{
+  DBusGProxy *gproxy;
+  GList *children = NULL;
+  GPtrArray *result = NULL;
+
+  g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (properties, NULL);
+
+  gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                      client->priv->fullname,
+                                      object_path,
+                                      "org.gnome.UPnP.MediaContainer1");
+
+  if (dbus_g_proxy_call (gproxy,
+                         "SearchObjects", error,
+                         G_TYPE_STRING, query,
+                         G_TYPE_UINT, offset,
+                         G_TYPE_UINT, max_count,
+                         G_TYPE_STRV, properties,
+                         G_TYPE_INVALID,
+                         dbus_g_type_get_collection ("GPtrArray",
+                                                     dbus_g_type_get_map ("GHashTable",
+                                                                          G_TYPE_STRING,
+                                                                          G_TYPE_VALUE)), &result,
+                         G_TYPE_INVALID)) {
+    children = gptrarray_to_glist (result);
+    g_ptr_array_free (result, TRUE);
+  }
+
+  g_object_unref (gproxy);
+
+  return children;
+}
+
 const gchar *
 ms1_client_get_root_path (MS1Client *client)
 {

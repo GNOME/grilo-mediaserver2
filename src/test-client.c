@@ -115,6 +115,59 @@ test_children ()
 }
 
 static void
+test_search ()
+{
+  GList *child;
+  GError *error = NULL;
+  GList *result;
+  MS1Client *client;
+  gchar **provider;
+  gchar **providers;
+
+  providers = ms1_client_get_providers ();
+
+  if (!providers) {
+    g_print ("There is no MediaServer1 provider\n");
+    return;
+  }
+
+  for (provider = providers; *provider; provider ++) {
+    client = ms1_client_new (*provider);
+
+    if (!client) {
+      g_printerr ("Unable to create a client\n");
+      return;
+    }
+
+    result = ms1_client_search_objects (client,
+                                        ms1_client_get_root_path (client),
+                                        "Artist = \"Groove Coverage\"",
+                                        0,
+                                        10,
+                                        properties,
+                                        &error);
+
+    g_print ("\n* Provider '%s'\n", *provider);
+    if (!result) {
+      g_print ("\tDid not get any result, %s\n", error? error->message: "no error");
+      return;
+    }
+
+    for (child = result; child; child = g_list_next (child)) {
+      g_print ("\t* '%s', '%s'\n",
+               ms1_client_get_path (child->data),
+               ms1_client_get_display_name(child->data));
+    }
+
+    g_list_foreach (result, (GFunc) g_hash_table_unref, NULL);
+    g_list_free (result);
+    g_object_unref (client);
+  }
+
+  g_strfreev (providers);
+}
+
+static void
 destroy_cb (MS1Client *client, gpointer user_data)
 {
   g_print ("End of provider %s\n", ms1_client_get_provider_name(client));
@@ -205,7 +258,8 @@ int main (int argc, char **argv)
   g_type_init ();
 
   if (0) test_properties ();
-  if (1) test_children ();
+  if (0) test_children ();
+  if (1) test_search ();
   if (0) test_provider_free ();
   if (0) test_dynamic_providers ();
 
