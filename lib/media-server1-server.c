@@ -56,15 +56,33 @@ struct _MS1ServerPrivate {
   gchar *name;
   gpointer *data;
   GetChildrenFunc get_children;
+  SearchObjectsFunc search_objects;
   GetPropertiesFunc get_properties;
 };
 
 /* dbus message signatures */
 static const gchar introspect_sgn[] = { DBUS_TYPE_INVALID };
-static const gchar get_sgn[]  = { DBUS_TYPE_STRING, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
-static const gchar getall_sgn[] = { DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
-static const gchar listobjects_sgn[] = { DBUS_TYPE_UINT32, DBUS_TYPE_UINT32, DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, DBUS_TYPE_INVALID };
 
+static const gchar get_sgn[]  = { DBUS_TYPE_STRING, /* interface */
+                                  DBUS_TYPE_STRING, /* property */
+                                  DBUS_TYPE_INVALID };
+
+static const gchar getall_sgn[] = { DBUS_TYPE_STRING, /* interface */
+                                    DBUS_TYPE_INVALID };
+
+static const gchar listchildren_sgn[] = { DBUS_TYPE_UINT32,                  /* offset */
+                                          DBUS_TYPE_UINT32,                  /* max */
+                                          DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, /* filter */
+                                          DBUS_TYPE_INVALID };
+
+static const gchar searchobjects_sgn[] = { DBUS_TYPE_STRING,                  /* query */
+                                           DBUS_TYPE_UINT32,                  /* offset */
+                                           DBUS_TYPE_UINT32,                  /* max */
+                                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, /* filter */
+                                           DBUS_TYPE_INVALID };
+
+
+/* Properties in interfaces */
 static const gchar *mediaobject1_properties[] = { MS1_PROP_PARENT,
                                                   MS1_PROP_TYPE,
                                                   MS1_PROP_PATH,
@@ -730,7 +748,7 @@ handle_list_children_message (DBusConnection *c,
   MS1Server *server = MS1_SERVER (userdata);
 
   /* Check signature */
-  if (dbus_message_has_signature (m, listobjects_sgn)) {
+  if (dbus_message_has_signature (m, listchildren_sgn)) {
     dbus_message_get_args (m, NULL,
                            DBUS_TYPE_UINT32, &offset,
                            DBUS_TYPE_UINT32, &max_count,
@@ -750,6 +768,62 @@ handle_list_children_message (DBusConnection *c,
                                              (const gchar **) filter,
                                              server->priv->data,
                                              NULL);
+      g_free (id);
+      dbus_free_string_array (filter);
+    }
+
+    r = dbus_message_new_method_return (m);
+    add_glist_as_array (r, NULL, children);
+    dbus_connection_send (c, r, NULL);
+    dbus_message_unref (r);
+    if (children) {
+      g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
+      g_list_free (children);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+}
+
+static DBusHandlerResult
+handle_search_objects_message (DBusConnection *c,
+                               DBusMessage *m,
+                               void *userdata)
+{
+  DBusMessage *r;
+  GList *children;
+  gchar **filter;
+  gchar *id;
+  gchar *query;
+  guint max_count;
+  guint offset;
+  gint nitems;
+  MS1Server *server = MS1_SERVER (userdata);
+
+  /* Check signature */
+  if (dbus_message_has_signature (m, searchobjects_sgn)) {
+    dbus_message_get_args (m, NULL,
+                           DBUS_TYPE_STRING, &query,
+                           DBUS_TYPE_UINT32, &offset,
+                           DBUS_TYPE_UINT32, &max_count,
+                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &filter, &nitems,
+                           DBUS_TYPE_INVALID);
+    if (!server->priv->search_objects || nitems == 0) {
+      children = NULL;
+    } else {
+      id = get_id_from_message (m);
+      if (!id) {
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+      }
+      children = server->priv->search_objects (server,
+                                               id,
+                                               query,
+                                               offset,
+                                               max_count? max_count: G_MAXUINT,
+                                               (const gchar **) filter,
+                                               server->priv->data,
+                                               NULL);
       g_free (id);
       dbus_free_string_array (filter);
     }
@@ -813,6 +887,10 @@ containers_handler (DBusConnection *c,
                                           "org.gnome.UPnP.MediaContainer1",
                                           "ListChildren")) {
     return handle_list_children_message (c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.gnome.UPnP.MediaContainer1",
+                                          "SearchObjects")) {
+    return handle_search_objects_message (c, m, userdata);
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
@@ -1031,6 +1109,22 @@ ms1_server_set_get_children_func (MS1Server *server,
   g_return_if_fail (MS1_IS_SERVER (server));
 
   server->priv->get_children = get_children_func;
+}
+
+/**
+ * ms1_server_set_search_objects_func:
+ * @server: a #MS1Server
+ * @search_objects_func: user-defined function to search children
+ *
+ * Defines which function must be used when searching objects
+ **/
+void
+ms1_server_set_search_objects_func (MS1Server *server,
+                                    SearchObjectsFunc search_objects_func)
+{
+  g_return_if_fail (MS1_IS_SERVER (server));
+
+  server->priv->search_objects = search_objects_func;
 }
 
 /**

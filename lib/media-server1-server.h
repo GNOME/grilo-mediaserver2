@@ -89,6 +89,15 @@ typedef GList * (*GetChildrenFunc) (MS1Server *server,
                                     gpointer data,
                                     GError **error);
 
+typedef GList * (*SearchObjectsFunc) (MS1Server *server,
+                                      const gchar *id,
+                                      const gchar *query,
+                                      guint offset,
+                                      guint max_count,
+                                      const gchar **properties,
+                                      gpointer data,
+                                      GError **error);
+
 GType ms1_server_get_type (void);
 
 MS1Server *ms1_server_new (const gchar *name,
@@ -99,6 +108,9 @@ void ms1_server_set_get_properties_func (MS1Server *server,
 
 void ms1_server_set_get_children_func (MS1Server *server,
                                        GetChildrenFunc get_children_func);
+
+void ms1_server_set_search_objects_func (MS1Server *server,
+                                         SearchObjectsFunc search_objects_func);
 
 void ms1_server_updated (MS1Server *server,
                          const gchar *id);
