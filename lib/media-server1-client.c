@@ -81,6 +81,7 @@ free_gvalue (GValue *v)
   g_free (v);
 }
 
+/* Insert <key, value> in hashtable */
 static gboolean
 collect_value (gpointer key,
                gpointer value,
@@ -90,6 +91,9 @@ collect_value (gpointer key,
   return TRUE;
 }
 
+/* Given a NULL-terminated array of properties, returns an array of two
+   elements; each array is a NULL-terminated array with properties for one
+   interface. */
 static gchar ***
 split_properties_by_interface (gchar **properties)
 {
@@ -145,6 +149,7 @@ ms1_client_dispose (GObject *object)
   G_OBJECT_CLASS (ms1_client_parent_class)->dispose (object);
 }
 
+/* Finalize function */
 static void
 ms1_client_finalize (GObject *object)
 {
@@ -569,10 +574,10 @@ ms1_client_get_root_path (MS1Client *client)
 /******************** PROPERTIES TABLE API ********************/
 
 /**
- * ms1_client_get_id:
+ * ms1_client_get_path:
  * @properties: a #GHashTable
  *
- * Returns "id" property value.
+ * Returns "Path" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -595,7 +600,7 @@ ms1_client_get_path (GHashTable *properties)
  * ms1_client_get_parent:
  * @properties: a #GHashTable
  *
- * Returns "parent" property value.
+ * Returns "Parent" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -618,7 +623,7 @@ ms1_client_get_parent (GHashTable *properties)
  * ms1_client_get_display_name:
  * @properties: a #GHashTable
  *
- * Returns "display-name" property value.
+ * Returns "DisplayName" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -641,7 +646,7 @@ ms1_client_get_display_name (GHashTable *properties)
  * ms1_client_get_item_type:
  * @properties: a #GHashTable
  *
- * Returns "type" property value.
+ * Returns "Type" property value.
  *
  * Returns: property value
  **/
@@ -685,7 +690,7 @@ ms1_client_get_item_type (GHashTable *properties)
  * ms1_client_get_mime_type:
  * @properties: a #GHashTable
  *
- * Returns "mime-type" property value.
+ * Returns "MIMEType" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -708,7 +713,7 @@ ms1_client_get_mime_type (GHashTable *properties)
  * ms1_client_get_artist:
  * @properties: a #GHashTable
  *
- * Returns "artist" property value.
+ * Returns "Artist" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -731,7 +736,7 @@ ms1_client_get_artist (GHashTable *properties)
  * ms1_client_get_album:
  * @properties: a #GHashTable
  *
- * Returns "album" property value.
+ * Returns "Album" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -754,7 +759,7 @@ ms1_client_get_album (GHashTable *properties)
  * ms1_client_get_date:
  * @properties: a #GHashTable
  *
- * Returns "date" property value.
+ * Returns "Date" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -777,7 +782,7 @@ ms1_client_get_date (GHashTable *properties)
  * ms1_client_get_dlna_profile:
  * @properties: a #GHashTable
  *
- * Returns "dlna-profile" property value.
+ * Returns "DLNAProfile" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -800,7 +805,7 @@ ms1_client_get_dlna_profile (GHashTable *properties)
  * ms1_client_get_thumbnail:
  * @properties: a #GHashTable
  *
- * Returns "thumbanil" property value.
+ * Returns "Thumbanail" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -823,7 +828,7 @@ ms1_client_get_thumbnail (GHashTable *properties)
  * ms1_client_get_genre:
  * @properties: a #GHashTable
  *
- * Returns "genre" property value.
+ * Returns "Genre" property value.
  *
  * Returns: property value or @NULL if it is not available
  **/
@@ -846,7 +851,7 @@ ms1_client_get_genre (GHashTable *properties)
  * ms1_client_get_size:
  * @properties: a #GHashTable
  *
- * Returns "size" property value.
+ * Returns "Size" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -869,7 +874,7 @@ ms1_client_get_size (GHashTable *properties)
  * ms1_client_get_duration:
  * @properties: a #GHashTable
  *
- * Returns "duration" property value.
+ * Returns "Duration" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -892,7 +897,7 @@ ms1_client_get_duration (GHashTable *properties)
  * ms1_client_get_bitrate:
  * @properties: a #GHashTable
  *
- * Returns "bitrate" property value.
+ * Returns "Bitrate" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -915,7 +920,7 @@ ms1_client_get_bitrate (GHashTable *properties)
  * ms1_client_get_sample_rate:
  * @properties: a #GHashTable
  *
- * Returns "sample-rate" property value.
+ * Returns "SampleRate" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -938,7 +943,7 @@ ms1_client_get_sample_rate (GHashTable *properties)
  * ms1_client_get_bits_per_sample:
  * @properties: a #GHashTable
  *
- * Returns "bits-per-sample" property value.
+ * Returns "BitsPerSample" property value.
  *
  * Returns: property value of -1 if it is not available
  **/
@@ -961,7 +966,7 @@ ms1_client_get_bits_per_sample (GHashTable *properties)
  * ms1_client_get_width:
  * @properties: a #GHashTable
  *
- * Returns "width" property value.
+ * Returns "Width" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -984,7 +989,7 @@ ms1_client_get_width (GHashTable *properties)
  * ms1_client_get_height:
  * @properties: a #GHashTable
  *
- * Returns "height" property value.
+ * Returns "Height" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -1007,7 +1012,7 @@ ms1_client_get_height (GHashTable *properties)
  * ms1_client_get_color_depth:
  * @properties: a #GHashTable
  *
- * Returns "color-depth" property value.
+ * Returns "ColorDepth" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -1030,7 +1035,7 @@ ms1_client_get_color_depth (GHashTable *properties)
  * ms1_client_get_pixel_width:
  * @properties: a #GHashTable
  *
- * Returns "pixel-width" property value.
+ * Returns "PixelWidth" property value.
  *
  * Returns: property value or -1 if it is not available
  **/
@@ -1053,7 +1058,7 @@ ms1_client_get_pixel_width (GHashTable *properties)
  * ms1_client_get_pixel_height:
  * @properties: a #GHashTable
  *
- * Returns "pixel-height" property value.
+ * Returns "PixelHeight" property value.
  *
  * Returns: property value or -1 if it is not available
  **/

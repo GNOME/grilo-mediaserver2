@@ -199,6 +199,8 @@ ptrarray_to_value (GPtrArray *array)
   return val;
 }
 
+/* Search for string needle in NULL-terminated string array strv; search is done
+   by comparing pointers */
 static gboolean
 lookup_in_strv (gchar **strv,
                 const gchar *needle)
@@ -212,6 +214,8 @@ lookup_in_strv (gchar **strv,
   return (strv[i] != NULL);
 }
 
+/* Searches for property in properties and return its value; if is not found,
+   then returns a default value for that property */
 static GValue *
 properties_lookup_with_default (GHashTable *properties,
                                 const gchar *property)
@@ -290,6 +294,7 @@ properties_lookup_with_default (GHashTable *properties,
   return ret_value;
 }
 
+/* Check if property makes sense in the interface */
 static gboolean
 is_property_valid (const gchar *interface,
                    const gchar *property)
@@ -471,6 +476,7 @@ add_gptrarray_as_as (DBusMessage *m,
   dbus_message_iter_close_container (iter, &sub_array);
 }
 
+/* Adds a GPtrArray as an array of object paths to dbus message */
 static void
 add_gptrarray_as_os (DBusMessage *m,
                      DBusMessageIter *iter,
@@ -497,6 +503,7 @@ add_gptrarray_as_os (DBusMessage *m,
   dbus_message_iter_close_container (iter, &sub_array);
 }
 
+/* Adds a pair <key, v> to dbus message */
 static void
 add_variant (DBusMessage *m,
              DBusMessageIter *iter,
@@ -547,6 +554,7 @@ add_variant (DBusMessage *m,
   }
 }
 
+/* Adds a GHashTable as a dictionary to dbus message */
 static void
 add_hashtable_as_dict (DBusMessage *m,
                        DBusMessageIter *iter,
@@ -587,6 +595,7 @@ add_hashtable_as_dict (DBusMessage *m,
   dbus_message_iter_close_container (iter, &sub_array);
 }
 
+/* Adds a GList as an array of pairs <string, variant> to dbus message */
 static void
 add_glist_as_array (DBusMessage *m,
                     DBusMessageIter *iter,
@@ -610,6 +619,7 @@ add_glist_as_array (DBusMessage *m,
   dbus_message_iter_close_container (iter, &sub_array);
 }
 
+/* Introspect message handler */
 static DBusHandlerResult
 handle_introspect_message (DBusConnection *c,
                            DBusMessage *m,
@@ -630,6 +640,7 @@ handle_introspect_message (DBusConnection *c,
   }
 }
 
+/* Get message handler */
 static DBusHandlerResult
 handle_get_message (DBusConnection *c,
                     DBusMessage *m,
@@ -665,6 +676,7 @@ handle_get_message (DBusConnection *c,
   }
 }
 
+/* GetAll message handler */
 static DBusHandlerResult
 handle_get_all_message (DBusConnection *c,
                         DBusMessage *m,
@@ -721,6 +733,7 @@ handle_get_all_message (DBusConnection *c,
   }
 }
 
+/* ListChildren message handler */
 static DBusHandlerResult
 handle_list_children_message (DBusConnection *c,
                               DBusMessage *m,
@@ -774,6 +787,7 @@ handle_list_children_message (DBusConnection *c,
   }
 }
 
+/* SearchObjects message handler */
 static DBusHandlerResult
 handle_search_objects_message (DBusConnection *c,
                                DBusMessage *m,
@@ -830,6 +844,7 @@ handle_search_objects_message (DBusConnection *c,
   }
 }
 
+/* Items interface handler */
 static DBusHandlerResult
 items_handler (DBusConnection *c,
                DBusMessage *m,
@@ -853,6 +868,7 @@ items_handler (DBusConnection *c,
   }
 }
 
+/* Containers interface handler */
 static DBusHandlerResult
 containers_handler (DBusConnection *c,
                     DBusMessage *m,
@@ -884,6 +900,7 @@ containers_handler (DBusConnection *c,
   }
 }
 
+/* Root category handler */
 static DBusHandlerResult
 root_handler (DBusConnection *c,
               DBusMessage *m,
@@ -951,6 +968,7 @@ ms1_server_dbus_register (MS1Server *server,
   return TRUE;
 }
 
+/* Unregister MS1Server from dbus */
 static void
 ms1_server_dbus_unregister (MS1Server *server,
                             const gchar *name)
@@ -990,6 +1008,7 @@ ms1_server_dbus_unregister (MS1Server *server,
   g_free (dbus_name);
 }
 
+/* Finalize function */
 static void
 ms1_server_finalize (GObject *object)
 {

@@ -55,6 +55,7 @@ G_DEFINE_TYPE (MS1Observer, ms1_observer, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
 
+/* Callback invoked when a NameOwner is changed in dbus */
 static void
 name_owner_changed (DBusGProxy *proxy,
                     const gchar *name,

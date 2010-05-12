@@ -133,6 +133,8 @@ id_to_object_path (MS1Server *server,
   return object_path;
 }
 
+/* Returns a GPtrArray of object_paths obtained from list of hashtable
+   properties */
 static GPtrArray *
 get_object_paths (GList *items)
 {
@@ -150,6 +152,7 @@ get_object_paths (GList *items)
 
   return op;
 }
+
 /********************* PUBLIC API *********************/
 
 /**
@@ -179,7 +182,7 @@ ms1_server_new_properties_hashtable ()
  * @id: identifier value
  * @is_container: @TRUE if the @id identifies a container
  *
- * Sets the "Path" property. Mandatory property
+ * Sets the "Path" property.
  *
  * @id will be transformed in an object path
  **/
@@ -207,7 +210,7 @@ ms1_server_set_path (MS1Server *server,
  * @properties: a #GHashTable
  * @parent: parent value
  *
- * Sets the "parent" property. Mandatory property.
+ * Sets the "Parent" property.
  *
  * @parent will be transformed in an object path.
  **/
@@ -236,7 +239,7 @@ ms1_server_set_parent (MS1Server *server,
  * @properties: a #GHashTable
  * @display_name: display name value
  *
- * Sets the "display-name" property. Mandatory property.
+ * Sets the "DisplayName" property.
  **/
 void
 ms1_server_set_display_name (MS1Server *server,
@@ -258,7 +261,7 @@ ms1_server_set_display_name (MS1Server *server,
  * @properties: a #GHashTable
  * @type: type of item
  *
- * Sets the "type" property. Mandatory property.
+ * Sets the "Type" property.
  *
  * Tells what kind of object we are dealing with.
  **/
@@ -322,7 +325,7 @@ ms1_server_set_item_type (MS1Server *server,
  * @properties: a #GHashTable
  * @mime_type: mime type value
  *
- * Sets the "mime-type" property. Mandatory property for items.
+ * Sets the "MIMEType" property.
  **/
 void
 ms1_server_set_mime_type (MS1Server *server,
@@ -344,7 +347,7 @@ ms1_server_set_mime_type (MS1Server *server,
  * @properties: a #GHashTable
  * @artist: artist value
  *
- * Sets the "artist" property. Recommended property for items.
+ * Sets the "Artist" property.
  **/
 void
 ms1_server_set_artist (MS1Server *server,
@@ -366,7 +369,7 @@ ms1_server_set_artist (MS1Server *server,
  * @properties: a #GHashTable
  * @album: album value
  *
- * Sets the "album" property. Recommended property for items.
+ * Sets the "Album" property.
  **/
 void
 ms1_server_set_album (MS1Server *server,
@@ -388,7 +391,7 @@ ms1_server_set_album (MS1Server *server,
  * @properties: a #GHashTable
  * @date: date value
  *
- * Sets the "date" property. Recommended property for items.
+ * Sets the "Date" property.
  *
  * This date can be date of creation or release. Must be compliant to ISO-8601
  * and RFC-3339.
@@ -413,7 +416,7 @@ ms1_server_set_date (MS1Server *server,
  * @properties: a #GHashTable
  * @dlna_profile: DLNA value
  *
- * Sets the "dlna-profile" property. Optional property for items.
+ * Sets the "DLNAProfile" property.
  *
  * If you provide a value for this property, it will greatly help avoiding
  * guessing of its value by UPnP consumers.
@@ -438,7 +441,7 @@ ms1_server_set_dlna_profile (MS1Server *server,
  * @properties: a #GHashTable
  * @thumbnail: thumbnail identifier value
  *
- * Sets the "thumbnail" property. Optional property for video/image items.
+ * Sets the "Thumbnail" property.
  **/
 void
 ms1_server_set_thumbnail (MS1Server *server,
@@ -460,7 +463,7 @@ ms1_server_set_thumbnail (MS1Server *server,
  * @properties: a #GHashTable
  * @album_art: albumart identifier value
  *
- * Sets the "AlbumArt" property. Optional property for video/image items.
+ * Sets the "AlbumArt" property.
  **/
 void
 ms1_server_set_album_art (MS1Server *server,
@@ -482,7 +485,7 @@ ms1_server_set_album_art (MS1Server *server,
  * @properties: a #GHashTable
  * @genre: genre value
  *
- * Sets the "genre" property. Optional property for audio/music items.
+ * Sets the "Genre" property. Optional property for audio/music items.
  **/
 void
 ms1_server_set_genre (MS1Server *server,
@@ -504,7 +507,7 @@ ms1_server_set_genre (MS1Server *server,
  * @properties: a #GHashTable
  * @size: size value
  *
- * Sets the "size" property. Recommended property for items.
+ * Sets the "Size" property.
  *
  * It is the resource size in bytes.
  **/
@@ -526,7 +529,7 @@ ms1_server_set_size (MS1Server *server,
  * @properties: a #GHashTable
  * @duration: duration (in seconds) value
  *
- * Sets the "duration" property. Optional property for audio/video/music items.
+ * Sets the "Duration" property.
  **/
 void
 ms1_server_set_duration (MS1Server *server,
@@ -546,7 +549,7 @@ ms1_server_set_duration (MS1Server *server,
  * @properties: a #GHashTable
  * @bitrate: bitrate value
  *
- * Sets the "bitrate" property. Optional property for audio/video/music items.
+ * Sets the "Bitrate" property.
  **/
 void
 ms1_server_set_bitrate (MS1Server *server,
@@ -566,7 +569,7 @@ ms1_server_set_bitrate (MS1Server *server,
  * @properties: a #GHashTable
  * @sample_rate: sample rate value
  *
- * Sets the "sample-rate" property. Optional property for audio/video/music
+ * Sets the "SampleRate" property.
  * items.
  **/
 void
@@ -587,7 +590,7 @@ ms1_server_set_sample_rate (MS1Server *server,
  * @properties: a #GHashTable
  * @bits_per_sample: bits per sample value
  *
- * Sets the "bits-per-sample" property. Optional property for audio/video/music
+ * Sets the "BitsPerSample" property.
  * items.
  **/
 void
@@ -608,7 +611,7 @@ ms1_server_set_bits_per_sample (MS1Server *server,
  * @properties: a #GHashTable
  * @width: width (in pixels) value
  *
- * Sets the "width" property. Recommended property for video/image items.
+ * Sets the "Width" property.
  **/
 void
 ms1_server_set_width (MS1Server *server,
@@ -628,7 +631,7 @@ ms1_server_set_width (MS1Server *server,
  * @properties: a #GHashTable
  * @height: height (in pixels) value
  *
- * Sets the "height" property. Recommended property for video/image items.
+ * Sets the "Height" property.
  **/
 void
 ms1_server_set_height (MS1Server *server,
@@ -648,7 +651,7 @@ ms1_server_set_height (MS1Server *server,
  * @properties: a #GHashTable
  * @depth: color depth value
  *
- * Sets the "color-depth" property. Recommended property for video/image items.
+ * Sets the "ColorDepth" property.
  **/
 void
 ms1_server_set_color_depth (MS1Server *server,
@@ -668,7 +671,7 @@ ms1_server_set_color_depth (MS1Server *server,
  * @properties: a #GHashTable
  * @pixel_width: pixel width value
  *
- * Sets the "pixel-width" property. Optional property for video/image items.
+ * Sets the "PixelWidth" property.
  **/
 void
 ms1_server_set_pixel_width (MS1Server *server,
@@ -688,7 +691,7 @@ ms1_server_set_pixel_width (MS1Server *server,
  * @properties: a #GHashTable
  * @pixel_height: pixel height value
  *
- * Sets the "pixel-height" property. Optional property for video/image items.
+ * Sets the "PixelHeight" property.
  **/
 void
 ms1_server_set_pixel_height (MS1Server *server,
@@ -708,7 +711,7 @@ ms1_server_set_pixel_height (MS1Server *server,
  * @properties: a #GHashTable
  * @urls: @NULL-terminated array of URLs values
  *
- * Sets the "URLs" property. Mandatory property for items.
+ * Sets the "URLs" property.
  **/
 void
 ms1_server_set_urls (MS1Server *server,
@@ -739,7 +742,7 @@ ms1_server_set_urls (MS1Server *server,
  * @properties: a #GHashTable
  * @searchable: @TRUE if item is searchable
  *
- * Sets the "Searchable" property. Optional property for video/image items.
+ * Sets the "Searchable" property.
  **/
 void
 ms1_server_set_searchable (MS1Server *server,
@@ -759,7 +762,7 @@ ms1_server_set_searchable (MS1Server *server,
  * @properties: a #GHashTable
  * @items: a list of children
  *
- * Sets the "Items" property. Mandatory property for items.
+ * Sets the "Items" property.
  **/
 void
 ms1_server_set_items (MS1Server *server,
@@ -784,7 +787,7 @@ ms1_server_set_items (MS1Server *server,
  * @properties: a #GHashTable
  * @item_count: how many items have this container
  *
- * Sets the "ItemCount" property. Optional property for video/image items.
+ * Sets the "ItemCount" property.
  **/
 void
 ms1_server_set_item_count (MS1Server *server,
@@ -804,7 +807,7 @@ ms1_server_set_item_count (MS1Server *server,
  * @properties: a #GHashTable
  * @containers: a list of children
  *
- * Sets the "Containers" property. Mandatory property for items.
+ * Sets the "Containers" property.
  **/
 void
 ms1_server_set_containers (MS1Server *server,
@@ -829,7 +832,7 @@ ms1_server_set_containers (MS1Server *server,
  * @properties: a #GHashTable
  * @container_count: how many containers have this container
  *
- * Sets the "ContainerCount" property. Optional property for video/image items.
+ * Sets the "ContainerCount" property.
  **/
 void
 ms1_server_set_container_count (MS1Server *server,
