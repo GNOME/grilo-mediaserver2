@@ -31,7 +31,7 @@
 
 #define MS1_DBUS_SERVICE_PREFIX_LENGTH 28
 
-void ms1_client_notify_unref (MS1Client *client);
+void ms1_client_notify_destroy (MS1Client *client);
 
 void ms1_observer_add_client (MS1Client *client, const gchar *provider);
 

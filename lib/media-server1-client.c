@@ -222,14 +222,13 @@ ms1_client_init (MS1Client *client)
 
 /****************** INTERNAL PUBLIC API (NOT TO BE EXPORTED) ******************/
 
-/* Notify destruction of client, and unref it */
+/* Notify destruction of client; client should not use this client any more*/
 void
-ms1_client_notify_unref (MS1Client *client)
+ms1_client_notify_destroy (MS1Client *client)
 {
   g_return_if_fail (MS1_IS_CLIENT (client));
 
   g_signal_emit (client, signals[DESTROY], 0);
-  g_object_unref (client);
 }
 
 /******************** PUBLIC API ********************/

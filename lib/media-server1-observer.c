@@ -75,7 +75,7 @@ name_owner_changed (DBusGProxy *proxy,
   /* Check if it has been removed */
   if (*new_owner == '\0') {
     clients = g_hash_table_lookup (observer->priv->clients, name);
-    g_list_foreach (clients, (GFunc) ms1_client_notify_unref, NULL);
+    g_list_foreach (clients, (GFunc) ms1_client_notify_destroy, NULL);
     return;
   }
 
