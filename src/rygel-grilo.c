@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2010 Igalia S.L.
  *
@@ -44,6 +43,7 @@ static GrlPluginRegistry *registry = NULL;
 static gboolean dups;
 static gchar **args = NULL;
 static gchar *conffile = NULL;
+static gint limit = 0;
 
 static GOptionEntry entries[] = {
   { "config-file", 'c', 0,
@@ -53,6 +53,10 @@ static GOptionEntry entries[] = {
   { "allow-duplicates", 'D', 0,
     G_OPTION_ARG_NONE, &dups,
     "Allow more than one provider with same name",
+    NULL },
+  { "limit", 'l', 0,
+    G_OPTION_ARG_INT, &limit,
+    "Limit max. number of children for Items/Containers ( 0 = unlimited)",
     NULL },
   { G_OPTION_REMAINING, '\0', 0,
     G_OPTION_ARG_FILENAME_ARRAY, &args,
@@ -257,7 +261,7 @@ get_items_and_containers (MS1Server *server,
   }
 
   children =
-    get_children_cb (server, container_id, 0, 0, properties, source, NULL);
+    get_children_cb (server, container_id, 0, (guint) limit, properties, source, NULL);
 
   /* Separate containers from items */
   for (child = children; child; child = g_list_next (child)) {
@@ -892,6 +896,9 @@ main (gint argc, gchar **argv)
     g_clear_error (&error);
     return -1;
   }
+
+  /* Adjust limit */
+  limit = CLAMP (limit, 0, G_MAXINT);
 
   /* Load grilo plugins */
   registry = grl_plugin_registry_get_instance ();
