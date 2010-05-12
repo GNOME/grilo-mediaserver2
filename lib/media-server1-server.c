@@ -716,9 +716,9 @@ handle_get_all_message (DBusConnection *c,
 }
 
 static DBusHandlerResult
-handle_list_objects_message (DBusConnection *c,
-                             DBusMessage *m,
-                             void *userdata)
+handle_list_children_message (DBusConnection *c,
+                              DBusMessage *m,
+                              void *userdata)
 {
   DBusMessage *r;
   GList *children;
@@ -811,8 +811,8 @@ containers_handler (DBusConnection *c,
     return handle_get_all_message (c, m, userdata);
   } else if (dbus_message_is_method_call (m,
                                           "org.gnome.UPnP.MediaContainer1",
-                                          "ListObjects")) {
-    return handle_list_objects_message (c, m, userdata);
+                                          "ListChildren")) {
+    return handle_list_children_message (c, m, userdata);
   } else {
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
