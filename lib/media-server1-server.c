@@ -1165,7 +1165,6 @@ ms1_server_updated (MS1Server *server,
   message = dbus_message_new_signal (object_path,
                                      "org.gnome.UPnP.MediaContainer1",
                                      "Updated");
-
   dbus_connection_send (connection, message, NULL);
   dbus_message_unref (message);
 

@@ -174,6 +174,14 @@ destroy_cb (MS1Client *client, gpointer user_data)
 }
 
 static void
+updated_cb (MS1Client *client, const gchar *object_path, gpointer user_data)
+{
+  g_print ("Provider %s: %s updated\n",
+           ms1_client_get_provider_name (client),
+           object_path);
+}
+
+static void
 new_cb (MS1Observer *observer, const gchar *provider, gpointer user_data)
 {
   MS1Client *client;
@@ -210,6 +218,34 @@ test_provider_free ()
 
     g_print ("Provider %s\n", *provider);
     g_signal_connect (G_OBJECT (client), "destroy", G_CALLBACK (destroy_cb), NULL);
+  }
+
+  g_strfreev (providers);
+}
+
+static void
+test_updated ()
+{
+  MS1Client *client;
+  gchar **provider;
+  gchar **providers;
+
+  providers = ms1_client_get_providers ();
+
+  if (!providers) {
+    g_print ("There is no MediaServer1 provider\n");
+    return;
+  }
+
+  for (provider = providers; *provider; provider++) {
+    client = ms1_client_new (*provider);
+    if (!client) {
+      g_printerr ("Unable to create a client\n");
+      continue;
+    }
+
+    g_print ("Provider %s\n", *provider);
+    g_signal_connect (G_OBJECT (client), "updated", G_CALLBACK (updated_cb), NULL);
   }
 
   g_strfreev (providers);
@@ -259,8 +295,9 @@ int main (int argc, char **argv)
 
   if (0) test_properties ();
   if (0) test_children ();
-  if (1) test_search ();
+  if (0) test_search ();
   if (0) test_provider_free ();
+  if (1) test_updated ();
   if (0) test_dynamic_providers ();
 
   mainloop = g_main_loop_new (NULL, FALSE);

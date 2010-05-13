@@ -21,6 +21,7 @@
  */
 
 #include <dbus/dbus-glib-bindings.h>
+#include <dbus/dbus-glib-lowlevel.h>
 #include <dbus/dbus-glib.h>
 
 #include "media-server1-private.h"
@@ -85,16 +86,59 @@ name_owner_changed (DBusGProxy *proxy,
   }
 }
 
+/* Check for Updated signal and notify appropriate MS1Client, which will send a
+   signal */
+static DBusHandlerResult
+listen_updated_signal (DBusConnection *connection,
+                       DBusMessage *message,
+                       void *user_data)
+{
+  GList *clients;
+  MS1Observer *observer = MS1_OBSERVER (user_data);
+  gchar **path;
+
+  g_print ("# Iface %s\n", dbus_message_get_interface(message));
+  g_print ("# Path %s\n", dbus_message_get_path (message));
+  g_print ("# Method %s\n", dbus_message_get_member (message));
+  g_print ("\n\n\n");
+
+  if (dbus_message_is_signal (message,
+                              "org.gnome.UPnP.MediaContainer1",
+                              "Updated")) {
+    dbus_message_get_path_decomposed (message, &path);
+
+    if (g_strv_length (path) < 5) {
+      g_printerr ("Wrong object path %s\n", dbus_message_get_path (message));
+      dbus_free_string_array (path);
+      return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
+    /* Check if there is a client for this provider; if so, then notify all of
+       them */
+    clients = g_hash_table_lookup (observer->priv->clients, path[4]);
+    dbus_free_string_array (path);
+
+    g_list_foreach (clients,
+                    (GFunc) ms1_client_notify_updated,
+                    (gpointer) dbus_message_get_path (message));
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+  }
+
+  return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
 /* Creates an instance of observer */
 static MS1Observer *
 create_instance ()
 {
-  DBusGConnection *connection;
+  DBusConnection *connection;
+  DBusGConnection *gconnection;
   GError *error = NULL;
   MS1Observer *observer;
 
-  connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-  if (!connection) {
+  gconnection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+  if (!gconnection) {
     g_printerr ("Could not connect to session bus, %s\n", error->message);
     g_error_free (error);
     return NULL;
@@ -102,7 +146,7 @@ create_instance ()
 
   observer = g_object_new (MS1_TYPE_OBSERVER, NULL);
 
-  observer->priv->proxy = dbus_g_proxy_new_for_name (connection,
+  observer->priv->proxy = dbus_g_proxy_new_for_name (gconnection,
                                                      DBUS_SERVICE_DBUS,
                                                      DBUS_PATH_DBUS,
                                                      DBUS_INTERFACE_DBUS);
@@ -120,6 +164,16 @@ create_instance ()
                                observer,
                                NULL);
 
+  /* Listen for Updated signal */
+  connection = dbus_g_connection_get_connection (gconnection);
+  dbus_bus_add_match (connection,
+                      "interface='org.gnome.UPnP.MediaContainer1',"
+                      "member='Updated'",
+                      NULL);
+  dbus_connection_add_filter (connection,
+                              listen_updated_signal,
+                              observer,
+                              NULL);
   return observer;
 }
 

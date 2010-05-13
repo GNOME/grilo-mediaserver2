@@ -62,17 +62,6 @@ G_DEFINE_TYPE (MS1Client, ms1_client, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
 
-#if 0
-/* Callback invoked when "Updated" dbus signal is received */
-static void
-updated (DBusGProxy *proxy,
-         const gchar *id,
-         MS1Client *client)
-{
-  g_signal_emit (client, signals[UPDATED], 0, id);
-}
-#endif
-
 /* Free gvalue */
 static void
 free_gvalue (GValue *v)
@@ -229,6 +218,14 @@ ms1_client_notify_destroy (MS1Client *client)
   g_return_if_fail (MS1_IS_CLIENT (client));
 
   g_signal_emit (client, signals[DESTROY], 0);
+}
+
+/* Notify update of object_path */
+void
+ms1_client_notify_updated (MS1Client *client,
+                           const gchar *object_path)
+{
+  g_signal_emit (client, signals[UPDATED], 0, object_path);
 }
 
 /******************** PUBLIC API ********************/

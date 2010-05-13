@@ -33,6 +33,8 @@
 
 void ms1_client_notify_destroy (MS1Client *client);
 
+void ms1_client_notify_updated (MS1Client *client, const gchar *object_path);
+
 void ms1_observer_add_client (MS1Client *client, const gchar *provider);
 
 void ms1_observer_remove_client (MS1Client *client, const gchar *provider);
