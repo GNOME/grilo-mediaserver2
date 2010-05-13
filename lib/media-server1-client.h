@@ -116,6 +116,8 @@ const gchar *ms1_client_get_display_name (GHashTable *properties);
 
 MS1ItemType ms1_client_get_item_type (GHashTable *properties);
 
+const gchar *ms1_client_get_item_type_string (GHashTable *properties);
+
 const gchar *ms1_client_get_mime_type (GHashTable *properties);
 
 const gchar *ms1_client_get_artist (GHashTable *properties);

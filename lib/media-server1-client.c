@@ -686,6 +686,29 @@ ms1_client_get_item_type (GHashTable *properties)
 }
 
 /**
+ * ms1_client_get_item_type_string:
+ * @properties: a #GHashTable
+ *
+ * Returns "Type" property value as a string.
+ *
+ * Returns: property value or @NULL if it is not available
+ **/
+const gchar *
+ms1_client_get_item_type_string (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_TYPE);
+  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+    return NULL;
+  }
+
+  return g_value_get_string (val);
+}
+
+/**
  * ms1_client_get_mime_type:
  * @properties: a #GHashTable
  *
