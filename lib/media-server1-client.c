@@ -21,7 +21,6 @@
  */
 
 #include <dbus/dbus-glib-bindings.h>
-#include <dbus/dbus-glib.h>
 #include <string.h>
 
 #include "media-server1-private.h"

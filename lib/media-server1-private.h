@@ -23,6 +23,8 @@
 #ifndef _MEDIA_SERVER1_PRIVATE_H_
 #define _MEDIA_SERVER1_PRIVATE_H_
 
+#include <glib.h>
+
 #include "media-server1-client.h"
 #include "media-server1-server.h"
 

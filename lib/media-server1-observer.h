@@ -23,9 +23,8 @@
 #ifndef _MEDIA_SERVER1_OBSERVER_H_
 #define _MEDIA_SERVER1_OBSERVER_H_
 
-/* #include <gio/gio.h> */
 #include <glib-object.h>
-/* #include <glib.h> */
+#include <glib.h>
 
 #include "media-server1-common.h"
 

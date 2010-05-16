@@ -20,9 +20,7 @@
  *
  */
 
-#include <dbus/dbus-glib-bindings.h>
 #include <dbus/dbus-glib-lowlevel.h>
-#include <dbus/dbus-glib.h>
 
 #include "media-server1-private.h"
 #include "media-server1-observer.h"

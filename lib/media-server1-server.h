@@ -23,8 +23,8 @@
 #ifndef _MEDIA_SERVER1_SERVER_H_
 #define _MEDIA_SERVER1_SERVER_H_
 
-#include <glib.h>
 #include <glib-object.h>
+#include <glib.h>
 
 #include "media-server1-common.h"
 

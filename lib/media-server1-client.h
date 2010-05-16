@@ -23,7 +23,6 @@
 #ifndef _MEDIA_SERVER1_CLIENT_H_
 #define _MEDIA_SERVER1_CLIENT_H_
 
-#include <gio/gio.h>
 #include <glib-object.h>
 #include <glib.h>
 
