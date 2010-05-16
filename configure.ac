@@ -48,16 +48,18 @@ AM_CONDITIONAL([DEBUG], [test "x$enable_debug" = "xyes"])
 # DEPENDENCIES
 # ----------------------------------------------------------
 
-PKG_CHECK_MODULES(DEPS, glib-2.0	\
+PKG_CHECK_MODULES(DEPS, 		\
+			glib-2.0	\
 			gobject-2.0	\
-			gmodule-2.0	\
-			gio-2.0		\				
-			grilo-0.1	\
 			dbus-glib-1)
-
 
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
+
+PKG_CHECK_MODULES(GRL_DEP, grilo-0.1)
+
+AC_SUBST(GRL_DEP_CFLAGS)
+AC_SUBST(GRL_DEP_LIBS)
 
 # ----------------------------------------------------------
 # DBUS BINDING TOOL

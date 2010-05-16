@@ -5,15 +5,6 @@
 #
 # Copyright (C) 2010 Igalia S.L.
 
-INCLUDES = @DEPS_CFLAGS@
-
-rygel-grilo-%-glue.h: $(top_srcdir)/data/%1.xml
-	$(DBUSBINDINGTOOL)			\
-	--mode=glib-server			\
-	--output=$@				\
-	--prefix=rygel_grilo_$(subst -,_,$*)	\
-	$^
-
 bin_PROGRAMS = rygel-grilo test-client
 
 rygel_grilo_SOURCES =	\
@@ -21,25 +12,29 @@ rygel_grilo_SOURCES =	\
 
 
 rygel_grilo_CFLAGS =			\
+	$(DEPS_CFLAGS)			\
+	$(GRL_DEP_CFLAGS)		\
 	-DPREFIX=$(prefix)		\
 	-DSYSCONFDIR=\"$(sysconfdir)\"	\
         -I$(top_srcdir)/lib
 
 rygel_grilo_LDADD =	\
 	-ldl -lpthread	\
-	@DEPS_LIBS@	\
+	$(DEPS_LIBS)	\
+	$(GRL_DEP_LIBS)	\
 	$(top_builddir)/lib/libmediaserver1.la
 
 test_client_SOURCES =	\
 	test-client.c
 
 test_client_CFLAGS =		\
+	$(DEPS_CFLAGS)		\
 	-DPREFIX=$(prefix)	\
 	-I$(top_srcdir)/lib
 
 test_client_LDADD =	\
 	-ldl -lpthread	\
-	@DEPS_LIBS@	\
+	$(DEPS_LIBS)	\
 	$(top_builddir)/lib/libmediaserver1.la
 
 MAINTAINERCLEANFILES =	\
