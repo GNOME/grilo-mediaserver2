@@ -26,7 +26,7 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <media-server1-common.h>
+#include "media-server1-common.h"
 
 #define MS1_TYPE_SERVER                         \
   (ms1_server_get_type ())
