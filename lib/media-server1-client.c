@@ -400,7 +400,7 @@ ms1_client_get_properties (MS1Client *client,
                              G_TYPE_STRING, IFACES[i],
                              G_TYPE_STRING, prop_by_iface[i][0],
                              G_TYPE_INVALID,
-                             G_TYPE_VALUE, &v,
+                             G_TYPE_VALUE, v,
                              G_TYPE_INVALID)) {
         g_hash_table_insert (collected_properties,
                              g_strdup (prop_by_iface[i][0]),
