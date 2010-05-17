@@ -7,6 +7,9 @@
 
 SUBDIRS = lib src data
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = mediaserver1.pc
+
 MAINTAINERCLEANFILES = \
         aclocal.m4 \
         compile \
