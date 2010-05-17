@@ -95,11 +95,6 @@ listen_updated_signal (DBusConnection *connection,
   MS1Observer *observer = MS1_OBSERVER (user_data);
   gchar **path;
 
-  g_print ("# Iface %s\n", dbus_message_get_interface(message));
-  g_print ("# Path %s\n", dbus_message_get_path (message));
-  g_print ("# Method %s\n", dbus_message_get_member (message));
-  g_print ("\n\n\n");
-
   if (dbus_message_is_signal (message,
                               "org.gnome.UPnP.MediaContainer1",
                               "Updated")) {
