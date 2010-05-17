@@ -255,7 +255,12 @@ properties_lookup_with_default (GHashTable *properties,
     gptrarray_type_properties[3] = NULL;
   }
 
-  propvalue = g_hash_table_lookup (properties, property);
+  if (properties) {
+    propvalue = g_hash_table_lookup (properties, property);
+  } else {
+    propvalue = NULL;
+  }
+
   if (propvalue) {
     /* Make a copy and return it */
     ret_value = g_new0 (GValue, 1);
@@ -429,12 +434,11 @@ get_property_value (MS1Server *server,
                                                server->priv->data,
                                                NULL);
     g_free (id);
-    if (!propresult) {
-      return NULL;
-    }
-
     v = properties_lookup_with_default (propresult, property);
-    g_hash_table_unref (propresult);
+
+    if (propresult) {
+      g_hash_table_unref (propresult);
+    }
   }
 
   return v;
