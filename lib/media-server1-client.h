@@ -94,7 +94,7 @@ GList *ms1_client_list_children (MS1Client *client,
                                  const gchar *object_path,
                                  guint offset,
                                  guint max_count,
-                                 const gchar **properties,
+                                 gchar **properties,
                                  GError **error);
 
 GList *ms1_client_search_objects (MS1Client *client,
@@ -102,7 +102,7 @@ GList *ms1_client_search_objects (MS1Client *client,
                                   const gchar *query,
                                   guint offset,
                                   guint max_count,
-                                  const gchar **properties,
+                                  gchar **properties,
                                   GError **error);
 
 const gchar *ms1_client_get_root_path (MS1Client *client);

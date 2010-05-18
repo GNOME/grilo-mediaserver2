@@ -3,10 +3,10 @@
 #include <glib.h>
 #include <string.h>
 
-static const gchar *properties[] = { MS1_PROP_PATH,
-				     MS1_PROP_DISPLAY_NAME,
-                                     MS1_PROP_PARENT,
-                                     NULL };
+static gchar *properties[] = { MS1_PROP_PATH,
+                               MS1_PROP_DISPLAY_NAME,
+                               MS1_PROP_PARENT,
+                               NULL };
 
 static void
 test_properties ()
@@ -15,7 +15,7 @@ test_properties ()
   GHashTable *result;
   GValue *v;
   MS1Client *client;
-  const gchar **p;
+  gchar **p;
   gchar **provider;
   gchar **providers;
 

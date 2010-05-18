@@ -466,7 +466,7 @@ ms1_client_list_children (MS1Client *client,
                           const gchar *object_path,
                           guint offset,
                           guint max_count,
-                          const gchar **properties,
+                          gchar **properties,
                           GError **error)
 {
   DBusGProxy *gproxy;
@@ -522,7 +522,7 @@ ms1_client_search_objects (MS1Client *client,
                            const gchar *query,
                            guint offset,
                            guint max_count,
-                           const gchar **properties,
+                           gchar **properties,
                            GError **error)
 {
   DBusGProxy *gproxy;
