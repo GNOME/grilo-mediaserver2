@@ -26,8 +26,9 @@
 #include "media-server1-private.h"
 #include "media-server1-client.h"
 
-#define IMEDIAOBJECT1_INDEX 0
-#define IMEDIAITEM1_INDEX   1
+#define IMEDIAOBJECT1_INDEX    0
+#define IMEDIAITEM1_INDEX      1
+#define IMEDIACONTAINER1_INDEX 2
 
 #define MS1_CLIENT_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS1_TYPE_CLIENT, MS1ClientPrivate)
@@ -55,7 +56,8 @@ struct _MS1ClientPrivate {
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
 static gchar *IFACES[] = { "org.gnome.UPnP.MediaObject1",
-                           "org.gnome.UPnP.MediaItem1" };
+                           "org.gnome.UPnP.MediaItem1",
+                           "org.gnome.UPnP.MediaContainer1" };
 
 G_DEFINE_TYPE (MS1Client, ms1_client, G_TYPE_OBJECT);
 
@@ -89,17 +91,26 @@ split_properties_by_interface (gchar **properties)
   gint prop_length;
   gint mo_index = 0;
   gint mi_index = 0;
+  gint mc_index = 0;
   gchar **property;
 
   prop_length = g_strv_length (properties) + 1;
-  split = g_new (gchar **, 2);
+  split = g_new (gchar **, 3);
   split[IMEDIAOBJECT1_INDEX] = g_new0 (gchar *, prop_length);
   split[IMEDIAITEM1_INDEX] = g_new0 (gchar *, prop_length);
+  split[IMEDIACONTAINER1_INDEX ] = g_new0 (gchar *, prop_length);
   for (property = properties; *property; property++) {
     if (g_strcmp0 (*property, MS1_PROP_DISPLAY_NAME) == 0 ||
         g_strcmp0 (*property, MS1_PROP_PARENT) == 0 ||
         g_strcmp0 (*property, MS1_PROP_PATH) == 0) {
       split[IMEDIAOBJECT1_INDEX][mo_index++] = *property;
+    } else if (g_strcmp0 (*property, MS1_PROP_CHILD_COUNT) == 0 ||
+               g_strcmp0 (*property, MS1_PROP_ITEMS) == 0 ||
+               g_strcmp0 (*property, MS1_PROP_ITEM_COUNT) == 0 ||
+               g_strcmp0 (*property, MS1_PROP_CONTAINERS) == 0 ||
+               g_strcmp0 (*property, MS1_PROP_CONTAINER_COUNT) == 0 ||
+               g_strcmp0 (*property, MS1_PROP_SEARCHABLE) == 0) {
+      split[IMEDIACONTAINER1_INDEX][mc_index++] = *property;
     } else {
       split[IMEDIAITEM1_INDEX][mi_index++] = *property;
     }
@@ -124,6 +135,23 @@ gptrarray_to_glist (GPtrArray *result)
   }
 
   return g_list_reverse (list);
+}
+
+/* Converts GPtrArray in a NULL-terminated array */
+static gchar **
+gptrarray_to_strv (GPtrArray *result)
+{
+  gchar **strv;
+  gint i;
+
+  strv = g_new (gchar *, result->len + 1);
+  for (i = 0; i < result->len; i++) {
+    strv[i] = g_strdup (g_ptr_array_index (result, i));
+  }
+
+  strv[i] = NULL;
+
+  return strv;
 }
 
 /* Dispose function */
@@ -390,7 +418,7 @@ ms1_client_get_properties (MS1Client *client,
                                                 (GDestroyNotify) free_gvalue);
 
   prop_by_iface = split_properties_by_interface (properties);
-  for (i = 0; i < 2; i++) {
+  for (i = 0; i < 3; i++) {
     num_props = g_strv_length (prop_by_iface[i]);
     /* If only one property is required, then invoke "Get" method */
     if (num_props == 1) {
@@ -1117,4 +1145,144 @@ ms1_client_get_urls (GHashTable *properties)
   }
 
   return g_strdupv (g_value_get_boxed (val));
+}
+
+/**
+ * ms1_client_get_searchable:
+ * @properties: a #GHashTable
+ *
+ * Returns "Searchable" property value.
+ *
+ * Returns: property value
+ **/
+gboolean
+ms1_client_get_searchable (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, FALSE);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_SEARCHABLE);
+  if (!val || !G_VALUE_HOLDS_BOOLEAN (val)) {
+    return FALSE;
+  }
+
+  return g_value_get_boolean (val);
+}
+
+/**
+ * ms1_client_get_child_count:
+ * @properties: a #GHhashTable
+ *
+ * Returns "ChildCount" property value.
+ *
+ * Returns: property value
+ **/
+guint
+ms1_client_get_child_count (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, 0);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_CHILD_COUNT);
+  if (!val || !G_VALUE_HOLDS_UINT (val)) {
+    return 0;
+  }
+
+  return g_value_get_uint (val);
+}
+
+/**
+ * ms1_client_get_items:
+ * @properties: a #GHashTable
+ *
+ * Returns "Items" property value.
+ *
+ * Returns: a new @NULL-terminated array of strings or @NULL if it is not
+ * available
+ **/
+gchar **
+ms1_client_get_items (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_ITEMS);
+  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
+    return NULL;
+  }
+
+  return gptrarray_to_strv (g_value_get_boxed (val));
+}
+
+/**
+ * ms1_client_get_item_count:
+ * @properties: a #GHashTable
+ *
+ * Returns "ItemCount" property value.
+ *
+ * Returns: property value
+ **/
+guint
+ms1_client_get_item_count (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, 0);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_ITEM_COUNT);
+  if (!val || !G_VALUE_HOLDS_UINT (val)) {
+    return 0;
+  }
+
+  return g_value_get_uint (val);
+}
+
+/**
+ * ms1_client_get_containers:
+ * @properties: a #GHashTable
+ *
+ * Returns "Containers" property value.
+ *
+ * Returns: a new @NULL-terminated array of strings or @NULL if it is not
+ * available
+ **/
+gchar **
+ms1_client_get_containers (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, NULL);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_CONTAINERS);
+  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
+    return NULL;
+  }
+
+  return gptrarray_to_strv (g_value_get_boxed (val));
+}
+
+/**
+ * ms1_client_get_container_count:
+ * @properties: a #GHhashTable
+ *
+ * Returns "ContainerCount" property value.
+ *
+ * Returns: property value
+ **/
+guint
+ms1_client_get_container_count (GHashTable *properties)
+{
+  GValue *val;
+
+  g_return_val_if_fail (properties, 0);
+
+  val = g_hash_table_lookup (properties, MS1_PROP_CONTAINER_COUNT);
+  if (!val || !G_VALUE_HOLDS_UINT (val)) {
+    return 0;
+  }
+
+  return g_value_get_uint (val);
 }

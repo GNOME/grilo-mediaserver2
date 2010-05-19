@@ -155,4 +155,16 @@ gint ms1_client_get_pixel_height (GHashTable *properties);
 
 gchar **ms1_client_get_urls (GHashTable *properties);
 
+gboolean ms1_client_get_searchable (GHashTable *properties);
+
+guint ms1_client_get_child_count (GHashTable *properties);
+
+gchar **ms1_client_get_items (GHashTable *properties);
+
+guint ms1_client_get_item_count (GHashTable *properties);
+
+gchar **ms1_client_get_containers (GHashTable *properties);
+
+guint ms1_client_get_container_count (GHashTable *properties);
+
 #endif /* _MEDIA_SERVER1_CLIENT_H_ */
