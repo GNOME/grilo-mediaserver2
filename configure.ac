@@ -51,6 +51,7 @@ AM_CONDITIONAL([DEBUG], [test "x$enable_debug" = "xyes"])
 PKG_CHECK_MODULES(DEPS, 		\
 			glib-2.0	\
 			gobject-2.0	\
+                        gio-2.0         \
 			dbus-glib-1)
 
 AC_SUBST(DEPS_CFLAGS)

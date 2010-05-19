@@ -25,6 +25,7 @@
 
 #include <glib-object.h>
 #include <glib.h>
+#include <gio/gio.h>
 
 #include "media-server1-common.h"
 
@@ -89,6 +90,18 @@ GHashTable *ms1_client_get_properties (MS1Client *client,
                                        const gchar *object_path,
                                        gchar **properties,
                                        GError **error);
+
+void ms1_client_list_children_async (MS1Client *client,
+                                     const gchar *object_path,
+                                     guint offset,
+                                     guint max_count,
+                                     gchar **properties,
+                                     GAsyncReadyCallback callback,
+                                     gpointer user_data);
+
+GList *ms1_client_list_children_finish (MS1Client *client,
+                                        GAsyncResult *res,
+                                        GError **error);
 
 GList *ms1_client_list_children (MS1Client *client,
                                  const gchar *object_path,

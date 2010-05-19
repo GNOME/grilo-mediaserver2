@@ -4,8 +4,13 @@
 #include <string.h>
 
 static gchar *properties[] = { MS1_PROP_PATH,
-                               MS1_PROP_DISPLAY_NAME,
-                               MS1_PROP_PARENT,
+                               /* MS1_PROP_DISPLAY_NAME, */
+                               /* MS1_PROP_PARENT, */
+                               /* MS1_PROP_CHILD_COUNT, */
+                               MS1_PROP_CONTAINERS,
+                               /* MS1_PROP_ITEMS, */
+                               /* MS1_PROP_URLS, */
+                               /* MS1_PROP_ARTIST, */
                                NULL };
 
 static void
@@ -35,7 +40,7 @@ test_properties ()
     }
 
     result = ms1_client_get_properties (client,
-                                        ms1_client_get_root_path (client),
+                                        "/org/gnome/UPnP/MediaServer1/grl_shoutcast",
                                         (gchar **) properties,
                                         &error);
 
@@ -44,6 +49,15 @@ test_properties ()
       g_print ("\tDid not get any property, %s\n", error? error->message: "no error");
       return;
     }
+
+    gchar **urls = ms1_client_get_urls (result);
+    g_print ("We got %d urls\n", urls? g_strv_length (urls): 0);
+
+    gchar **items = ms1_client_get_items (result);
+    g_print ("We got %d items\n", items? g_strv_length (items): 0);
+
+    gchar **containers = ms1_client_get_containers (result);
+    g_print ("We got %d containers\n", containers? g_strv_length (containers): 0);
 
     for (p = properties; *p; p++) {
       v = g_hash_table_lookup (result, *p);
@@ -109,6 +123,68 @@ test_children ()
     g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
     g_list_free (children);
     g_object_unref (client);
+  }
+
+  g_strfreev (providers);
+}
+
+static void
+children_reply (GObject *source,
+                GAsyncResult *res,
+                gpointer user_data)
+{
+  GList *children;
+  GList *child;
+  GError *error = NULL;
+
+  children =
+    ms1_client_list_children_finish (MS1_CLIENT (source), res, &error);
+
+  if (!children) {
+      g_print ("\tDid not get any child, %s\n", error? error->message: "no error");
+      return;
+  }
+
+  for (child = children; child; child = g_list_next (child)) {
+    g_print ("\t* '%s', '%s'\n",
+             ms1_client_get_path (child->data),
+             ms1_client_get_display_name(child->data));
+  }
+
+  g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
+  g_list_free (children);
+  g_object_unref (source);
+}
+
+static void
+test_children_async ()
+{
+  gchar **providers;
+  gchar **provider;
+  MS1Client *client;
+
+  providers = ms1_client_get_providers ();
+
+  if (!providers) {
+    g_print ("There is no MediaServer1 provider\n");
+    return;
+  }
+
+  for (provider = providers; *provider; provider ++) {
+    client = ms1_client_new (*provider);
+
+    if (!client) {
+      g_printerr ("Unable to create a client\n");
+      return;
+    }
+
+    ms1_client_list_children_async (client,
+                                    ms1_client_get_root_path (client),
+                                    0,
+                                    10,
+                                    properties,
+                                    children_reply,
+                                    NULL);
   }
 
   g_strfreev (providers);
@@ -295,9 +371,10 @@ int main (int argc, char **argv)
 
   if (0) test_properties ();
   if (0) test_children ();
+  if (1) test_children_async ();
   if (0) test_search ();
   if (0) test_provider_free ();
-  if (1) test_updated ();
+  if (0) test_updated ();
   if (0) test_dynamic_providers ();
 
   mainloop = g_main_loop_new (NULL, FALSE);
