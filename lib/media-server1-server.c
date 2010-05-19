@@ -157,7 +157,7 @@ uint_to_value (guint number)
 
   val = g_new0 (GValue, 1);
   g_value_init (val, G_TYPE_UINT);
-  g_value_set_int (val, number);
+  g_value_set_uint (val, number);
 
   return val;
 }
