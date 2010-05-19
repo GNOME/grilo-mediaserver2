@@ -40,6 +40,7 @@ static GHashTable *servers = NULL;
 static GList *providers_names = NULL;
 static GrlPluginRegistry *registry = NULL;
 
+static gboolean count_items_containers;
 static gboolean dups;
 static gchar **args = NULL;
 static gchar *conffile = NULL;
@@ -49,6 +50,10 @@ static GOptionEntry entries[] = {
   { "config-file", 'c', 0,
     G_OPTION_ARG_STRING, &conffile,
     "Use this config file",
+    NULL },
+  { "count-items-containers", 'C', 0,
+    G_OPTION_ARG_NONE, &count_items_containers,
+    "Compute ItemCount and ContainerCount",
     NULL },
   { "allow-duplicates", 'D', 0,
     G_OPTION_ARG_NONE, &dups,
@@ -233,6 +238,7 @@ static void
 get_items_and_containers (MS1Server *server,
                           GrlMediaSource *source,
                           const gchar *container_id,
+                          guint *child_count,
                           GList **items,
                           guint *item_count,
                           GList **containers,
@@ -244,6 +250,10 @@ get_items_and_containers (MS1Server *server,
   MS1ItemType type;
 
   /* Initialize values */
+  if (child_count) {
+    *child_count = 0;
+  }
+
   if (items) {
     *items = NULL;
   }
@@ -265,6 +275,9 @@ get_items_and_containers (MS1Server *server,
 
   /* Separate containers from items */
   for (child = children; child; child = g_list_next (child)) {
+    if (child_count) {
+      (*child_count)++;
+    }
     type = ms1_client_get_item_type (child->data);
     if (type == MS1_ITEM_TYPE_CONTAINER) {
       if (container_count) {
@@ -339,8 +352,14 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
       grl_keys = g_list_prepend (grl_keys,
                                  GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_CHILD_COUNT) == 0) {
+      /* Add childcount to both lists. First we would try to use Grilo to get
+         childcount; if it is not supported or is unknown, then we will compute
+         it */
       grl_keys = g_list_prepend (grl_keys,
                                  GRLKEYID_TO_POINTER (GRL_METADATA_KEY_CHILDCOUNT));
+      if (other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      }
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_PARENT) == 0 && other_keys) {
       *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_TYPE) == 0 && other_keys) {
@@ -475,8 +494,10 @@ fill_other_properties_table (MS1Server *server,
   GList *_items;
   GList *key;
   gchar *id;
+  guint *child_count = NULL;
   guint *container_count = NULL;
   guint *item_count = NULL;
+  guint _child_count;
   guint _container_count;
   guint _item_count;
 
@@ -507,13 +528,22 @@ fill_other_properties_table (MS1Server *server,
                                   properties_table,
                                   MS1_ITEM_TYPE_UNKNOWN);
       }
+    } else if (g_strcmp0 (key->data, MS1_PROP_CHILD_COUNT) == 0) {
+      /* First check if childcount was obtained from Grilo; if not, then compute
+         it by hand */
+      if (GRL_IS_MEDIA_BOX (media) &&
+          grl_media_box_get_childcount (GRL_MEDIA_BOX (media)) == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
+        child_count = &_child_count;
+      }
     } else if (g_strcmp0 (key->data, MS1_PROP_ITEMS) == 0) {
       items = &_items;
-    } else if (g_strcmp0 (key->data, MS1_PROP_ITEM_COUNT) == 0) {
+    } else if (g_strcmp0 (key->data, MS1_PROP_ITEM_COUNT) == 0 &&
+               count_items_containers) {
       item_count = &_item_count;
     } else if (g_strcmp0 (key->data, MS1_PROP_CONTAINERS) == 0) {
       containers = &_containers;
-    } else if (g_strcmp0 (key->data, MS1_PROP_CONTAINER_COUNT) == 0) {
+    } else if (g_strcmp0 (key->data, MS1_PROP_CONTAINER_COUNT) == 0 &&
+               count_items_containers) {
       container_count = &_container_count;
     } else if (g_strcmp0 (key->data, MS1_PROP_SEARCHABLE) == 0) {
       ms1_server_set_searchable (server,
@@ -522,17 +552,21 @@ fill_other_properties_table (MS1Server *server,
     }
   }
 
-  if (items || item_count || containers || container_count) {
+  if (child_count || items || item_count || containers || container_count) {
     id = serialize_media (parent_id, media);
     if (id) {
       get_items_and_containers (server,
                                 source,
                                 id,
+                                child_count,
                                 items,
                                 item_count,
                                 containers,
                                 container_count);
       g_free (id);
+    }
+    if (child_count) {
+      ms1_server_set_child_count (server, properties_table, *child_count);
     }
     if (items) {
       ms1_server_set_items (server, properties_table, *items);
