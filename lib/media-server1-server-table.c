@@ -757,6 +757,26 @@ ms1_server_set_searchable (MS1Server *server,
 }
 
 /**
+ * ms1_server_set_child_count:
+ * @server: a #MS1Server
+ * @properties: a #GHashTable
+ * @child_count: how many children have this container
+ *
+ * Sets the "ChildCount" property.
+ **/
+void
+ms1_server_set_child_count (MS1Server *server,
+                            GHashTable *properties,
+                            guint child_count)
+{
+  g_return_if_fail (properties);
+
+  g_hash_table_insert (properties,
+                       MS1_PROP_CHILD_COUNT,
+                       uint_to_value (child_count));
+}
+
+/**
  * ms1_server_set_items:
  * @server: a #MS1Server
  * @properties: a #GHashTable

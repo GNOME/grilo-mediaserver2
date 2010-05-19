@@ -64,6 +64,7 @@
 
 #define MEDIACONTAINER1_IFACE                                           \
   "  <interface name=\"org.gnome.UPnP.MediaContainer1\">"               \
+  "    <property name=\"ChildCount\"     type=\"u\"  access=\"read\"/>" \
   "    <property name=\"Items\"          type=\"ao\" access=\"read\"/>" \
   "    <property name=\"ItemCount\"      type=\"u\"  access=\"read\"/>" \
   "    <property name=\"Containers\"     type=\"ao\" access=\"read\"/>" \

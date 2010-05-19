@@ -338,6 +338,9 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_WIDTH) == 0) {
       grl_keys = g_list_prepend (grl_keys,
                                  GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
+    } else if (g_strcmp0 (ms_keys[i], MS1_PROP_CHILD_COUNT) == 0) {
+      grl_keys = g_list_prepend (grl_keys,
+                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_CHILDCOUNT));
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_PARENT) == 0 && other_keys) {
       *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_TYPE) == 0 && other_keys) {
@@ -369,6 +372,7 @@ fill_properties_table (MS1Server *server,
   GrlKeyID key;
   gchar *id;
   gchar *urls[2] = { 0 };
+  gint childcount;
 
   for (prop = keys; prop; prop = g_list_next (prop)) {
     key = POINTER_TO_GRLKEYID (prop->data);
@@ -439,6 +443,18 @@ fill_properties_table (MS1Server *server,
                               properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
+        break;
+      case GRL_METADATA_KEY_CHILDCOUNT:
+        if (GRL_IS_MEDIA_BOX (media)) {
+          childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
+        } else {
+          childcount = 0;
+        }
+        if (childcount != GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
+          ms1_server_set_child_count (server,
+                                      properties_table,
+                                      (guint) childcount);
+        }
         break;
       }
     }

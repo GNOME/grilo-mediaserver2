@@ -51,6 +51,7 @@
 #define MS1_PROP_ALBUM_ART       "AlbumArt"
 
 /* MediaContainer1 properties */
+#define MS1_PROP_CHILD_COUNT     "ChildCount"
 #define MS1_PROP_ITEMS           "Items"
 #define MS1_PROP_ITEM_COUNT      "ItemCount"
 #define MS1_PROP_CONTAINERS      "Containers"

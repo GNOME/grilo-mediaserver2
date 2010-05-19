@@ -102,7 +102,8 @@ static const gchar *mediaitem1_properties[] = { MS1_PROP_URLS,
                                                 MS1_PROP_ALBUM_ART,
                                                 NULL };
 
-static const gchar *mediacontainer1_properties[] = { MS1_PROP_ITEMS,
+static const gchar *mediacontainer1_properties[] = { MS1_PROP_CHILD_COUNT,
+                                                     MS1_PROP_ITEMS,
                                                      MS1_PROP_ITEM_COUNT,
                                                      MS1_PROP_CONTAINERS,
                                                      MS1_PROP_CONTAINER_COUNT,
@@ -235,10 +236,11 @@ properties_lookup_with_default (GHashTable *properties,
   }
 
   if (!uint_type_properties) {
-    uint_type_properties = g_new (gchar *, 3);
-    uint_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_ITEM_COUNT);
-    uint_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_CONTAINER_COUNT);
-    uint_type_properties[2] = NULL;
+    uint_type_properties = g_new (gchar *, 4);
+    uint_type_properties[0] = (gchar *) g_intern_static_string (MS1_PROP_CHILD_COUNT);
+    uint_type_properties[1] = (gchar *) g_intern_static_string (MS1_PROP_ITEM_COUNT);
+    uint_type_properties[2] = (gchar *) g_intern_static_string (MS1_PROP_CONTAINER_COUNT);
+    uint_type_properties[3] = NULL;
   }
 
   if (!bool_type_properties) {

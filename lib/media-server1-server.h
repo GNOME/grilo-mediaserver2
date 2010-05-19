@@ -217,6 +217,10 @@ void ms1_server_set_searchable (MS1Server *server,
                                 GHashTable *properties,
                                 gboolean searchable);
 
+void ms1_server_set_child_count (MS1Server *server,
+                                 GHashTable *properties,
+                                 guint child_count);
+
 void ms1_server_set_items (MS1Server *server,
                            GHashTable *properties,
                            GList *items);
