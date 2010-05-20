@@ -36,16 +36,29 @@
 /*
  * Structure to store data for asynchronous operations
  *   gproxy: dbus proxy to invoke methods
+ *   expected_replies: how many replies are still pending before notifying user
+ *                     (used only with get_properties_async())
  *   error: operation error
  *   properties: result of invoking get_properties
  *   children: result of invoking list_children
  */
 typedef struct {
   DBusGProxy *gproxy;
+  gint expected_replies;
   GError *error;
   GHashTable *properties;
   GList *children;
 } AsyncData;
+
+/*
+ * Structure to store data for asynchronous Get operation
+ *   key: key which value is reported
+ *   result: common data used in the asynchronous operation
+ */
+typedef struct {
+  gchar *key;
+  GSimpleAsyncResult *result;
+} GetData;
 
 enum {
   UPDATED,
@@ -91,6 +104,14 @@ free_async_data (AsyncData *adata)
 {
   g_object_unref (adata->gproxy);
   g_slice_free (AsyncData, adata);
+}
+
+/* Free GetData */
+static void
+free_get_data (GetData *gdata)
+{
+  g_free (gdata->key);
+  g_slice_free (GetData, gdata);
 }
 
 /* Insert <key, value> in hashtable */
@@ -222,6 +243,62 @@ search_objects_reply (DBusGProxy *proxy,
   }
 
   g_simple_async_result_complete (res);
+}
+
+/* Callback invoked when Get reply is received */
+static void
+get_reply (DBusGProxy *proxy,
+           DBusGProxyCall *call,
+           void *user_data)
+{
+  AsyncData *adata;
+  GValue *v = NULL;
+  GetData *gdata = (GetData *) user_data;
+
+  adata = g_simple_async_result_get_op_res_gpointer (gdata->result);
+
+  if (dbus_g_proxy_end_call (proxy, call, &(adata->error),
+                             G_TYPE_VALUE, v,
+                             G_TYPE_INVALID)) {
+    g_hash_table_insert (adata->properties,
+                         g_strdup (gdata->key),
+                         v);
+  }
+  adata->expected_replies--;
+  if (adata->expected_replies == 0) {
+    g_simple_async_result_complete (gdata->result);
+    g_object_unref (gdata->result);
+  }
+}
+
+/* Callback invoked when GetAll reply is received */
+static void
+get_all_reply (DBusGProxy *proxy,
+               DBusGProxyCall *call,
+               void *user_data)
+{
+  AsyncData *adata;
+  GHashTable *prop_result;
+  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (user_data);
+
+  adata = g_simple_async_result_get_op_res_gpointer (res);
+
+  if (dbus_g_proxy_end_call (proxy, call, &(adata->error),
+                             dbus_g_type_get_map ("GHashTable",
+                                                  G_TYPE_STRING,
+                                                  G_TYPE_VALUE), &prop_result,
+                             G_TYPE_INVALID)) {
+    g_hash_table_foreach_steal (prop_result,
+                                (GHRFunc) collect_value,
+                                adata->properties);
+    g_hash_table_unref (prop_result);
+  }
+
+  adata->expected_replies--;
+  if (adata->expected_replies == 0) {
+    g_simple_async_result_complete (res);
+    g_object_unref (res);
+  }
 }
 
 /* Dispose function */
@@ -445,6 +522,123 @@ ms1_client_get_provider_name (MS1Client *client)
   g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
 
   return client->priv->name;
+}
+
+/**
+ * ms1_client_get_properties_async:
+ * @client: a #MS1Client
+ * @object_path: media identifier to obtain properties from
+ * @callback: a #GAsyncReadyCallback to call when request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Starts an asynchronous request of properties.
+ *
+ * For more details, see ms1_client_get_properties(), which is the synchronous
+ * version of this call.
+ *
+ * When the result has been obtained, @callback will be called with
+ * @user_data. To finish the operation, call ms1_client_get_properties_finish()
+ * with the #GAsyncResult returned by the @callback.
+ **/
+void
+ms1_client_get_properties_async (MS1Client *client,
+                                 const gchar *object_path,
+                                 gchar **properties,
+                                 GAsyncReadyCallback callback,
+                                 gpointer user_data)
+{
+  AsyncData *adata;
+  GetData *gdata;
+  GSimpleAsyncResult *res;
+  gchar ***prop_by_iface;
+  gint i;
+  gint num_props;
+
+  g_return_if_fail (MS1_IS_CLIENT (client));
+
+  res = g_simple_async_result_new (G_OBJECT (client),
+                                   callback,
+                                   user_data,
+                                   ms1_client_get_properties_async);
+  adata = g_slice_new0 (AsyncData);
+  g_simple_async_result_set_op_res_gpointer (res,
+                                             adata,
+                                             (GDestroyNotify) free_async_data);
+  adata->gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                             client->priv->fullname,
+                                             object_path,
+                                             "org.freedesktop.DBus.Properties");
+
+  adata->properties = g_hash_table_new_full (g_str_hash,
+                                             g_str_equal,
+                                             (GDestroyNotify) g_free,
+                                             (GDestroyNotify) free_gvalue);
+
+  prop_by_iface = split_properties_by_interface (properties);
+  for (i = 0; i < 3; i++) {
+    num_props = g_strv_length (prop_by_iface[i]);
+    /* If only one property is required, then invoke "Get" method */
+    if (num_props == 1) {
+      adata->expected_replies++;
+      gdata = g_slice_new (GetData);
+      gdata->key = g_strdup (prop_by_iface[i][0]);
+      gdata->result = res;
+      dbus_g_proxy_begin_call (adata->gproxy,
+                               "Get", get_reply,
+                               gdata, (GDestroyNotify) free_get_data,
+                               G_TYPE_STRING, IFACES[i],
+                               G_TYPE_STRING, prop_by_iface[i][0],
+                               G_TYPE_INVALID);
+    } else if (num_props > 1) {
+      /* If several properties are required, use "GetAll" method */
+      adata->expected_replies++;
+      dbus_g_proxy_begin_call (adata->gproxy,
+                               "GetAll", get_all_reply,
+                               res, NULL,
+                               G_TYPE_STRING, IFACES[i],
+                               G_TYPE_INVALID);
+    }
+  }
+
+  g_free (prop_by_iface[0]);
+  g_free (prop_by_iface[1]);
+  g_free (prop_by_iface[2]);
+  g_free (prop_by_iface);
+}
+
+/**
+ * ms1_client_get_properties_finish:
+ * @client: a #MS1Client
+ * @res: a #GAsyncResult
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Finishes an asynchronous request of properties operation.
+ *
+ * Returns: a new #GHashTable
+ **/
+GHashTable *
+ms1_client_get_properties_finish (MS1Client *client,
+                                  GAsyncResult *res,
+                                  GError **error)
+{
+  AsyncData *adata;
+
+  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
+                        ms1_client_get_properties_async, NULL);
+
+  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+
+  /* If there was an error, just return NULL to avoid partially-filled table */
+  if (adata->error) {
+    g_hash_table_unref (adata->properties);
+    adata->children = NULL;
+  }
+
+  if (error) {
+    *error = adata->error;
+  }
+
+  return adata->properties;
 }
 
 /**

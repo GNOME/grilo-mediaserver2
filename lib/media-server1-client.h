@@ -86,6 +86,16 @@ MS1Client *ms1_client_new (const gchar *provider);
 
 const gchar *ms1_client_get_provider_name (MS1Client *client);
 
+void ms1_client_get_properties_async (MS1Client *client,
+                                      const gchar *object_path,
+                                      gchar **properties,
+                                      GAsyncReadyCallback callback,
+                                      gpointer user_data);
+
+GHashTable *ms1_client_get_properties_finish (MS1Client *client,
+                                              GAsyncResult *res,
+                                              GError **error);
+
 GHashTable *ms1_client_get_properties (MS1Client *client,
                                        const gchar *object_path,
                                        gchar **properties,

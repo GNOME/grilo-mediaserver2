@@ -4,13 +4,13 @@
 #include <string.h>
 
 static gchar *properties[] = { MS1_PROP_PATH,
-                               /* MS1_PROP_DISPLAY_NAME, */
-                               /* MS1_PROP_PARENT, */
-                               /* MS1_PROP_CHILD_COUNT, */
+                               MS1_PROP_DISPLAY_NAME,
+                               MS1_PROP_PARENT,
+                               MS1_PROP_CHILD_COUNT,
                                MS1_PROP_CONTAINERS,
-                               /* MS1_PROP_ITEMS, */
-                               /* MS1_PROP_URLS, */
-                               /* MS1_PROP_ARTIST, */
+                               MS1_PROP_ITEMS,
+                               MS1_PROP_URLS,
+                               MS1_PROP_ARTIST,
                                NULL };
 
 static void
@@ -71,6 +71,71 @@ test_properties ()
     }
     g_hash_table_unref (result);
     g_object_unref (client);
+  }
+
+  g_strfreev (providers);
+}
+
+static void
+properties_reply (GObject *source,
+                  GAsyncResult *res,
+                  gpointer user_data)
+{
+  GError *error = NULL;
+  GHashTable *result;
+  GValue *v;
+  gchar **p;
+
+  result =
+    ms1_client_get_properties_finish (MS1_CLIENT (source), res, &error);
+
+  if (!result) {
+    g_print ("\tDid not get any property, %s\n",
+             error? error->message: "no error");
+    return;
+  }
+
+  for (p = properties; *p; p++) {
+    v = g_hash_table_lookup (result, *p);
+    if (v && G_VALUE_HOLDS_INT (v)) {
+      g_print ("\t* '%s' value: '%d'\n", *p, g_value_get_int (v));
+    } else if (v && G_VALUE_HOLDS_STRING (v)) {
+      g_print ("\t* '%s' value: '%s'\n", *p, g_value_get_string (v));
+    } else {
+      g_print ("\t* '%s' value: ---\n", *p);
+    }
+  }
+  g_hash_table_unref (result);
+  g_object_unref (source);
+}
+
+static void
+test_properties_async ()
+{
+  MS1Client *client;
+  gchar **provider;
+  gchar **providers;
+
+  providers = ms1_client_get_providers ();
+
+  if (!providers) {
+    g_print ("There is no MediaServer1 provider\n");
+    return;
+  }
+
+  for (provider = providers; *provider; provider ++) {
+    client = ms1_client_new (*provider);
+
+    if (!client) {
+      g_printerr ("Unable to create a client\n");
+      return;
+    }
+
+    ms1_client_get_properties_async (client,
+                                     ms1_client_get_root_path (client),
+                                     (gchar **) properties,
+                                     properties_reply,
+                                     NULL);
   }
 
   g_strfreev (providers);
@@ -370,8 +435,9 @@ int main (int argc, char **argv)
   g_type_init ();
 
   if (0) test_properties ();
+  if (1) test_properties_async ();
   if (0) test_children ();
-  if (1) test_children_async ();
+  if (0) test_children_async ();
   if (0) test_search ();
   if (0) test_provider_free ();
   if (0) test_updated ();
