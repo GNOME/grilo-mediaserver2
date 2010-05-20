@@ -200,6 +200,30 @@ list_children_reply (DBusGProxy *proxy,
   g_simple_async_result_complete (res);
 }
 
+/* Callback invoked when SearchObjects reply is received */
+static void
+search_objects_reply (DBusGProxy *proxy,
+                      DBusGProxyCall *call,
+                      void *user_data)
+{
+  AsyncData *adata;
+  GPtrArray *result = NULL;
+  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (user_data);
+
+  adata = g_simple_async_result_get_op_res_gpointer (res);
+  if (dbus_g_proxy_end_call (proxy, call, &(adata->error),
+                             dbus_g_type_get_collection ("GPtrArray",
+                                                         dbus_g_type_get_map ("GHashTable",
+                                                                              G_TYPE_STRING,
+                                                                              G_TYPE_VALUE)), &result,
+                             G_TYPE_INVALID)) {
+    adata->children = gptrarray_to_glist (result);
+    g_ptr_array_free (result, TRUE);
+  }
+
+  g_simple_async_result_complete (res);
+}
+
 /* Dispose function */
 static void
 ms1_client_dispose (GObject *object)
@@ -661,9 +685,100 @@ ms1_client_list_children (MS1Client *client,
 }
 
 /**
- * ms1_client_search_objects:
+ * ms1_client_search_objects_async:
  * @client: a #MS1Client
  * @object_path: container identifier to start search from
+ * @query: query to perform
+ * @offset: number of children to skip
+ * @max_count: maximum number of children to return, or 0 for no limit
+ * @properties: @NULL-terminated array of properties to request for each child
+ * @callback: a #GAsyncReadyCallback to call when request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Starts an asynchronous search.
+ *
+ * For more details, see ms1_client_search_objects(), which is the synchronous
+ * version of this call.
+ *
+ * When the result has been obtained, @callback will be called with
+ * @user_data. To finish the operation, call ms1_client_search_objects_finish()
+ * with the #GAsyncResult returned by the @callback.
+ **/
+void
+ms1_client_search_objects_async (MS1Client *client,
+                                 const gchar *object_path,
+                                 const gchar *query,
+                                 guint offset,
+                                 guint max_count,
+                                 gchar **properties,
+                                 GAsyncReadyCallback callback,
+                                 gpointer user_data)
+{
+  AsyncData *adata;
+  GSimpleAsyncResult *res;
+
+  g_return_if_fail (MS1_IS_CLIENT (client));
+
+  res = g_simple_async_result_new (G_OBJECT (client),
+                                   callback,
+                                   user_data,
+                                   ms1_client_search_objects_async);
+  adata = g_slice_new0 (AsyncData);
+  g_simple_async_result_set_op_res_gpointer (res,
+                                             adata,
+                                             (GDestroyNotify) free_async_data);
+
+  adata->gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                             client->priv->fullname,
+                                             object_path,
+                                             "org.gnome.UPnP.MediaContainer1");
+
+  dbus_g_proxy_begin_call (adata->gproxy,
+                           "SearchObjects", search_objects_reply,
+                           res, g_object_unref,
+                           G_TYPE_STRING, query,
+                           G_TYPE_UINT, offset,
+                           G_TYPE_UINT, max_count,
+                           G_TYPE_STRV, properties,
+                           G_TYPE_INVALID);
+}
+
+
+/**
+ * ms1_client_search_objects_finish:
+ * @client: a #MS1Client
+ * @res: a #GAsyncResult
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Finishes an asynchronous search operation.
+ *
+ * Returns: a new #GList of #GHashTAble. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
+GList *
+ms1_client_search_objects_finish (MS1Client *client,
+                                  GAsyncResult *res,
+                                  GError **error)
+{
+  AsyncData *adata;
+
+  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
+                        ms1_client_search_objects_async, NULL);
+
+  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+
+  if (error) {
+    *error = adata->error;
+  }
+
+  return adata->children;
+}
+
+/**
+ * ms1_client_search_objects:
+ * @client: a #MS1Client
+ * @object_path: container identifier to start search fromç
+ * @query: query to perform
  * @offset: number of children to skip
  * @max_count: maximum number of children to return, or 0 for no limit
  * @properties: @NULL-terminated array of properties to request for each child

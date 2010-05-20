@@ -118,6 +118,19 @@ GList *ms1_client_search_objects (MS1Client *client,
                                   gchar **properties,
                                   GError **error);
 
+void ms1_client_search_objects_async (MS1Client *client,
+                                      const gchar *object_path,
+                                      const gchar *query,
+                                      guint offset,
+                                      guint max_count,
+                                      gchar **properties,
+                                      GAsyncReadyCallback callback,
+                                      gpointer user_data);
+
+GList *ms1_client_search_objects_finish (MS1Client *client,
+                                         GAsyncResult *res,
+                                         GError **error);
+
 const gchar *ms1_client_get_root_path (MS1Client *client);
 
 const gchar *ms1_client_get_path (GHashTable *properties);
