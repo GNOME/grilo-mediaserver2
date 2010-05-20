@@ -45,6 +45,7 @@ static gboolean dups;
 static gchar **args = NULL;
 static gchar *conffile = NULL;
 static gint limit = 0;
+static gint hard_limit = 0;
 
 static GOptionEntry entries[] = {
   { "config-file", 'c', 0,
@@ -62,6 +63,10 @@ static GOptionEntry entries[] = {
   { "limit", 'l', 0,
     G_OPTION_ARG_INT, &limit,
     "Limit max. number of children for Items/Containers ( 0 = unlimited)",
+    NULL },
+  { "hard-limit", 'L', 0,
+    G_OPTION_ARG_INT, &hard_limit,
+    "Limit max. number of children for everything (0 = unlimited)",
     NULL },
   { G_OPTION_REMAINING, '\0', 0,
     G_OPTION_ARG_FILENAME_ARRAY, &args,
@@ -466,6 +471,7 @@ fill_properties_table (MS1Server *server,
       case GRL_METADATA_KEY_CHILDCOUNT:
         if (GRL_IS_MEDIA_BOX (media)) {
           childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
+          childcount = MIN (childcount, limit);
         } else {
           childcount = 0;
         }
@@ -741,14 +747,21 @@ list_children_cb (MS1Server *server,
   rgdata->parent_id = g_strdup (id);
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
 
-  grl_media_source_browse (rgdata->source,
-                           media,
-                           rgdata->keys,
-                           offset,
-                           max_count == 0? G_MAXINT: max_count,
-                           GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
-                           browse_cb,
-                           rgdata);
+  /* Adjust limits */
+  if (offset >= hard_limit) {
+    browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
+  } else {
+    grl_media_source_browse (rgdata->source,
+                             media,
+                             rgdata->keys,
+                             offset,
+                             max_count == 0? (hard_limit - offset): CLAMP (max_count,
+                                                                           1,
+                                                                           hard_limit - offset),
+                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                             browse_cb,
+                             rgdata);
+  }
 
   wait_for_result (rgdata);
 
@@ -947,8 +960,14 @@ main (gint argc, gchar **argv)
     return -1;
   }
 
-  /* Adjust limit */
-  limit = CLAMP (limit, 0, G_MAXINT);
+  /* Adjust limits */
+  hard_limit = CLAMP (hard_limit, 0, G_MAXINT);
+  if (hard_limit > 0) {
+    limit = hard_limit;
+  } else {
+    hard_limit = G_MAXINT;
+    limit = CLAMP (limit, 0, G_MAXINT);
+  }
 
   /* Load grilo plugins */
   registry = grl_plugin_registry_get_instance ();
