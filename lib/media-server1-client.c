@@ -142,7 +142,8 @@ split_properties_by_interface (gchar **properties)
   for (property = properties; *property; property++) {
     if (g_strcmp0 (*property, MS1_PROP_DISPLAY_NAME) == 0 ||
         g_strcmp0 (*property, MS1_PROP_PARENT) == 0 ||
-        g_strcmp0 (*property, MS1_PROP_PATH) == 0) {
+        g_strcmp0 (*property, MS1_PROP_PATH) == 0 ||
+        g_strcmp0 (*property, MS1_PROP_TYPE) == 0) {
       split[IMEDIAOBJECT1_INDEX][mo_index++] = *property;
     } else if (g_strcmp0 (*property, MS1_PROP_CHILD_COUNT) == 0 ||
                g_strcmp0 (*property, MS1_PROP_ITEMS) == 0 ||
