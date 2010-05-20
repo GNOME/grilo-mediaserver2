@@ -532,6 +532,7 @@ ms1_client_get_properties (MS1Client *client,
 
   g_free (prop_by_iface[0]);
   g_free (prop_by_iface[1]);
+  g_free (prop_by_iface[2]);
   g_free (prop_by_iface);
 
   if (error_happened) {
