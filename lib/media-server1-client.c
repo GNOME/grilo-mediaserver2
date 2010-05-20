@@ -51,12 +51,14 @@ typedef struct {
 } AsyncData;
 
 /*
- * Structure to store data for asynchronous Get operation
- *   key: key which value is reported
+ * Structure to store data for asynchronous Get/GetAll operation
+ *   key: key which value is reported (Get)
+ *   keys: keys which user requested (GetAll)
  *   result: common data used in the asynchronous operation
  */
 typedef struct {
   gchar *key;
+  gchar **keys;
   GSimpleAsyncResult *result;
 } GetData;
 
@@ -110,18 +112,13 @@ free_async_data (AsyncData *adata)
 static void
 free_get_data (GetData *gdata)
 {
-  g_free (gdata->key);
+  if (gdata->key) {
+    g_free (gdata->key);
+  }
+  if (gdata->keys) {
+    g_strfreev (gdata->keys);
+  }
   g_slice_free (GetData, gdata);
-}
-
-/* Insert <key, value> in hashtable */
-static gboolean
-collect_value (gpointer key,
-               gpointer value,
-               GHashTable *collection)
-{
-  g_hash_table_insert (collection, key, value);
-  return TRUE;
 }
 
 /* Given a NULL-terminated array of properties, returns an array of two
@@ -279,25 +276,37 @@ get_all_reply (DBusGProxy *proxy,
 {
   AsyncData *adata;
   GHashTable *prop_result;
-  GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (user_data);
+  GetData *gdata = (GetData *) user_data;
+  gchar **prop;
+  gpointer prop_result_key;
+  gpointer prop_result_value;
 
-  adata = g_simple_async_result_get_op_res_gpointer (res);
+  adata = g_simple_async_result_get_op_res_gpointer (gdata->result);
 
   if (dbus_g_proxy_end_call (proxy, call, &(adata->error),
                              dbus_g_type_get_map ("GHashTable",
                                                   G_TYPE_STRING,
                                                   G_TYPE_VALUE), &prop_result,
                              G_TYPE_INVALID)) {
-    g_hash_table_foreach_steal (prop_result,
-                                (GHRFunc) collect_value,
-                                adata->properties);
+    /* Get only requested keys */
+    for (prop = gdata->keys; *prop; prop++) {
+      if (g_hash_table_lookup_extended (prop_result,
+                                        *prop,
+                                        &prop_result_key,
+                                        &prop_result_value)) {
+        g_hash_table_insert (adata->properties,
+                             prop_result_key,
+                             prop_result_value);
+        g_hash_table_steal (prop_result, *prop);
+      }
+    }
     g_hash_table_unref (prop_result);
   }
 
   adata->expected_replies--;
   if (adata->expected_replies == 0) {
-    g_simple_async_result_complete (res);
-    g_object_unref (res);
+    g_simple_async_result_complete (gdata->result);
+    g_object_unref (gdata->result);
   }
 }
 
@@ -580,7 +589,7 @@ ms1_client_get_properties_async (MS1Client *client,
     /* If only one property is required, then invoke "Get" method */
     if (num_props == 1) {
       adata->expected_replies++;
-      gdata = g_slice_new (GetData);
+      gdata = g_slice_new0 (GetData);
       gdata->key = g_strdup (prop_by_iface[i][0]);
       gdata->result = res;
       dbus_g_proxy_begin_call (adata->gproxy,
@@ -592,9 +601,12 @@ ms1_client_get_properties_async (MS1Client *client,
     } else if (num_props > 1) {
       /* If several properties are required, use "GetAll" method */
       adata->expected_replies++;
+      gdata = g_slice_new0 (GetData);
+      gdata->keys = g_strdupv (prop_by_iface[i]);
+      gdata->result = res;
       dbus_g_proxy_begin_call (adata->gproxy,
                                "GetAll", get_all_reply,
-                               res, NULL,
+                               gdata, (GDestroyNotify) free_get_data,
                                G_TYPE_STRING, IFACES[i],
                                G_TYPE_INVALID);
     }
@@ -665,8 +677,11 @@ ms1_client_get_properties (MS1Client *client,
   GValue *v;
   gboolean error_happened = FALSE;
   gchar ***prop_by_iface;
+  gchar **prop;
   gint i;
   gint num_props;
+  gpointer prop_result_key;
+  gpointer prop_result_value;
 
   g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
   g_return_val_if_fail (properties, NULL);
@@ -711,9 +726,18 @@ ms1_client_get_properties (MS1Client *client,
                                                   G_TYPE_STRING,
                                                   G_TYPE_VALUE), &prop_result,
                             G_TYPE_INVALID)) {
-        g_hash_table_foreach_steal (prop_result,
-                                    (GHRFunc) collect_value,
-                                    collected_properties);
+        /* Get only requested keys */
+        for (prop = prop_by_iface[i]; *prop; prop++) {
+          if (g_hash_table_lookup_extended (prop_result,
+                                            *prop,
+                                            &prop_result_key,
+                                            &prop_result_value)) {
+            g_hash_table_insert (collected_properties,
+                                 prop_result_key,
+                                 prop_result_value);
+            g_hash_table_steal (prop_result, *prop);
+          }
+        }
         g_hash_table_unref (prop_result);
       } else {
         error_happened = TRUE;
