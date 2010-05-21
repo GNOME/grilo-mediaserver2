@@ -96,8 +96,10 @@ G_DEFINE_TYPE (MS1Client, ms1_client, G_TYPE_OBJECT);
 static void
 free_gvalue (GValue *v)
 {
-  g_value_unset (v);
-  g_free (v);
+  if (v) {
+    g_value_unset (v);
+    g_free (v);
+  }
 }
 
 /* Free AsyncData */
