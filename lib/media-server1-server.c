@@ -855,7 +855,7 @@ items_handler (DBusConnection *c,
                                           "Get")) {
     return handle_get_message (c, m, userdata);
   } else if (dbus_message_is_method_call (m,
-                                          "org.freedesktop.DBus.Properties",
+                                          "org.freedesktop.DBusProperties",
                                           "GetAll")) {
     return handle_get_all_message (c, m, userdata);
   } else {
