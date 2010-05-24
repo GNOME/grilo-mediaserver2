@@ -508,10 +508,10 @@ fill_other_properties_table (MS1Server *server,
   guint _item_count;
 
   for (key = keys; key; key = g_list_next (key)) {
-    if (g_strcmp0 (key->data, MS1_PROP_PARENT) == 0 && parent_id) {
+    if (g_strcmp0 (key->data, MS1_PROP_PARENT) == 0) {
       ms1_server_set_parent (server,
                              properties_table,
-                             parent_id);
+                             parent_id? parent_id: MS1_ROOT);
     } else if (g_strcmp0 (key->data, MS1_PROP_TYPE) == 0) {
       if (GRL_IS_MEDIA_BOX (media)) {
         ms1_server_set_item_type (server,
