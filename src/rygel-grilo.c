@@ -321,47 +321,34 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
 
   for (i = 0; ms_keys[i]; i++) {
     if (g_strcmp0 (ms_keys[i], MS1_PROP_PATH) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ID));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ID);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_DISPLAY_NAME) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_TITLE));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_TITLE);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_DATE) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_DATE));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DATE);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_ALBUM) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ALBUM));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ALBUM);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_ARTIST) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ARTIST));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ARTIST);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_GENRE) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_GENRE));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_GENRE);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_MIME_TYPE) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_MIME));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_MIME);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_URLS) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_URL));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_URL);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_BITRATE) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_BITRATE));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_BITRATE);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_DURATION) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_DURATION));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DURATION);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_HEIGHT) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_HEIGHT));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_HEIGHT);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_WIDTH) == 0) {
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_WIDTH);
     } else if (g_strcmp0 (ms_keys[i], MS1_PROP_CHILD_COUNT) == 0) {
       /* Add childcount to both lists. First we would try to use Grilo to get
          childcount; if it is not supported or is unknown, then we will compute
          it */
-      grl_keys = g_list_prepend (grl_keys,
-                                 GRLKEYID_TO_POINTER (GRL_METADATA_KEY_CHILDCOUNT));
+      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_CHILDCOUNT);
       if (other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       }
@@ -393,17 +380,14 @@ fill_properties_table (MS1Server *server,
                        const gchar *parent_id)
 {
   GList *prop;
-  GrlKeyID key;
   gchar *id;
   gchar *urls[2] = { 0 };
   gint childcount;
 
   for (prop = keys; prop; prop = g_list_next (prop)) {
-    key = POINTER_TO_GRLKEYID (prop->data);
-    if (key == GRL_METADATA_KEY_ID ||
-        grl_data_key_is_known (GRL_DATA (media), key)) {
-      switch (key) {
-      case GRL_METADATA_KEY_ID:
+    if (prop->data == GRL_METADATA_KEY_ID ||
+        grl_data_key_is_known (GRL_DATA (media), prop->data)) {
+      if (prop->data == GRL_METADATA_KEY_ID) {
         id = serialize_media (parent_id, media);
         if (id) {
           ms1_server_set_path (server,
@@ -412,63 +396,52 @@ fill_properties_table (MS1Server *server,
                                GRL_IS_MEDIA_BOX (media));
           g_free (id);
         }
-        break;
-      case GRL_METADATA_KEY_TITLE:
+      } else if (prop->data == GRL_METADATA_KEY_TITLE) {
         ms1_server_set_display_name (server,
                                      properties_table,
                                      grl_media_get_title (media));
-        break;
-      case GRL_METADATA_KEY_ALBUM:
+      } else if (prop->data == GRL_METADATA_KEY_ALBUM) {
         ms1_server_set_album (server,
                               properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_ALBUM));
-        break;
-      case GRL_METADATA_KEY_ARTIST:
+      } else if (prop->data == GRL_METADATA_KEY_ARTIST) {
         ms1_server_set_artist (server,
                                properties_table,
                                grl_data_get_string (GRL_DATA (media),
                                                     GRL_METADATA_KEY_ARTIST));
-        break;
-      case GRL_METADATA_KEY_GENRE:
+      } else if (prop->data == GRL_METADATA_KEY_GENRE) {
         ms1_server_set_genre (server,
                               properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_GENRE));
-        break;
-      case GRL_METADATA_KEY_MIME:
+      } else if (prop->data == GRL_METADATA_KEY_MIME) {
         ms1_server_set_mime_type (server,
                                   properties_table,
                                   grl_media_get_mime (media));
-        break;
-      case GRL_METADATA_KEY_URL:
+      } else if (prop->data == GRL_METADATA_KEY_URL) {
         urls[0] = (gchar *) grl_media_get_url (media);
         ms1_server_set_urls (server, properties_table, urls);
-        break;
-      case GRL_METADATA_KEY_BITRATE:
+      } else if (prop->data == GRL_METADATA_KEY_BITRATE) {
         ms1_server_set_bitrate (server,
                                 properties_table,
                                 grl_data_get_int (GRL_DATA (media),
                                                   GRL_METADATA_KEY_BITRATE));
-        break;
-      case GRL_METADATA_KEY_DURATION:
+      } else if (prop->data == GRL_METADATA_KEY_DURATION) {
         ms1_server_set_duration (server,
                                  properties_table,
                                  grl_media_get_duration (media));
-        break;
-      case GRL_METADATA_KEY_HEIGHT:
+      } else if (prop->data == GRL_METADATA_KEY_HEIGHT) {
         ms1_server_set_height (server,
                                properties_table,
                                grl_data_get_int (GRL_DATA (media),
                                                  GRL_METADATA_KEY_HEIGHT));
-        break;
-      case GRL_METADATA_KEY_WIDTH:
+      } else if (prop->data == GRL_METADATA_KEY_WIDTH) {
         ms1_server_set_width (server,
                               properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
-        break;
-      case GRL_METADATA_KEY_CHILDCOUNT:
+      } else if (prop->data == GRL_METADATA_KEY_CHILDCOUNT) {
         if (GRL_IS_MEDIA_BOX (media)) {
           childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
           childcount = MIN (childcount, limit);
@@ -480,7 +453,6 @@ fill_properties_table (MS1Server *server,
                                       properties_table,
                                       (guint) childcount);
         }
-        break;
       }
     }
   }
