@@ -920,6 +920,7 @@ main (gint argc, gchar **argv)
   gint i;
 
   g_type_init ();
+  grl_init (&argc, &argv);
 
   context = g_option_context_new ("- run Grilo plugin as UPnP service");
   g_option_context_add_main_entries (context, entries, NULL);
