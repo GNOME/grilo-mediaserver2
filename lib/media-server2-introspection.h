@@ -20,27 +20,27 @@
  *
  */
 
-#ifndef _MEDIA_SERVER1_INTROSPECTION_H_
-#define _MEDIA_SERVER1_INTROSPECTION_H_
+#ifndef _MEDIA_SERVER2_INTROSPECTION_H_
+#define _MEDIA_SERVER2_INTROSPECTION_H_
 
 #define INTROSPECTION_OPEN                                      \
   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"                  \
   "<node>"                                                      \
-  "  <!-- http://live.gnome.org/Rygel/MediaServerSpec -->"
+  "  <!-- http://live.gnome.org/Rygel/MediaServer2Spec -->"
 
 #define INTROSPECTION_CLOSE                     \
   "</node>"
 
-#define MEDIAOBJECT1_IFACE                                              \
-  "  <interface name=\"org.gnome.UPnP.MediaObject1\">"                  \
+#define MEDIAOBJECT2_IFACE                                              \
+  "  <interface name=\"org.gnome.UPnP.MediaObject2\">"                  \
   "    <property name=\"Parent\"      type=\"o\" access=\"read\"/>"     \
   "    <property name=\"Type\"        type=\"s\" access=\"read\"/>"     \
   "    <property name=\"Path\"        type=\"o\" access=\"read\"/>"     \
   "    <property name=\"DisplayName\" type=\"s\" access=\"read\"/>"     \
   "  </interface>"
 
-#define MEDIAITEM1_IFACE                                                \
-  "  <interface name=\"org.gnome.UPnP.MediaItem1\">"                    \
+#define MEDIAITEM2_IFACE                                                \
+  "  <interface name=\"org.gnome.UPnP.MediaItem2\">"                    \
   "    <property name=\"URLs\"           type=\"as\" access=\"read\"/>" \
   "    <property name=\"MIMEType\"       type=\"s\"  access=\"read\"/>" \
   "    <property name=\"Size\"           type=\"i\"  access=\"read\"/>" \
@@ -62,8 +62,8 @@
   "    <property name=\"AlbumArt\"       type=\"o\"  access=\"read\"/>" \
   "  </interface>"
 
-#define MEDIACONTAINER1_IFACE                                           \
-  "  <interface name=\"org.gnome.UPnP.MediaContainer1\">"               \
+#define MEDIACONTAINER2_IFACE                                           \
+  "  <interface name=\"org.gnome.UPnP.MediaContainer2\">"               \
   "    <property name=\"ChildCount\"     type=\"u\"  access=\"read\"/>" \
   "    <property name=\"Items\"          type=\"ao\" access=\"read\"/>" \
   "    <property name=\"ItemCount\"      type=\"u\"  access=\"read\"/>" \
@@ -108,18 +108,18 @@
 
 #define CONTAINER_INTROSPECTION                 \
   INTROSPECTION_OPEN                            \
-  MEDIAOBJECT1_IFACE                            \
-  MEDIACONTAINER1_IFACE                         \
+  MEDIAOBJECT2_IFACE                            \
+  MEDIACONTAINER2_IFACE                         \
   INTROSPECTABLE_IFACE                          \
   PROPERTIES_IFACE                              \
   INTROSPECTION_CLOSE
 
 #define ITEM_INTROSPECTION                      \
   INTROSPECTION_OPEN                            \
-  MEDIAOBJECT1_IFACE                            \
-  MEDIAITEM1_IFACE                              \
+  MEDIAOBJECT2_IFACE                            \
+  MEDIAITEM2_IFACE                              \
   INTROSPECTABLE_IFACE                          \
   PROPERTIES_IFACE                              \
   INTROSPECTION_CLOSE
 
-#endif /* _MEDIA_SERVER1_INTROSPECTION_H_ */
+#endif /* _MEDIA_SERVER2_INTROSPECTION_H_ */

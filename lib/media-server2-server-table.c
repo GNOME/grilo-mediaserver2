@@ -22,8 +22,8 @@
 
 #include <dbus/dbus-glib-bindings.h>
 
-#include "media-server1-server.h"
-#include "media-server1-private.h"
+#include "media-server2-server.h"
+#include "media-server2-private.h"
 
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
@@ -107,25 +107,25 @@ ptrarray_to_value (GPtrArray *array)
 
 /* Returns an object path from an id */
 static gchar *
-id_to_object_path (MS1Server *server,
+id_to_object_path (MS2Server *server,
                    const gchar *id,
                    gboolean is_container)
 {
   gchar *object_path;
 
   /* Root container */
-  if (g_strcmp0 (id, MS1_ROOT) == 0) {
-    object_path = g_strconcat (MS1_DBUS_PATH_PREFIX,
-                               ms1_server_get_name (server),
+  if (g_strcmp0 (id, MS2_ROOT) == 0) {
+    object_path = g_strconcat (MS2_DBUS_PATH_PREFIX,
+                               ms2_server_get_name (server),
                                NULL);
   } else {
     if (is_container) {
-      object_path = g_strdup_printf (MS1_DBUS_PATH_PREFIX "%s/containers/%d",
-                                     ms1_server_get_name (server),
+      object_path = g_strdup_printf (MS2_DBUS_PATH_PREFIX "%s/containers/%d",
+                                     ms2_server_get_name (server),
                                      g_quark_from_string (id));
     } else {
-      object_path = g_strdup_printf (MS1_DBUS_PATH_PREFIX "%s/items/%d",
-                                     ms1_server_get_name (server),
+      object_path = g_strdup_printf (MS2_DBUS_PATH_PREFIX "%s/items/%d",
+                                     ms2_server_get_name (server),
                                      g_quark_from_string (id));
     }
   }
@@ -144,7 +144,7 @@ get_object_paths (GList *items)
 
   op = g_ptr_array_sized_new (g_list_length (items));
   for (item = items; item; item = g_list_next (item)) {
-    path = g_strdup (ms1_client_get_path (item->data));
+    path = g_strdup (ms2_client_get_path (item->data));
     if (path) {
       g_ptr_array_add (op, path);
     }
@@ -156,14 +156,14 @@ get_object_paths (GList *items)
 /********************* PUBLIC API *********************/
 
 /**
- * ms1_server_new_properties_hashtable:
+ * ms2_server_new_properties_hashtable:
  *
  * Creates a new #GHashTable suitable to store items properties.
  *
  * Returns: a new #GHashTable
  **/
 GHashTable *
-ms1_server_new_properties_hashtable ()
+ms2_server_new_properties_hashtable ()
 {
   GHashTable *properties;
 
@@ -176,8 +176,8 @@ ms1_server_new_properties_hashtable ()
 }
 
 /**
- * ms1_server_set_path:
- * @server: a #MS1Server
+ * ms2_server_set_path:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @id: identifier value
  * @is_container: @TRUE if the @id identifies a container
@@ -187,26 +187,26 @@ ms1_server_new_properties_hashtable ()
  * @id will be transformed in an object path
  **/
 void
-ms1_server_set_path (MS1Server *server,
+ms2_server_set_path (MS2Server *server,
                      GHashTable *properties,
                      const gchar *id,
                      gboolean is_container)
 {
   gchar *object_path;
 
-  g_return_if_fail (MS1_IS_SERVER (server));
+  g_return_if_fail (MS2_IS_SERVER (server));
   g_return_if_fail (properties);
 
   if (id) {
     object_path = id_to_object_path (server, id, is_container);
-    g_hash_table_insert (properties, MS1_PROP_PATH, str_to_value (object_path));
+    g_hash_table_insert (properties, MS2_PROP_PATH, str_to_value (object_path));
     g_free (object_path);
   }
 }
 
 /**
- * ms1_server_set_parent:
- * @server: a #MS1Server
+ * ms2_server_set_parent:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @parent: parent value
  *
@@ -215,34 +215,34 @@ ms1_server_set_path (MS1Server *server,
  * @parent will be transformed in an object path.
  **/
 void
-ms1_server_set_parent (MS1Server *server,
+ms2_server_set_parent (MS2Server *server,
                        GHashTable *properties,
                        const gchar *parent)
 {
   gchar *object_path;
 
-  g_return_if_fail (MS1_IS_SERVER (server));
+  g_return_if_fail (MS2_IS_SERVER (server));
   g_return_if_fail (properties);
 
   if (parent) {
     object_path = id_to_object_path (server, parent, TRUE);
     g_hash_table_insert (properties,
-                         MS1_PROP_PARENT,
+                         MS2_PROP_PARENT,
                          str_to_value (object_path));
     g_free (object_path);
   }
 }
 
 /**
- * ms1_server_set_display_name:
- * @server: a #MS1Server
+ * ms2_server_set_display_name:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @display_name: display name value
  *
  * Sets the "DisplayName" property.
  **/
 void
-ms1_server_set_display_name (MS1Server *server,
+ms2_server_set_display_name (MS2Server *server,
                              GHashTable *properties,
                              const gchar *display_name)
 {
@@ -250,14 +250,14 @@ ms1_server_set_display_name (MS1Server *server,
 
   if (display_name) {
     g_hash_table_insert (properties,
-                         MS1_PROP_DISPLAY_NAME,
+                         MS2_PROP_DISPLAY_NAME,
                          str_to_value (display_name));
   }
 }
 
 /**
- * ms1_server_set_item_type:
- * @server: a #MS1Server
+ * ms2_server_set_item_type:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @type: type of item
  *
@@ -266,69 +266,69 @@ ms1_server_set_display_name (MS1Server *server,
  * Tells what kind of object we are dealing with.
  **/
 void
-ms1_server_set_item_type (MS1Server *server,
+ms2_server_set_item_type (MS2Server *server,
                           GHashTable *properties,
-                          MS1ItemType type)
+                          MS2ItemType type)
 {
   g_return_if_fail (properties);
 
   switch (type) {
-  case MS1_ITEM_TYPE_UNKNOWN:
+  case MS2_ITEM_TYPE_UNKNOWN:
     /* Do not handle unknown values */
     break;
-  case MS1_ITEM_TYPE_CONTAINER:
+  case MS2_ITEM_TYPE_CONTAINER:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_CONTAINER));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_CONTAINER));
     break;
-  case MS1_ITEM_TYPE_ITEM:
+  case MS2_ITEM_TYPE_ITEM:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_ITEM));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_ITEM));
     break;
-  case MS1_ITEM_TYPE_VIDEO:
+  case MS2_ITEM_TYPE_VIDEO:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_VIDEO));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_VIDEO));
     break;
-  case MS1_ITEM_TYPE_MOVIE:
+  case MS2_ITEM_TYPE_MOVIE:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_MOVIE));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_MOVIE));
     break;
-  case MS1_ITEM_TYPE_AUDIO:
+  case MS2_ITEM_TYPE_AUDIO:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_AUDIO));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_AUDIO));
     break;
-  case MS1_ITEM_TYPE_MUSIC:
+  case MS2_ITEM_TYPE_MUSIC:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_MUSIC));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_MUSIC));
     break;
-  case MS1_ITEM_TYPE_IMAGE:
+  case MS2_ITEM_TYPE_IMAGE:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_IMAGE));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_IMAGE));
     break;
-  case MS1_ITEM_TYPE_PHOTO:
+  case MS2_ITEM_TYPE_PHOTO:
     g_hash_table_insert (properties,
-                         MS1_PROP_TYPE,
-                         str_to_value (MS1_TYPE_PHOTO));
+                         MS2_PROP_TYPE,
+                         str_to_value (MS2_TYPE_PHOTO));
     break;
   }
 }
 
 /**
- * ms1_server_set_mime_type:
- * @server: a #MS1Server
+ * ms2_server_set_mime_type:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @mime_type: mime type value
  *
  * Sets the "MIMEType" property.
  **/
 void
-ms1_server_set_mime_type (MS1Server *server,
+ms2_server_set_mime_type (MS2Server *server,
                           GHashTable *properties,
                           const gchar *mime_type)
 {
@@ -336,21 +336,21 @@ ms1_server_set_mime_type (MS1Server *server,
 
   if (mime_type) {
     g_hash_table_insert (properties,
-                         MS1_PROP_MIME_TYPE,
+                         MS2_PROP_MIME_TYPE,
                          str_to_value (mime_type));
   }
 }
 
 /**
- * ms1_server_set_artist:
- * @server: a #MS1Server
+ * ms2_server_set_artist:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @artist: artist value
  *
  * Sets the "Artist" property.
  **/
 void
-ms1_server_set_artist (MS1Server *server,
+ms2_server_set_artist (MS2Server *server,
                        GHashTable *properties,
                        const gchar *artist)
 {
@@ -358,21 +358,21 @@ ms1_server_set_artist (MS1Server *server,
 
   if (artist) {
     g_hash_table_insert (properties,
-                         MS1_PROP_ARTIST,
+                         MS2_PROP_ARTIST,
                          str_to_value (artist));
   }
 }
 
 /**
- * ms1_server_set_album:
- * @server: a #MS1Server
+ * ms2_server_set_album:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @album: album value
  *
  * Sets the "Album" property.
  **/
 void
-ms1_server_set_album (MS1Server *server,
+ms2_server_set_album (MS2Server *server,
                       GHashTable *properties,
                       const gchar *album)
 {
@@ -380,14 +380,14 @@ ms1_server_set_album (MS1Server *server,
 
   if (album) {
     g_hash_table_insert (properties,
-                         MS1_PROP_ALBUM,
+                         MS2_PROP_ALBUM,
                          str_to_value (album));
   }
 }
 
 /**
- * ms1_server_set_date:
- * @server: a #MS1Server
+ * ms2_server_set_date:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @date: date value
  *
@@ -397,7 +397,7 @@ ms1_server_set_album (MS1Server *server,
  * and RFC-3339.
  **/
 void
-ms1_server_set_date (MS1Server *server,
+ms2_server_set_date (MS2Server *server,
                      GHashTable *properties,
                      const gchar *date)
 {
@@ -405,14 +405,14 @@ ms1_server_set_date (MS1Server *server,
 
   if (date) {
     g_hash_table_insert (properties,
-                         MS1_PROP_ALBUM,
+                         MS2_PROP_ALBUM,
                          str_to_value (date));
   }
 }
 
 /**
- * ms1_server_set_dlna_profile:
- * @server: a #MS1Server
+ * ms2_server_set_dlna_profile:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @dlna_profile: DLNA value
  *
@@ -422,7 +422,7 @@ ms1_server_set_date (MS1Server *server,
  * guessing of its value by UPnP consumers.
  **/
 void
-ms1_server_set_dlna_profile (MS1Server *server,
+ms2_server_set_dlna_profile (MS2Server *server,
                              GHashTable *properties,
                              const gchar *dlna_profile)
 {
@@ -430,21 +430,21 @@ ms1_server_set_dlna_profile (MS1Server *server,
 
   if (dlna_profile) {
     g_hash_table_insert (properties,
-                         MS1_PROP_DLNA_PROFILE,
+                         MS2_PROP_DLNA_PROFILE,
                          str_to_value (dlna_profile));
   }
 }
 
 /**
- * ms1_server_set_thumbnail:
- * @server: a #MS1Server
+ * ms2_server_set_thumbnail:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @thumbnail: thumbnail identifier value
  *
  * Sets the "Thumbnail" property.
  **/
 void
-ms1_server_set_thumbnail (MS1Server *server,
+ms2_server_set_thumbnail (MS2Server *server,
                           GHashTable *properties,
                           const gchar *thumbnail)
 {
@@ -452,21 +452,21 @@ ms1_server_set_thumbnail (MS1Server *server,
 
   if (thumbnail) {
     g_hash_table_insert (properties,
-                         MS1_PROP_THUMBNAIL,
+                         MS2_PROP_THUMBNAIL,
                          str_to_value (thumbnail));
   }
 }
 
 /**
- * ms1_server_set_album_art
- * @server: a #MS1Server
+ * ms2_server_set_album_art
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @album_art: albumart identifier value
  *
  * Sets the "AlbumArt" property.
  **/
 void
-ms1_server_set_album_art (MS1Server *server,
+ms2_server_set_album_art (MS2Server *server,
                           GHashTable *properties,
                           const gchar *album_art)
 {
@@ -474,21 +474,21 @@ ms1_server_set_album_art (MS1Server *server,
 
   if (album_art) {
     g_hash_table_insert (properties,
-                         MS1_PROP_ALBUM_ART,
+                         MS2_PROP_ALBUM_ART,
                          str_to_value (album_art));
   }
 }
 
 /**
- * ms1_server_set_genre:
- * @server: a #MS1Server
+ * ms2_server_set_genre:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @genre: genre value
  *
  * Sets the "Genre" property. Optional property for audio/music items.
  **/
 void
-ms1_server_set_genre (MS1Server *server,
+ms2_server_set_genre (MS2Server *server,
                       GHashTable *properties,
                       const gchar *genre)
 {
@@ -496,14 +496,14 @@ ms1_server_set_genre (MS1Server *server,
 
   if (genre) {
     g_hash_table_insert (properties,
-                         MS1_PROP_GENRE,
+                         MS2_PROP_GENRE,
                          str_to_value (genre));
   }
 }
 
 /**
- * ms1_server_set_size:
- * @server: a #MS1Server
+ * ms2_server_set_size:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @size: size value
  *
@@ -512,60 +512,60 @@ ms1_server_set_genre (MS1Server *server,
  * It is the resource size in bytes.
  **/
 void
-ms1_server_set_size (MS1Server *server,
+ms2_server_set_size (MS2Server *server,
                      GHashTable *properties,
                      gint size)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_SIZE,
+                       MS2_PROP_SIZE,
                        int_to_value (size));
 }
 
 /**
- * ms1_server_set_duration:
- * @server: a #MS1Server
+ * ms2_server_set_duration:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @duration: duration (in seconds) value
  *
  * Sets the "Duration" property.
  **/
 void
-ms1_server_set_duration (MS1Server *server,
+ms2_server_set_duration (MS2Server *server,
                          GHashTable *properties,
                          gint duration)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_DURATION,
+                       MS2_PROP_DURATION,
                        int_to_value (duration));
 }
 
 /**
- * ms1_server_set_bitrate:
- * @server: a #MS1Server
+ * ms2_server_set_bitrate:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @bitrate: bitrate value
  *
  * Sets the "Bitrate" property.
  **/
 void
-ms1_server_set_bitrate (MS1Server *server,
+ms2_server_set_bitrate (MS2Server *server,
                         GHashTable *properties,
                         gint bitrate)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_BITRATE,
+                       MS2_PROP_BITRATE,
                        int_to_value (bitrate));
 }
 
 /**
- * ms1_server_set_sample_rate:
- * @server: a #MS1Server
+ * ms2_server_set_sample_rate:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @sample_rate: sample rate value
  *
@@ -573,20 +573,20 @@ ms1_server_set_bitrate (MS1Server *server,
  * items.
  **/
 void
-ms1_server_set_sample_rate (MS1Server *server,
+ms2_server_set_sample_rate (MS2Server *server,
                             GHashTable *properties,
                             gint sample_rate)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_SAMPLE_RATE,
+                       MS2_PROP_SAMPLE_RATE,
                        int_to_value (sample_rate));
 }
 
 /**
- * ms1_server_set_bits_per_sample:
- * @server: a #MS1Server
+ * ms2_server_set_bits_per_sample:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @bits_per_sample: bits per sample value
  *
@@ -594,127 +594,127 @@ ms1_server_set_sample_rate (MS1Server *server,
  * items.
  **/
 void
-ms1_server_set_bits_per_sample (MS1Server *server,
+ms2_server_set_bits_per_sample (MS2Server *server,
                                 GHashTable *properties,
                                 gint bits_per_sample)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_BITS_PER_SAMPLE,
+                       MS2_PROP_BITS_PER_SAMPLE,
                        int_to_value (bits_per_sample));
 }
 
 /**
- * ms1_server_set_width:
- * @server: a #MS1Server
+ * ms2_server_set_width:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @width: width (in pixels) value
  *
  * Sets the "Width" property.
  **/
 void
-ms1_server_set_width (MS1Server *server,
+ms2_server_set_width (MS2Server *server,
                       GHashTable *properties,
                       gint width)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_WIDTH,
+                       MS2_PROP_WIDTH,
                        int_to_value (width));
 }
 
 /**
- * ms1_server_set_height:
- * @server: a #MS1Server
+ * ms2_server_set_height:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @height: height (in pixels) value
  *
  * Sets the "Height" property.
  **/
 void
-ms1_server_set_height (MS1Server *server,
+ms2_server_set_height (MS2Server *server,
                        GHashTable *properties,
                        gint height)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_HEIGHT,
+                       MS2_PROP_HEIGHT,
                        int_to_value (height));
 }
 
 /**
- * ms1_server_set_color_depth:
- * @server: a #MS1Server
+ * ms2_server_set_color_depth:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @depth: color depth value
  *
  * Sets the "ColorDepth" property.
  **/
 void
-ms1_server_set_color_depth (MS1Server *server,
+ms2_server_set_color_depth (MS2Server *server,
                             GHashTable *properties,
                             gint depth)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_COLOR_DEPTH,
+                       MS2_PROP_COLOR_DEPTH,
                        int_to_value (depth));
 }
 
 /**
- * ms1_server_set_pixel_width:
- * @server: a #MS1Server
+ * ms2_server_set_pixel_width:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @pixel_width: pixel width value
  *
  * Sets the "PixelWidth" property.
  **/
 void
-ms1_server_set_pixel_width (MS1Server *server,
+ms2_server_set_pixel_width (MS2Server *server,
                             GHashTable *properties,
                             gint pixel_width)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_PIXEL_WIDTH,
+                       MS2_PROP_PIXEL_WIDTH,
                        int_to_value (pixel_width));
 }
 
 /**
- * ms1_server_set_pixel_height:
- * @server: a #MS1Server
+ * ms2_server_set_pixel_height:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @pixel_height: pixel height value
  *
  * Sets the "PixelHeight" property.
  **/
 void
-ms1_server_set_pixel_height (MS1Server *server,
+ms2_server_set_pixel_height (MS2Server *server,
                              GHashTable *properties,
                              gint pixel_height)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_PIXEL_HEIGHT,
+                       MS2_PROP_PIXEL_HEIGHT,
                        int_to_value (pixel_height));
 }
 
 /**
- * ms1_server_set_urls:
- * @server: a #MS1Server
+ * ms2_server_set_urls:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @urls: @NULL-terminated array of URLs values
  *
  * Sets the "URLs" property.
  **/
 void
-ms1_server_set_urls (MS1Server *server,
+ms2_server_set_urls (MS2Server *server,
                      GHashTable *properties,
                      gchar **urls)
 {
@@ -731,61 +731,61 @@ ms1_server_set_urls (MS1Server *server,
     }
 
     g_hash_table_insert (properties,
-                         MS1_PROP_URLS,
+                         MS2_PROP_URLS,
                          ptrarray_to_value (url_array));
   }
 }
 
 /**
- * ms1_server_set_searchable:
- * @server: a #MS1Server
+ * ms2_server_set_searchable:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @searchable: @TRUE if item is searchable
  *
  * Sets the "Searchable" property.
  **/
 void
-ms1_server_set_searchable (MS1Server *server,
+ms2_server_set_searchable (MS2Server *server,
                            GHashTable *properties,
                            gint searchable)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_SEARCHABLE,
+                       MS2_PROP_SEARCHABLE,
                        bool_to_value (searchable));
 }
 
 /**
- * ms1_server_set_child_count:
- * @server: a #MS1Server
+ * ms2_server_set_child_count:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @child_count: how many children have this container
  *
  * Sets the "ChildCount" property.
  **/
 void
-ms1_server_set_child_count (MS1Server *server,
+ms2_server_set_child_count (MS2Server *server,
                             GHashTable *properties,
                             guint child_count)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_CHILD_COUNT,
+                       MS2_PROP_CHILD_COUNT,
                        uint_to_value (child_count));
 }
 
 /**
- * ms1_server_set_items:
- * @server: a #MS1Server
+ * ms2_server_set_items:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @items: a list of children
  *
  * Sets the "Items" property.
  **/
 void
-ms1_server_set_items (MS1Server *server,
+ms2_server_set_items (MS2Server *server,
                       GHashTable *properties,
                       GList *items)
 {
@@ -796,41 +796,41 @@ ms1_server_set_items (MS1Server *server,
   if (items) {
     object_paths = get_object_paths (items);
     g_hash_table_insert (properties,
-                         MS1_PROP_ITEMS,
+                         MS2_PROP_ITEMS,
                          ptrarray_to_value (object_paths));
   }
 }
 
 /**
- * ms1_server_set_item_count:
- * @server: a #MS1Server
+ * ms2_server_set_item_count:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @item_count: how many items have this container
  *
  * Sets the "ItemCount" property.
  **/
 void
-ms1_server_set_item_count (MS1Server *server,
+ms2_server_set_item_count (MS2Server *server,
                            GHashTable *properties,
                            guint item_count)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_ITEM_COUNT,
+                       MS2_PROP_ITEM_COUNT,
                        uint_to_value (item_count));
 }
 
 /**
- * ms1_server_set_containers:
- * @server: a #MS1Server
+ * ms2_server_set_containers:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @containers: a list of children
  *
  * Sets the "Containers" property.
  **/
 void
-ms1_server_set_containers (MS1Server *server,
+ms2_server_set_containers (MS2Server *server,
                            GHashTable *properties,
                            GList *containers)
 {
@@ -841,27 +841,27 @@ ms1_server_set_containers (MS1Server *server,
   if (containers) {
     object_paths = get_object_paths (containers);
     g_hash_table_insert (properties,
-                         MS1_PROP_CONTAINERS,
+                         MS2_PROP_CONTAINERS,
                          ptrarray_to_value (object_paths));
   }
 }
 
 /**
- * ms1_server_set_container_count:
- * @server: a #MS1Server
+ * ms2_server_set_container_count:
+ * @server: a #MS2Server
  * @properties: a #GHashTable
  * @container_count: how many containers have this container
  *
  * Sets the "ContainerCount" property.
  **/
 void
-ms1_server_set_container_count (MS1Server *server,
+ms2_server_set_container_count (MS2Server *server,
                                 GHashTable *properties,
                                 guint container_count)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
-                       MS1_PROP_CONTAINER_COUNT,
+                       MS2_PROP_CONTAINER_COUNT,
                        uint_to_value (container_count));
 }

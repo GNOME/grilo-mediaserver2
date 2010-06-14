@@ -22,15 +22,15 @@
 
 #include <dbus/dbus-glib-lowlevel.h>
 
-#include "media-server1-private.h"
-#include "media-server1-observer.h"
-#include "media-server1-client.h"
+#include "media-server2-private.h"
+#include "media-server2-observer.h"
+#include "media-server2-client.h"
 
-#define ENTRY_POINT_NAME "org.gnome.UPnP.MediaServer1."
+#define ENTRY_POINT_NAME "org.gnome.UPnP.MediaServer2."
 #define ENTRY_POINT_NAME_LENGTH 28
 
-#define MS1_OBSERVER_GET_PRIVATE(o)                                     \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), MS1_TYPE_OBSERVER, MS1ObserverPrivate)
+#define MS2_OBSERVER_GET_PRIVATE(o)                                     \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_OBSERVER, MS2ObserverPrivate)
 
 enum {
   NEW,
@@ -38,19 +38,19 @@ enum {
 };
 
 /*
- * Private MS1Observer structure
+ * Private MS2Observer structure
  *   clients: a table with the clients
  *   proxy: proxy to dbus service
  */
-struct _MS1ObserverPrivate {
+struct _MS2ObserverPrivate {
   GHashTable *clients;
   DBusGProxy *proxy;
 };
 
-static MS1Observer *observer_instance = NULL;
+static MS2Observer *observer_instance = NULL;
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
-G_DEFINE_TYPE (MS1Observer, ms1_observer, G_TYPE_OBJECT);
+G_DEFINE_TYPE (MS2Observer, ms2_observer, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
 
@@ -60,21 +60,21 @@ name_owner_changed (DBusGProxy *proxy,
                     const gchar *name,
                     const gchar *old_owner,
                     const gchar *new_owner,
-                    MS1Observer *observer)
+                    MS2Observer *observer)
 {
   GList *clients;
 
   /* Check if it has something to do with the spec */
-  if (!g_str_has_prefix (name, MS1_DBUS_SERVICE_PREFIX)) {
+  if (!g_str_has_prefix (name, MS2_DBUS_SERVICE_PREFIX)) {
     return;
   }
 
-  name += MS1_DBUS_SERVICE_PREFIX_LENGTH;
+  name += MS2_DBUS_SERVICE_PREFIX_LENGTH;
 
   /* Check if it has been removed */
   if (*new_owner == '\0') {
     clients = g_hash_table_lookup (observer->priv->clients, name);
-    g_list_foreach (clients, (GFunc) ms1_client_notify_destroy, NULL);
+    g_list_foreach (clients, (GFunc) ms2_client_notify_destroy, NULL);
     return;
   }
 
@@ -84,7 +84,7 @@ name_owner_changed (DBusGProxy *proxy,
   }
 }
 
-/* Check for Updated signal and notify appropriate MS1Client, which will send a
+/* Check for Updated signal and notify appropriate MS2Client, which will send a
    signal */
 static DBusHandlerResult
 listen_updated_signal (DBusConnection *connection,
@@ -92,7 +92,7 @@ listen_updated_signal (DBusConnection *connection,
                        void *user_data)
 {
   GList *clients;
-  MS1Observer *observer = MS1_OBSERVER (user_data);
+  MS2Observer *observer = MS2_OBSERVER (user_data);
   gchar **path;
 
   if (dbus_message_is_signal (message,
@@ -112,7 +112,7 @@ listen_updated_signal (DBusConnection *connection,
     dbus_free_string_array (path);
 
     g_list_foreach (clients,
-                    (GFunc) ms1_client_notify_updated,
+                    (GFunc) ms2_client_notify_updated,
                     (gpointer) dbus_message_get_path (message));
 
     return DBUS_HANDLER_RESULT_HANDLED;
@@ -122,13 +122,13 @@ listen_updated_signal (DBusConnection *connection,
 }
 
 /* Creates an instance of observer */
-static MS1Observer *
+static MS2Observer *
 create_instance ()
 {
   DBusConnection *connection;
   DBusGConnection *gconnection;
   GError *error = NULL;
-  MS1Observer *observer;
+  MS2Observer *observer;
 
   gconnection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!gconnection) {
@@ -137,7 +137,7 @@ create_instance ()
     return NULL;
   }
 
-  observer = g_object_new (MS1_TYPE_OBSERVER, NULL);
+  observer = g_object_new (MS2_TYPE_OBSERVER, NULL);
 
   observer->priv->proxy = dbus_g_proxy_new_for_name (gconnection,
                                                      DBUS_SERVICE_DBUS,
@@ -172,13 +172,13 @@ create_instance ()
 
 /* Class init function */
 static void
-ms1_observer_class_init (MS1ObserverClass *klass)
+ms2_observer_class_init (MS2ObserverClass *klass)
 {
-  g_type_class_add_private (klass, sizeof (MS1ObserverPrivate));
+  g_type_class_add_private (klass, sizeof (MS2ObserverPrivate));
 
   /**
-   * MS1Observer::observer:
-   * @observer: the #MS1Observer
+   * MS2Observer::observer:
+   * @observer: the #MS2Observer
    * @provider: name of provider that has been added to dbus
    *
    * Notifies when a new provider comes up.
@@ -186,7 +186,7 @@ ms1_observer_class_init (MS1ObserverClass *klass)
   signals[NEW] = g_signal_new ("new",
                                G_TYPE_FROM_CLASS (klass),
                                G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
-                               G_STRUCT_OFFSET (MS1ObserverClass, new),
+                               G_STRUCT_OFFSET (MS2ObserverClass, new),
                                NULL,
                                NULL,
                                g_cclosure_marshal_VOID__STRING,
@@ -197,9 +197,9 @@ ms1_observer_class_init (MS1ObserverClass *klass)
 
 /* Object init function */
 static void
-ms1_observer_init (MS1Observer *client)
+ms2_observer_init (MS2Observer *client)
 {
-  client->priv = MS1_OBSERVER_GET_PRIVATE (client);
+  client->priv = MS2_OBSERVER_GET_PRIVATE (client);
   client->priv->clients = g_hash_table_new_full (g_str_hash,
                                                  g_str_equal,
                                                  g_free,
@@ -210,13 +210,13 @@ ms1_observer_init (MS1Observer *client)
 
 /* Register a client */
 void
-ms1_observer_add_client (MS1Client *client,
+ms2_observer_add_client (MS2Client *client,
                          const gchar *provider)
 {
   GList *clients;
-  MS1Observer *observer;
+  MS2Observer *observer;
 
-  observer = ms1_observer_get_instance ();
+  observer = ms2_observer_get_instance ();
   if (!observer) {
     return;
   }
@@ -228,14 +228,14 @@ ms1_observer_add_client (MS1Client *client,
 
 /* Remove a client */
 void
-ms1_observer_remove_client (MS1Client *client,
+ms2_observer_remove_client (MS2Client *client,
                             const gchar *provider)
 {
   GList *clients;
   GList *remove_client;
-  MS1Observer *observer;
+  MS2Observer *observer;
 
-  observer = ms1_observer_get_instance ();
+  observer = ms2_observer_get_instance ();
   if (!observer) {
     return;
   }
@@ -256,13 +256,13 @@ ms1_observer_remove_client (MS1Client *client,
 /******************** PUBLIC API ********************/
 
 /**
- * ms1_observer_get_instance:
+ * ms2_observer_get_instance:
  *
  * Returns the observer instance
  *
  * Returns: the observer instance or @NULL if it could not be created
  **/
-MS1Observer *ms1_observer_get_instance ()
+MS2Observer *ms2_observer_get_instance ()
 {
   if (!observer_instance) {
     observer_instance = create_instance ();

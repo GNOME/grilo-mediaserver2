@@ -1,16 +1,16 @@
-#include <media-server1-client.h>
-#include <media-server1-observer.h>
+#include <media-server2-client.h>
+#include <media-server2-observer.h>
 #include <glib.h>
 #include <string.h>
 
-static gchar *properties[] = { MS1_PROP_PATH,
-                               MS1_PROP_DISPLAY_NAME,
-                               MS1_PROP_PARENT,
-                               MS1_PROP_CHILD_COUNT,
-                               MS1_PROP_CONTAINERS,
-                               MS1_PROP_ITEMS,
-                               MS1_PROP_URLS,
-                               MS1_PROP_ARTIST,
+static gchar *properties[] = { MS2_PROP_PATH,
+                               MS2_PROP_DISPLAY_NAME,
+                               MS2_PROP_PARENT,
+                               MS2_PROP_CHILD_COUNT,
+                               MS2_PROP_CONTAINERS,
+                               MS2_PROP_ITEMS,
+                               MS2_PROP_URLS,
+                               MS2_PROP_ARTIST,
                                NULL };
 
 static void
@@ -19,28 +19,28 @@ test_properties ()
   GError *error = NULL;
   GHashTable *result;
   GValue *v;
-  MS1Client *client;
+  MS2Client *client;
   gchar **p;
   gchar **provider;
   gchar **providers;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
       return;
     }
 
-    result = ms1_client_get_properties (client,
-                                        "/org/gnome/UPnP/MediaServer1/grl_shoutcast",
+    result = ms2_client_get_properties (client,
+                                        "/org/gnome/UPnP/MediaServer2/grl_shoutcast",
                                         (gchar **) properties,
                                         &error);
 
@@ -50,13 +50,13 @@ test_properties ()
       return;
     }
 
-    gchar **urls = ms1_client_get_urls (result);
+    gchar **urls = ms2_client_get_urls (result);
     g_print ("We got %d urls\n", urls? g_strv_length (urls): 0);
 
-    gchar **items = ms1_client_get_items (result);
+    gchar **items = ms2_client_get_items (result);
     g_print ("We got %d items\n", items? g_strv_length (items): 0);
 
-    gchar **containers = ms1_client_get_containers (result);
+    gchar **containers = ms2_client_get_containers (result);
     g_print ("We got %d containers\n", containers? g_strv_length (containers): 0);
 
     for (p = properties; *p; p++) {
@@ -87,7 +87,7 @@ properties_reply (GObject *source,
   gchar **p;
 
   result =
-    ms1_client_get_properties_finish (MS1_CLIENT (source), res, &error);
+    ms2_client_get_properties_finish (MS2_CLIENT (source), res, &error);
 
   if (!result) {
     g_print ("\tDid not get any property, %s\n",
@@ -112,27 +112,27 @@ properties_reply (GObject *source,
 static void
 test_properties_async ()
 {
-  MS1Client *client;
+  MS2Client *client;
   gchar **provider;
   gchar **providers;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider ++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
       return;
     }
 
-    ms1_client_get_properties_async (client,
-                                     ms1_client_get_root_path (client),
+    ms2_client_get_properties_async (client,
+                                     ms2_client_get_root_path (client),
                                      (gchar **) properties,
                                      properties_reply,
                                      NULL);
@@ -147,27 +147,27 @@ test_children ()
   GError *error = NULL;
   GList *children;
   GList *child;
-  MS1Client *client;
+  MS2Client *client;
   gchar **provider;
   gchar **providers;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider ++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
       return;
     }
 
-    children  = ms1_client_list_children (client,
-                                          ms1_client_get_root_path (client),
+    children  = ms2_client_list_children (client,
+                                          ms2_client_get_root_path (client),
                                           0,
                                           10,
                                           properties,
@@ -181,8 +181,8 @@ test_children ()
 
     for (child = children; child; child = g_list_next (child)) {
       g_print ("\t* '%s', '%s'\n",
-               ms1_client_get_path (child->data),
-               ms1_client_get_display_name(child->data));
+               ms2_client_get_path (child->data),
+               ms2_client_get_display_name(child->data));
     }
 
     g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
@@ -203,7 +203,7 @@ children_reply (GObject *source,
   GError *error = NULL;
 
   children =
-    ms1_client_list_children_finish (MS1_CLIENT (source), res, &error);
+    ms2_client_list_children_finish (MS2_CLIENT (source), res, &error);
 
   if (!children) {
       g_print ("\tDid not get any child, %s\n", error? error->message: "no error");
@@ -212,8 +212,8 @@ children_reply (GObject *source,
 
   for (child = children; child; child = g_list_next (child)) {
     g_print ("\t* '%s', '%s'\n",
-             ms1_client_get_path (child->data),
-             ms1_client_get_display_name(child->data));
+             ms2_client_get_path (child->data),
+             ms2_client_get_display_name(child->data));
   }
 
   g_list_foreach (children, (GFunc) g_hash_table_unref, NULL);
@@ -226,25 +226,25 @@ test_children_async ()
 {
   gchar **providers;
   gchar **provider;
-  MS1Client *client;
+  MS2Client *client;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider ++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
       return;
     }
 
-    ms1_client_list_children_async (client,
-                                    ms1_client_get_root_path (client),
+    ms2_client_list_children_async (client,
+                                    ms2_client_get_root_path (client),
                                     0,
                                     10,
                                     properties,
@@ -261,27 +261,27 @@ test_search ()
   GList *child;
   GError *error = NULL;
   GList *result;
-  MS1Client *client;
+  MS2Client *client;
   gchar **provider;
   gchar **providers;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider ++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
 
     if (!client) {
       g_printerr ("Unable to create a client\n");
       return;
     }
 
-    result = ms1_client_search_objects (client,
-                                        ms1_client_get_root_path (client),
+    result = ms2_client_search_objects (client,
+                                        ms2_client_get_root_path (client),
                                         "Artist = \"Groove Coverage\"",
                                         0,
                                         10,
@@ -296,8 +296,8 @@ test_search ()
 
     for (child = result; child; child = g_list_next (child)) {
       g_print ("\t* '%s', '%s'\n",
-               ms1_client_get_path (child->data),
-               ms1_client_get_display_name(child->data));
+               ms2_client_get_path (child->data),
+               ms2_client_get_display_name(child->data));
     }
 
     g_list_foreach (result, (GFunc) g_hash_table_unref, NULL);
@@ -309,25 +309,25 @@ test_search ()
 }
 
 static void
-destroy_cb (MS1Client *client, gpointer user_data)
+destroy_cb (MS2Client *client, gpointer user_data)
 {
-  g_print ("End of provider %s\n", ms1_client_get_provider_name(client));
+  g_print ("End of provider %s\n", ms2_client_get_provider_name(client));
 }
 
 static void
-updated_cb (MS1Client *client, const gchar *object_path, gpointer user_data)
+updated_cb (MS2Client *client, const gchar *object_path, gpointer user_data)
 {
   g_print ("Provider %s: %s updated\n",
-           ms1_client_get_provider_name (client),
+           ms2_client_get_provider_name (client),
            object_path);
 }
 
 static void
-new_cb (MS1Observer *observer, const gchar *provider, gpointer user_data)
+new_cb (MS2Observer *observer, const gchar *provider, gpointer user_data)
 {
-  MS1Client *client;
+  MS2Client *client;
 
-  client = ms1_client_new (provider);
+  client = ms2_client_new (provider);
   if (!client) {
     g_printerr ("Unable to create client for %s\n", provider);
   } else {
@@ -339,19 +339,19 @@ new_cb (MS1Observer *observer, const gchar *provider, gpointer user_data)
 static void
 test_provider_free ()
 {
-  MS1Client *client;
+  MS2Client *client;
   gchar **provider;
   gchar **providers;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
     if (!client) {
       g_printerr ("Unable to create a client\n");
       continue;
@@ -367,19 +367,19 @@ test_provider_free ()
 static void
 test_updated ()
 {
-  MS1Client *client;
+  MS2Client *client;
   gchar **provider;
   gchar **providers;
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
 
   if (!providers) {
-    g_print ("There is no MediaServer1 provider\n");
+    g_print ("There is no MediaServer2 provider\n");
     return;
   }
 
   for (provider = providers; *provider; provider++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
     if (!client) {
       g_printerr ("Unable to create a client\n");
       continue;
@@ -395,12 +395,12 @@ test_updated ()
 static void
 test_dynamic_providers ()
 {
-  MS1Client *client;
-  MS1Observer *observer;
+  MS2Client *client;
+  MS2Observer *observer;
   gchar **provider;
   gchar **providers;
 
-  observer = ms1_observer_get_instance ();
+  observer = ms2_observer_get_instance ();
   if (!observer) {
     g_printerr ("Unable to get the observer\n");
     return;
@@ -408,14 +408,14 @@ test_dynamic_providers ()
 
   g_signal_connect (observer, "new", G_CALLBACK (new_cb), NULL);
 
-  providers = ms1_client_get_providers ();
+  providers = ms2_client_get_providers ();
   if (!providers) {
-    g_print ("There is no MediaServer1 providers\n");
+    g_print ("There is no MediaServer2 providers\n");
     return;
   }
 
   for (provider = providers; *provider; provider++) {
-    client = ms1_client_new (*provider);
+    client = ms2_client_new (*provider);
     if (!client) {
       g_printerr ("Unable to create a client for %s\n", *provider);
       continue;

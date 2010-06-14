@@ -85,7 +85,7 @@ AC_SUBST([sysconfdir])
 
 AC_CONFIG_FILES([
   Makefile
-  mediaserver1.pc
+  mediaserver2.pc
   lib/Makefile
   src/Makefile
   data//Makefile

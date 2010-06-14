@@ -20,25 +20,25 @@
  *
  */
 
-#ifndef _MEDIA_SERVER1_PRIVATE_H_
-#define _MEDIA_SERVER1_PRIVATE_H_
+#ifndef _MEDIA_SERVER2_PRIVATE_H_
+#define _MEDIA_SERVER2_PRIVATE_H_
 
 #include <glib.h>
 
-#include "media-server1-client.h"
-#include "media-server1-server.h"
+#include "media-server2-client.h"
+#include "media-server2-server.h"
 
-#define MS1_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer1."
-#define MS1_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer1/"
+#define MS2_DBUS_SERVICE_PREFIX "org.gnome.UPnP.MediaServer2."
+#define MS2_DBUS_PATH_PREFIX    "/org/gnome/UPnP/MediaServer2/"
 
-#define MS1_DBUS_SERVICE_PREFIX_LENGTH 28
+#define MS2_DBUS_SERVICE_PREFIX_LENGTH 28
 
-void ms1_client_notify_destroy (MS1Client *client);
+void ms2_client_notify_destroy (MS2Client *client);
 
-void ms1_client_notify_updated (MS1Client *client, const gchar *object_path);
+void ms2_client_notify_updated (MS2Client *client, const gchar *object_path);
 
-void ms1_observer_add_client (MS1Client *client, const gchar *provider);
+void ms2_observer_add_client (MS2Client *client, const gchar *provider);
 
-void ms1_observer_remove_client (MS1Client *client, const gchar *provider);
+void ms2_observer_remove_client (MS2Client *client, const gchar *provider);
 
-#endif /* _MEDIA_SERVER1_PRIVATE_H_ */
+#endif /* _MEDIA_SERVER2_PRIVATE_H_ */

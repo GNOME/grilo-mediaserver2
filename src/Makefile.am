@@ -22,7 +22,7 @@ rygel_grilo_LDADD =	\
 	-ldl -lpthread	\
 	$(DEPS_LIBS)	\
 	$(GRL_DEP_LIBS)	\
-	$(top_builddir)/lib/libmediaserver1.la
+	$(top_builddir)/lib/libmediaserver2.la
 
 test_client_SOURCES =	\
 	test-client.c
@@ -35,7 +35,7 @@ test_client_CFLAGS =		\
 test_client_LDADD =	\
 	-ldl -lpthread	\
 	$(DEPS_LIBS)	\
-	$(top_builddir)/lib/libmediaserver1.la
+	$(top_builddir)/lib/libmediaserver2.la
 
 MAINTAINERCLEANFILES =	\
 	*.in

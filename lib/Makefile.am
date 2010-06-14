@@ -7,29 +7,29 @@
 
 INCLUDES = @DEPS_CFLAGS@
 
-lib_LTLIBRARIES = libmediaserver1.la
+lib_LTLIBRARIES = libmediaserver2.la
 
-libmediaserver1_la_CFLAGS =	\
+libmediaserver2_la_CFLAGS =	\
 	$(DEPS_CFLAGS)		\
 	-I$(srcdir)
 
-libmediaserver1_la_LIBADD =	\
+libmediaserver2_la_LIBADD =	\
 	$(DEPS_LIBS)
 
-libmediaserver1_la_SOURCES =		\
-	media-server1-introspection.h	\
-	media-server1-server-table.c	\
-	media-server1-server.c		\
-	media-server1-client.c		\
-	media-server1-observer.c
+libmediaserver2_la_SOURCES =		\
+	media-server2-introspection.h	\
+	media-server2-server-table.c	\
+	media-server2-server.c		\
+	media-server2-client.c		\
+	media-server2-observer.c
 
-libmediaserver1inc_HEADERS =	\
-	media-server1-common.h	\
-	media-server1-server.h	\
-	media-server1-client.h	\
-	media-server1-observer.h
+libmediaserver2inc_HEADERS =	\
+	media-server2-common.h	\
+	media-server2-server.h	\
+	media-server2-client.h	\
+	media-server2-observer.h
 
-libmediaserver1incdir =	$(includedir)
+libmediaserver2incdir =	$(includedir)
 
 MAINTAINERCLEANFILES =	\
 	*.in

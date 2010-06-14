@@ -23,15 +23,15 @@
 #include <dbus/dbus-glib-bindings.h>
 #include <string.h>
 
-#include "media-server1-private.h"
-#include "media-server1-client.h"
+#include "media-server2-private.h"
+#include "media-server2-client.h"
 
 #define IMEDIAOBJECT1_INDEX    0
 #define IMEDIAITEM1_INDEX      1
 #define IMEDIACONTAINER1_INDEX 2
 
-#define MS1_CLIENT_GET_PRIVATE(o)                                       \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), MS1_TYPE_CLIENT, MS1ClientPrivate)
+#define MS2_CLIENT_GET_PRIVATE(o)                                       \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
 
 /*
  * Structure to store data for asynchronous operations
@@ -69,13 +69,13 @@ enum {
 };
 
 /*
- * Private MS1Client structure
+ * Private MS2Client structure
  *   bus: connection to DBus session
  *   name: name of provider
  *   fullname: full dbus service name of provider
  *   root_path: object path to reach root category
  */
-struct _MS1ClientPrivate {
+struct _MS2ClientPrivate {
   DBusGConnection *bus;
   gchar *name;
   gchar *fullname;
@@ -88,7 +88,7 @@ static gchar *IFACES[] = { "org.gnome.UPnP.MediaObject1",
                            "org.gnome.UPnP.MediaItem1",
                            "org.gnome.UPnP.MediaContainer1" };
 
-G_DEFINE_TYPE (MS1Client, ms1_client, G_TYPE_OBJECT);
+G_DEFINE_TYPE (MS2Client, ms2_client, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
 
@@ -142,17 +142,17 @@ split_properties_by_interface (gchar **properties)
   split[IMEDIAITEM1_INDEX] = g_new0 (gchar *, prop_length);
   split[IMEDIACONTAINER1_INDEX ] = g_new0 (gchar *, prop_length);
   for (property = properties; *property; property++) {
-    if (g_strcmp0 (*property, MS1_PROP_DISPLAY_NAME) == 0 ||
-        g_strcmp0 (*property, MS1_PROP_PARENT) == 0 ||
-        g_strcmp0 (*property, MS1_PROP_PATH) == 0 ||
-        g_strcmp0 (*property, MS1_PROP_TYPE) == 0) {
+    if (g_strcmp0 (*property, MS2_PROP_DISPLAY_NAME) == 0 ||
+        g_strcmp0 (*property, MS2_PROP_PARENT) == 0 ||
+        g_strcmp0 (*property, MS2_PROP_PATH) == 0 ||
+        g_strcmp0 (*property, MS2_PROP_TYPE) == 0) {
       split[IMEDIAOBJECT1_INDEX][mo_index++] = *property;
-    } else if (g_strcmp0 (*property, MS1_PROP_CHILD_COUNT) == 0 ||
-               g_strcmp0 (*property, MS1_PROP_ITEMS) == 0 ||
-               g_strcmp0 (*property, MS1_PROP_ITEM_COUNT) == 0 ||
-               g_strcmp0 (*property, MS1_PROP_CONTAINERS) == 0 ||
-               g_strcmp0 (*property, MS1_PROP_CONTAINER_COUNT) == 0 ||
-               g_strcmp0 (*property, MS1_PROP_SEARCHABLE) == 0) {
+    } else if (g_strcmp0 (*property, MS2_PROP_CHILD_COUNT) == 0 ||
+               g_strcmp0 (*property, MS2_PROP_ITEMS) == 0 ||
+               g_strcmp0 (*property, MS2_PROP_ITEM_COUNT) == 0 ||
+               g_strcmp0 (*property, MS2_PROP_CONTAINERS) == 0 ||
+               g_strcmp0 (*property, MS2_PROP_CONTAINER_COUNT) == 0 ||
+               g_strcmp0 (*property, MS2_PROP_SEARCHABLE) == 0) {
       split[IMEDIACONTAINER1_INDEX][mc_index++] = *property;
     } else {
       split[IMEDIAITEM1_INDEX][mi_index++] = *property;
@@ -315,42 +315,42 @@ get_all_reply (DBusGProxy *proxy,
 
 /* Dispose function */
 static void
-ms1_client_dispose (GObject *object)
+ms2_client_dispose (GObject *object)
 {
-  MS1Client *client = MS1_CLIENT (object);
+  MS2Client *client = MS2_CLIENT (object);
 
-  ms1_observer_remove_client (client, client->priv->name);
+  ms2_observer_remove_client (client, client->priv->name);
 
-  G_OBJECT_CLASS (ms1_client_parent_class)->dispose (object);
+  G_OBJECT_CLASS (ms2_client_parent_class)->dispose (object);
 }
 
 /* Finalize function */
 static void
-ms1_client_finalize (GObject *object)
+ms2_client_finalize (GObject *object)
 {
-  MS1Client *client = MS1_CLIENT (object);
+  MS2Client *client = MS2_CLIENT (object);
 
   g_free (client->priv->name);
   g_free (client->priv->fullname);
   g_free (client->priv->root_path);
 
-  G_OBJECT_CLASS (ms1_client_parent_class)->finalize (object);
+  G_OBJECT_CLASS (ms2_client_parent_class)->finalize (object);
 }
 
 /* Class init function */
 static void
-ms1_client_class_init (MS1ClientClass *klass)
+ms2_client_class_init (MS2ClientClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (MS1ClientPrivate));
+  g_type_class_add_private (klass, sizeof (MS2ClientPrivate));
 
-  gobject_class->dispose = ms1_client_dispose;
-  gobject_class->finalize = ms1_client_finalize;
+  gobject_class->dispose = ms2_client_dispose;
+  gobject_class->finalize = ms2_client_finalize;
 
   /**
-   * MS1Client::updated:
-   * @client: a #MS1Client
+   * MS2Client::updated:
+   * @client: a #MS2Client
    * @id: identifier of item that has changed
    *
    * Notifies when an item in provider has changed.
@@ -358,7 +358,7 @@ ms1_client_class_init (MS1ClientClass *klass)
   signals[UPDATED] = g_signal_new ("updated",
                                    G_TYPE_FROM_CLASS (klass),
                                    G_SIGNAL_RUN_FIRST | G_SIGNAL_NO_RECURSE,
-                                   G_STRUCT_OFFSET (MS1ClientClass, updated),
+                                   G_STRUCT_OFFSET (MS2ClientClass, updated),
                                    NULL,
                                    NULL,
                                    g_cclosure_marshal_VOID__STRING,
@@ -367,8 +367,8 @@ ms1_client_class_init (MS1ClientClass *klass)
                                    G_TYPE_STRING);
 
   /**
-   * MS1Client::destroy:
-   * @client: a #MS1Client
+   * MS2Client::destroy:
+   * @client: a #MS2Client
    *
    * Notifies when a client is going to be destroyed. Usually this happens when
    * provider goes away.
@@ -380,7 +380,7 @@ ms1_client_class_init (MS1ClientClass *klass)
   signals[DESTROY] = g_signal_new ("destroy",
                                    G_TYPE_FROM_CLASS (klass),
                                    G_SIGNAL_RUN_LAST | G_SIGNAL_RUN_CLEANUP,
-                                   G_STRUCT_OFFSET (MS1ClientClass, destroy),
+                                   G_STRUCT_OFFSET (MS2ClientClass, destroy),
                                    NULL,
                                    NULL,
                                    g_cclosure_marshal_VOID__VOID,
@@ -390,25 +390,25 @@ ms1_client_class_init (MS1ClientClass *klass)
 
 /* Object init function */
 static void
-ms1_client_init (MS1Client *client)
+ms2_client_init (MS2Client *client)
 {
-  client->priv = MS1_CLIENT_GET_PRIVATE (client);
+  client->priv = MS2_CLIENT_GET_PRIVATE (client);
 }
 
 /****************** INTERNAL PUBLIC API (NOT TO BE EXPORTED) ******************/
 
 /* Notify destruction of client; client should not use this client any more*/
 void
-ms1_client_notify_destroy (MS1Client *client)
+ms2_client_notify_destroy (MS2Client *client)
 {
-  g_return_if_fail (MS1_IS_CLIENT (client));
+  g_return_if_fail (MS2_IS_CLIENT (client));
 
   g_signal_emit (client, signals[DESTROY], 0);
 }
 
 /* Notify update of object_path */
 void
-ms1_client_notify_updated (MS1Client *client,
+ms2_client_notify_updated (MS2Client *client,
                            const gchar *object_path)
 {
   g_signal_emit (client, signals[UPDATED], 0, object_path);
@@ -417,14 +417,14 @@ ms1_client_notify_updated (MS1Client *client,
 /******************** PUBLIC API ********************/
 
 /**
- * ms1_client_get_providers:
+ * ms2_client_get_providers:
  *
- * Returns a list of content providers following MediaServer1 specification.
+ * Returns a list of content providers following MediaServer2 specification.
  *
  * Returns: a new @NULL-terminated array of strings
  **/
 gchar **
-ms1_client_get_providers ()
+ms2_client_get_providers ()
 {
   DBusGConnection *connection;
   DBusGProxy *gproxy;
@@ -434,7 +434,7 @@ ms1_client_get_providers ()
   gchar **list_providers;
   gchar **p;
   gint i;
-  gint prefix_size = strlen (MS1_DBUS_SERVICE_PREFIX);
+  gint prefix_size = strlen (MS2_DBUS_SERVICE_PREFIX);
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
@@ -462,10 +462,10 @@ ms1_client_get_providers ()
     return FALSE;
   }
 
-  /* Filter the list to obtain those services that fulfils MediaServer1 spec */
+  /* Filter the list to obtain those services that fulfils MediaServer2 spec */
   providers = g_ptr_array_new ();
   for (p = dbus_names; *p; p++) {
-    if (g_str_has_prefix (*p, MS1_DBUS_SERVICE_PREFIX)) {
+    if (g_str_has_prefix (*p, MS2_DBUS_SERVICE_PREFIX)) {
       g_ptr_array_add (providers, *p);
     }
   }
@@ -486,21 +486,21 @@ ms1_client_get_providers ()
 }
 
 /**
- * ms1_client_new:
+ * ms2_client_new:
  * @provider: provider name.
  *
- * Create a new #MS1Client that will be used to obtain content from the provider
+ * Create a new #MS2Client that will be used to obtain content from the provider
  * specified.
  *
- * Providers can be obtained with ms1_client_get_providers().
+ * Providers can be obtained with ms2_client_get_providers().
  *
- * Returns: a new #MS1Client
+ * Returns: a new #MS2Client
  **/
-MS1Client *ms1_client_new (const gchar *provider)
+MS2Client *ms2_client_new (const gchar *provider)
 {
   DBusGConnection *connection;
   GError *error = NULL;
-  MS1Client *client;
+  MS2Client *client;
 
   connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
   if (!connection) {
@@ -509,51 +509,51 @@ MS1Client *ms1_client_new (const gchar *provider)
     return NULL;
   }
 
-  client = g_object_new (MS1_TYPE_CLIENT, NULL);
+  client = g_object_new (MS2_TYPE_CLIENT, NULL);
   client->priv->bus = connection;
   client->priv->name = g_strdup (provider);
-  client->priv->fullname = g_strconcat (MS1_DBUS_SERVICE_PREFIX, provider, NULL);
-  client->priv->root_path = g_strconcat (MS1_DBUS_PATH_PREFIX, provider, NULL);
+  client->priv->fullname = g_strconcat (MS2_DBUS_SERVICE_PREFIX, provider, NULL);
+  client->priv->root_path = g_strconcat (MS2_DBUS_PATH_PREFIX, provider, NULL);
 
-  ms1_observer_add_client (client, provider);
+  ms2_observer_add_client (client, provider);
 
   return client;
 }
 
 /**
- * ms1_client_get_provider_name:
- * @client: a #MS1Client
+ * ms2_client_get_provider_name:
+ * @client: a #MS2Client
  *
  * Returns name of provider which client is attending
  *
  * Returns: name of provider
  **/
 const gchar *
-ms1_client_get_provider_name (MS1Client *client)
+ms2_client_get_provider_name (MS2Client *client)
 {
-  g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
   return client->priv->name;
 }
 
 /**
- * ms1_client_get_properties_async:
- * @client: a #MS1Client
+ * ms2_client_get_properties_async:
+ * @client: a #MS2Client
  * @object_path: media identifier to obtain properties from
  * @callback: a #GAsyncReadyCallback to call when request is satisfied
  * @user_data: the data to pass to callback function
  *
  * Starts an asynchronous request of properties.
  *
- * For more details, see ms1_client_get_properties(), which is the synchronous
+ * For more details, see ms2_client_get_properties(), which is the synchronous
  * version of this call.
  *
  * When the result has been obtained, @callback will be called with
- * @user_data. To finish the operation, call ms1_client_get_properties_finish()
+ * @user_data. To finish the operation, call ms2_client_get_properties_finish()
  * with the #GAsyncResult returned by the @callback.
  **/
 void
-ms1_client_get_properties_async (MS1Client *client,
+ms2_client_get_properties_async (MS2Client *client,
                                  const gchar *object_path,
                                  gchar **properties,
                                  GAsyncReadyCallback callback,
@@ -566,12 +566,12 @@ ms1_client_get_properties_async (MS1Client *client,
   gint i;
   gint num_props;
 
-  g_return_if_fail (MS1_IS_CLIENT (client));
+  g_return_if_fail (MS2_IS_CLIENT (client));
 
   res = g_simple_async_result_new (G_OBJECT (client),
                                    callback,
                                    user_data,
-                                   ms1_client_get_properties_async);
+                                   ms2_client_get_properties_async);
   adata = g_slice_new0 (AsyncData);
   g_simple_async_result_set_op_res_gpointer (res,
                                              adata,
@@ -622,8 +622,8 @@ ms1_client_get_properties_async (MS1Client *client,
 }
 
 /**
- * ms1_client_get_properties_finish:
- * @client: a #MS1Client
+ * ms2_client_get_properties_finish:
+ * @client: a #MS2Client
  * @res: a #GAsyncResult
  * @error: a #GError location to store the error ocurring, or @NULL to ignore
  *
@@ -632,14 +632,14 @@ ms1_client_get_properties_async (MS1Client *client,
  * Returns: a new #GHashTable
  **/
 GHashTable *
-ms1_client_get_properties_finish (MS1Client *client,
+ms2_client_get_properties_finish (MS2Client *client,
                                   GAsyncResult *res,
                                   GError **error)
 {
   AsyncData *adata;
 
   g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
-                        ms1_client_get_properties_async, NULL);
+                        ms2_client_get_properties_async, NULL);
 
   adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
 
@@ -657,8 +657,8 @@ ms1_client_get_properties_finish (MS1Client *client,
 }
 
 /**
- * ms1_client_get_properties:
- * @client: a #MS1Client
+ * ms2_client_get_properties:
+ * @client: a #MS2Client
  * @object_path: media identifier to obtain properties from
  * @properties: @NULL-terminated array of properties to request
  * @error: a #GError location to store the error ocurring, or @NULL to ignore
@@ -669,7 +669,7 @@ ms1_client_get_properties_finish (MS1Client *client,
  * Returns: a new #GHashTable
  **/
 GHashTable *
-ms1_client_get_properties (MS1Client *client,
+ms2_client_get_properties (MS2Client *client,
                            const gchar *object_path,
                            gchar **properties,
                            GError **error)
@@ -686,7 +686,7 @@ ms1_client_get_properties (MS1Client *client,
   gpointer prop_result_key;
   gpointer prop_result_value;
 
-  g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
   g_return_val_if_fail (properties, NULL);
 
   gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
@@ -767,8 +767,8 @@ ms1_client_get_properties (MS1Client *client,
 }
 
 /**
- * ms1_client_list_children_async:
- * @client: a #MS1Client
+ * ms2_client_list_children_async:
+ * @client: a #MS2Client
  * @object_path: container identifier to get children from
  * @offset: number of children to skip
  * @max_count: maximum number of children to return, or 0 for no limit
@@ -778,15 +778,15 @@ ms1_client_get_properties (MS1Client *client,
  *
  * Starts an asynchronous list children.
  *
- * For more details, see ms1_client_list_children(), which is the synchronous
+ * For more details, see ms2_client_list_children(), which is the synchronous
  * version of this call.
  *
  * When the children have been obtained, @callback will be called with
- * @user_data. To finish the operation, call ms1_client_list_children_finish()
+ * @user_data. To finish the operation, call ms2_client_list_children_finish()
  * with the #GAsyncResult returned by the @callback.
  **/
 void
-ms1_client_list_children_async (MS1Client *client,
+ms2_client_list_children_async (MS2Client *client,
                                 const gchar *object_path,
                                 guint offset,
                                 guint max_count,
@@ -797,12 +797,12 @@ ms1_client_list_children_async (MS1Client *client,
   AsyncData *adata;
   GSimpleAsyncResult *res;
 
-  g_return_if_fail (MS1_IS_CLIENT (client));
+  g_return_if_fail (MS2_IS_CLIENT (client));
 
   res = g_simple_async_result_new (G_OBJECT (client),
                                    callback,
                                    user_data,
-                                   ms1_client_list_children_async);
+                                   ms2_client_list_children_async);
   adata = g_slice_new0 (AsyncData);
   g_simple_async_result_set_op_res_gpointer (res,
                                              adata,
@@ -822,8 +822,8 @@ ms1_client_list_children_async (MS1Client *client,
 }
 
 /**
- * ms1_client_list_children_finish:
- * @client: a #MS1Client
+ * ms2_client_list_children_finish:
+ * @client: a #MS2Client
  * @res: a #GAsyncResult
  * @error: a #GError location to store the error ocurring, or @NULL to ignore
  *
@@ -833,14 +833,14 @@ ms1_client_list_children_async (MS1Client *client,
  * (g_hash_table_unref()) and finally the list itself (g_list_free())
  **/
 GList *
-ms1_client_list_children_finish (MS1Client *client,
+ms2_client_list_children_finish (MS2Client *client,
                                  GAsyncResult *res,
                                  GError **error)
 {
   AsyncData *adata;
 
   g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
-                        ms1_client_list_children_async, NULL);
+                        ms2_client_list_children_async, NULL);
 
   adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
 
@@ -852,8 +852,8 @@ ms1_client_list_children_finish (MS1Client *client,
 }
 
 /**
- * ms1_client_list_children:
- * @client: a #MS1Client
+ * ms2_client_list_children:
+ * @client: a #MS2Client
  * @object_path: container identifier to get children from
  * @offset: number of children to skip
  * @max_count: maximum number of children to return, or 0 for no limit
@@ -867,7 +867,7 @@ ms1_client_list_children_finish (MS1Client *client,
  * (g_hash_table_unref()) and finally the list itself (g_list_free())
  **/
 GList *
-ms1_client_list_children (MS1Client *client,
+ms2_client_list_children (MS2Client *client,
                           const gchar *object_path,
                           guint offset,
                           guint max_count,
@@ -878,7 +878,7 @@ ms1_client_list_children (MS1Client *client,
   GList *children = NULL;
   GPtrArray *result = NULL;
 
-  g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
   g_return_val_if_fail (properties, NULL);
 
   gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
@@ -907,8 +907,8 @@ ms1_client_list_children (MS1Client *client,
 }
 
 /**
- * ms1_client_search_objects_async:
- * @client: a #MS1Client
+ * ms2_client_search_objects_async:
+ * @client: a #MS2Client
  * @object_path: container identifier to start search from
  * @query: query to perform
  * @offset: number of children to skip
@@ -919,15 +919,15 @@ ms1_client_list_children (MS1Client *client,
  *
  * Starts an asynchronous search.
  *
- * For more details, see ms1_client_search_objects(), which is the synchronous
+ * For more details, see ms2_client_search_objects(), which is the synchronous
  * version of this call.
  *
  * When the result has been obtained, @callback will be called with
- * @user_data. To finish the operation, call ms1_client_search_objects_finish()
+ * @user_data. To finish the operation, call ms2_client_search_objects_finish()
  * with the #GAsyncResult returned by the @callback.
  **/
 void
-ms1_client_search_objects_async (MS1Client *client,
+ms2_client_search_objects_async (MS2Client *client,
                                  const gchar *object_path,
                                  const gchar *query,
                                  guint offset,
@@ -939,12 +939,12 @@ ms1_client_search_objects_async (MS1Client *client,
   AsyncData *adata;
   GSimpleAsyncResult *res;
 
-  g_return_if_fail (MS1_IS_CLIENT (client));
+  g_return_if_fail (MS2_IS_CLIENT (client));
 
   res = g_simple_async_result_new (G_OBJECT (client),
                                    callback,
                                    user_data,
-                                   ms1_client_search_objects_async);
+                                   ms2_client_search_objects_async);
   adata = g_slice_new0 (AsyncData);
   g_simple_async_result_set_op_res_gpointer (res,
                                              adata,
@@ -967,8 +967,8 @@ ms1_client_search_objects_async (MS1Client *client,
 
 
 /**
- * ms1_client_search_objects_finish:
- * @client: a #MS1Client
+ * ms2_client_search_objects_finish:
+ * @client: a #MS2Client
  * @res: a #GAsyncResult
  * @error: a #GError location to store the error ocurring, or @NULL to ignore
  *
@@ -978,14 +978,14 @@ ms1_client_search_objects_async (MS1Client *client,
  * (g_hash_table_unref()) and finally the list itself (g_list_free())
  **/
 GList *
-ms1_client_search_objects_finish (MS1Client *client,
+ms2_client_search_objects_finish (MS2Client *client,
                                   GAsyncResult *res,
                                   GError **error)
 {
   AsyncData *adata;
 
   g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
-                        ms1_client_search_objects_async, NULL);
+                        ms2_client_search_objects_async, NULL);
 
   adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
 
@@ -997,8 +997,8 @@ ms1_client_search_objects_finish (MS1Client *client,
 }
 
 /**
- * ms1_client_search_objects:
- * @client: a #MS1Client
+ * ms2_client_search_objects:
+ * @client: a #MS2Client
  * @object_path: container identifier to start search fromç
  * @query: query to perform
  * @offset: number of children to skip
@@ -1013,7 +1013,7 @@ ms1_client_search_objects_finish (MS1Client *client,
  * (g_hash_table_unref()) and finally the list itself (g_list_free())
  **/
 GList *
-ms1_client_search_objects (MS1Client *client,
+ms2_client_search_objects (MS2Client *client,
                            const gchar *object_path,
                            const gchar *query,
                            guint offset,
@@ -1025,7 +1025,7 @@ ms1_client_search_objects (MS1Client *client,
   GList *children = NULL;
   GPtrArray *result = NULL;
 
-  g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
   g_return_val_if_fail (properties, NULL);
 
   gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
@@ -1055,9 +1055,9 @@ ms1_client_search_objects (MS1Client *client,
 }
 
 const gchar *
-ms1_client_get_root_path (MS1Client *client)
+ms2_client_get_root_path (MS2Client *client)
 {
-  g_return_val_if_fail (MS1_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
 
   return client->priv->root_path;
 }
@@ -1065,7 +1065,7 @@ ms1_client_get_root_path (MS1Client *client)
 /******************** PROPERTIES TABLE API ********************/
 
 /**
- * ms1_client_get_path:
+ * ms2_client_get_path:
  * @properties: a #GHashTable
  *
  * Returns "Path" property value.
@@ -1073,13 +1073,13 @@ ms1_client_get_root_path (MS1Client *client)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_path (GHashTable *properties)
+ms2_client_get_path (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_PATH);
+  val = g_hash_table_lookup (properties, MS2_PROP_PATH);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1088,7 +1088,7 @@ ms1_client_get_path (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_parent:
+ * ms2_client_get_parent:
  * @properties: a #GHashTable
  *
  * Returns "Parent" property value.
@@ -1096,13 +1096,13 @@ ms1_client_get_path (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_parent (GHashTable *properties)
+ms2_client_get_parent (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_PARENT);
+  val = g_hash_table_lookup (properties, MS2_PROP_PARENT);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1111,7 +1111,7 @@ ms1_client_get_parent (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_display_name:
+ * ms2_client_get_display_name:
  * @properties: a #GHashTable
  *
  * Returns "DisplayName" property value.
@@ -1119,13 +1119,13 @@ ms1_client_get_parent (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_display_name (GHashTable *properties)
+ms2_client_get_display_name (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_DISPLAY_NAME);
+  val = g_hash_table_lookup (properties, MS2_PROP_DISPLAY_NAME);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1134,51 +1134,51 @@ ms1_client_get_display_name (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_item_type:
+ * ms2_client_get_item_type:
  * @properties: a #GHashTable
  *
  * Returns "Type" property value.
  *
  * Returns: property value
  **/
-MS1ItemType
-ms1_client_get_item_type (GHashTable *properties)
+MS2ItemType
+ms2_client_get_item_type (GHashTable *properties)
 {
   GValue *val;
   const gchar *type;
 
-  g_return_val_if_fail (properties, MS1_ITEM_TYPE_UNKNOWN);
+  g_return_val_if_fail (properties, MS2_ITEM_TYPE_UNKNOWN);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_TYPE);
+  val = g_hash_table_lookup (properties, MS2_PROP_TYPE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
-    return MS1_ITEM_TYPE_UNKNOWN;
+    return MS2_ITEM_TYPE_UNKNOWN;
   }
 
   type = g_value_get_string (val);
 
-  if (g_strcmp0 (type, MS1_TYPE_CONTAINER) == 0) {
-    return MS1_ITEM_TYPE_CONTAINER;
-  }   if (g_strcmp0 (type, MS1_TYPE_CONTAINER) == 0) {
-    return MS1_ITEM_TYPE_CONTAINER;
-  } else if (g_strcmp0 (type, MS1_TYPE_ITEM) == 0) {
-    return MS1_ITEM_TYPE_ITEM;
-  } else if (g_strcmp0 (type, MS1_TYPE_MOVIE) == 0) {
-    return MS1_ITEM_TYPE_MOVIE;
-  } else if (g_strcmp0 (type, MS1_TYPE_AUDIO) == 0) {
-    return MS1_ITEM_TYPE_AUDIO;
-  } else if (g_strcmp0 (type, MS1_TYPE_MUSIC) == 0) {
-    return MS1_ITEM_TYPE_MUSIC;
-  } else if (g_strcmp0 (type, MS1_TYPE_IMAGE) == 0) {
-    return MS1_ITEM_TYPE_IMAGE;
-  } else if (g_strcmp0 (type, MS1_TYPE_PHOTO) == 0) {
-    return MS1_ITEM_TYPE_PHOTO;
+  if (g_strcmp0 (type, MS2_TYPE_CONTAINER) == 0) {
+    return MS2_ITEM_TYPE_CONTAINER;
+  }   if (g_strcmp0 (type, MS2_TYPE_CONTAINER) == 0) {
+    return MS2_ITEM_TYPE_CONTAINER;
+  } else if (g_strcmp0 (type, MS2_TYPE_ITEM) == 0) {
+    return MS2_ITEM_TYPE_ITEM;
+  } else if (g_strcmp0 (type, MS2_TYPE_MOVIE) == 0) {
+    return MS2_ITEM_TYPE_MOVIE;
+  } else if (g_strcmp0 (type, MS2_TYPE_AUDIO) == 0) {
+    return MS2_ITEM_TYPE_AUDIO;
+  } else if (g_strcmp0 (type, MS2_TYPE_MUSIC) == 0) {
+    return MS2_ITEM_TYPE_MUSIC;
+  } else if (g_strcmp0 (type, MS2_TYPE_IMAGE) == 0) {
+    return MS2_ITEM_TYPE_IMAGE;
+  } else if (g_strcmp0 (type, MS2_TYPE_PHOTO) == 0) {
+    return MS2_ITEM_TYPE_PHOTO;
   } else {
-    return MS1_ITEM_TYPE_UNKNOWN;
+    return MS2_ITEM_TYPE_UNKNOWN;
   }
 }
 
 /**
- * ms1_client_get_item_type_string:
+ * ms2_client_get_item_type_string:
  * @properties: a #GHashTable
  *
  * Returns "Type" property value as a string.
@@ -1186,13 +1186,13 @@ ms1_client_get_item_type (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_item_type_string (GHashTable *properties)
+ms2_client_get_item_type_string (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_TYPE);
+  val = g_hash_table_lookup (properties, MS2_PROP_TYPE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1201,7 +1201,7 @@ ms1_client_get_item_type_string (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_mime_type:
+ * ms2_client_get_mime_type:
  * @properties: a #GHashTable
  *
  * Returns "MIMEType" property value.
@@ -1209,13 +1209,13 @@ ms1_client_get_item_type_string (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_mime_type (GHashTable *properties)
+ms2_client_get_mime_type (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_MIME_TYPE);
+  val = g_hash_table_lookup (properties, MS2_PROP_MIME_TYPE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1224,7 +1224,7 @@ ms1_client_get_mime_type (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_artist:
+ * ms2_client_get_artist:
  * @properties: a #GHashTable
  *
  * Returns "Artist" property value.
@@ -1232,13 +1232,13 @@ ms1_client_get_mime_type (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_artist (GHashTable *properties)
+ms2_client_get_artist (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_ARTIST);
+  val = g_hash_table_lookup (properties, MS2_PROP_ARTIST);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1247,7 +1247,7 @@ ms1_client_get_artist (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_album:
+ * ms2_client_get_album:
  * @properties: a #GHashTable
  *
  * Returns "Album" property value.
@@ -1255,13 +1255,13 @@ ms1_client_get_artist (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_album (GHashTable *properties)
+ms2_client_get_album (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_ALBUM);
+  val = g_hash_table_lookup (properties, MS2_PROP_ALBUM);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1270,7 +1270,7 @@ ms1_client_get_album (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_date:
+ * ms2_client_get_date:
  * @properties: a #GHashTable
  *
  * Returns "Date" property value.
@@ -1278,13 +1278,13 @@ ms1_client_get_album (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_date (GHashTable *properties)
+ms2_client_get_date (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_DATE);
+  val = g_hash_table_lookup (properties, MS2_PROP_DATE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1293,7 +1293,7 @@ ms1_client_get_date (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_dlna_profile:
+ * ms2_client_get_dlna_profile:
  * @properties: a #GHashTable
  *
  * Returns "DLNAProfile" property value.
@@ -1301,13 +1301,13 @@ ms1_client_get_date (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_dlna_profile (GHashTable *properties)
+ms2_client_get_dlna_profile (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_DLNA_PROFILE);
+  val = g_hash_table_lookup (properties, MS2_PROP_DLNA_PROFILE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1316,7 +1316,7 @@ ms1_client_get_dlna_profile (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_thumbnail:
+ * ms2_client_get_thumbnail:
  * @properties: a #GHashTable
  *
  * Returns "Thumbanail" property value.
@@ -1324,13 +1324,13 @@ ms1_client_get_dlna_profile (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_thumbnail (GHashTable *properties)
+ms2_client_get_thumbnail (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_THUMBNAIL);
+  val = g_hash_table_lookup (properties, MS2_PROP_THUMBNAIL);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1339,7 +1339,7 @@ ms1_client_get_thumbnail (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_genre:
+ * ms2_client_get_genre:
  * @properties: a #GHashTable
  *
  * Returns "Genre" property value.
@@ -1347,13 +1347,13 @@ ms1_client_get_thumbnail (GHashTable *properties)
  * Returns: property value or @NULL if it is not available
  **/
 const gchar *
-ms1_client_get_genre (GHashTable *properties)
+ms2_client_get_genre (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_GENRE);
+  val = g_hash_table_lookup (properties, MS2_PROP_GENRE);
   if (!val || !G_VALUE_HOLDS_STRING (val)) {
     return NULL;
   }
@@ -1362,7 +1362,7 @@ ms1_client_get_genre (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_size:
+ * ms2_client_get_size:
  * @properties: a #GHashTable
  *
  * Returns "Size" property value.
@@ -1370,13 +1370,13 @@ ms1_client_get_genre (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_size (GHashTable *properties)
+ms2_client_get_size (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_SIZE);
+  val = g_hash_table_lookup (properties, MS2_PROP_SIZE);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1385,7 +1385,7 @@ ms1_client_get_size (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_duration:
+ * ms2_client_get_duration:
  * @properties: a #GHashTable
  *
  * Returns "Duration" property value.
@@ -1393,13 +1393,13 @@ ms1_client_get_size (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_duration (GHashTable *properties)
+ms2_client_get_duration (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_DURATION);
+  val = g_hash_table_lookup (properties, MS2_PROP_DURATION);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1408,7 +1408,7 @@ ms1_client_get_duration (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_bitrate:
+ * ms2_client_get_bitrate:
  * @properties: a #GHashTable
  *
  * Returns "Bitrate" property value.
@@ -1416,13 +1416,13 @@ ms1_client_get_duration (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_bitrate (GHashTable *properties)
+ms2_client_get_bitrate (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_BITRATE);
+  val = g_hash_table_lookup (properties, MS2_PROP_BITRATE);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1431,7 +1431,7 @@ ms1_client_get_bitrate (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_sample_rate:
+ * ms2_client_get_sample_rate:
  * @properties: a #GHashTable
  *
  * Returns "SampleRate" property value.
@@ -1439,13 +1439,13 @@ ms1_client_get_bitrate (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_sample_rate (GHashTable *properties)
+ms2_client_get_sample_rate (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_SAMPLE_RATE);
+  val = g_hash_table_lookup (properties, MS2_PROP_SAMPLE_RATE);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1454,7 +1454,7 @@ ms1_client_get_sample_rate (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_bits_per_sample:
+ * ms2_client_get_bits_per_sample:
  * @properties: a #GHashTable
  *
  * Returns "BitsPerSample" property value.
@@ -1462,13 +1462,13 @@ ms1_client_get_sample_rate (GHashTable *properties)
  * Returns: property value of -1 if it is not available
  **/
 gint
-ms1_client_get_bits_per_sample (GHashTable *properties)
+ms2_client_get_bits_per_sample (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_BITS_PER_SAMPLE);
+  val = g_hash_table_lookup (properties, MS2_PROP_BITS_PER_SAMPLE);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1477,7 +1477,7 @@ ms1_client_get_bits_per_sample (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_width:
+ * ms2_client_get_width:
  * @properties: a #GHashTable
  *
  * Returns "Width" property value.
@@ -1485,13 +1485,13 @@ ms1_client_get_bits_per_sample (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_width (GHashTable *properties)
+ms2_client_get_width (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_WIDTH);
+  val = g_hash_table_lookup (properties, MS2_PROP_WIDTH);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1500,7 +1500,7 @@ ms1_client_get_width (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_height:
+ * ms2_client_get_height:
  * @properties: a #GHashTable
  *
  * Returns "Height" property value.
@@ -1508,13 +1508,13 @@ ms1_client_get_width (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_height (GHashTable *properties)
+ms2_client_get_height (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_HEIGHT);
+  val = g_hash_table_lookup (properties, MS2_PROP_HEIGHT);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1523,7 +1523,7 @@ ms1_client_get_height (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_color_depth:
+ * ms2_client_get_color_depth:
  * @properties: a #GHashTable
  *
  * Returns "ColorDepth" property value.
@@ -1531,13 +1531,13 @@ ms1_client_get_height (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_color_depth (GHashTable *properties)
+ms2_client_get_color_depth (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_COLOR_DEPTH);
+  val = g_hash_table_lookup (properties, MS2_PROP_COLOR_DEPTH);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1546,7 +1546,7 @@ ms1_client_get_color_depth (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_pixel_width:
+ * ms2_client_get_pixel_width:
  * @properties: a #GHashTable
  *
  * Returns "PixelWidth" property value.
@@ -1554,13 +1554,13 @@ ms1_client_get_color_depth (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_pixel_width (GHashTable *properties)
+ms2_client_get_pixel_width (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_PIXEL_WIDTH);
+  val = g_hash_table_lookup (properties, MS2_PROP_PIXEL_WIDTH);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1569,7 +1569,7 @@ ms1_client_get_pixel_width (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_pixel_height:
+ * ms2_client_get_pixel_height:
  * @properties: a #GHashTable
  *
  * Returns "PixelHeight" property value.
@@ -1577,13 +1577,13 @@ ms1_client_get_pixel_width (GHashTable *properties)
  * Returns: property value or -1 if it is not available
  **/
 gint
-ms1_client_get_pixel_height (GHashTable *properties)
+ms2_client_get_pixel_height (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, -1);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_PIXEL_HEIGHT);
+  val = g_hash_table_lookup (properties, MS2_PROP_PIXEL_HEIGHT);
   if (!val || !G_VALUE_HOLDS_INT (val)) {
     return -1;
   }
@@ -1592,7 +1592,7 @@ ms1_client_get_pixel_height (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_urls:
+ * ms2_client_get_urls:
  * @properties: a #GHashTable
  *
  * Returns "URLs" property value.
@@ -1601,13 +1601,13 @@ ms1_client_get_pixel_height (GHashTable *properties)
  * available
  **/
 gchar **
-ms1_client_get_urls (GHashTable *properties)
+ms2_client_get_urls (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_URLS);
+  val = g_hash_table_lookup (properties, MS2_PROP_URLS);
   if (!val || !G_VALUE_HOLDS_BOXED (val)) {
     return NULL;
   }
@@ -1616,7 +1616,7 @@ ms1_client_get_urls (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_searchable:
+ * ms2_client_get_searchable:
  * @properties: a #GHashTable
  *
  * Returns "Searchable" property value.
@@ -1624,13 +1624,13 @@ ms1_client_get_urls (GHashTable *properties)
  * Returns: property value
  **/
 gboolean
-ms1_client_get_searchable (GHashTable *properties)
+ms2_client_get_searchable (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, FALSE);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_SEARCHABLE);
+  val = g_hash_table_lookup (properties, MS2_PROP_SEARCHABLE);
   if (!val || !G_VALUE_HOLDS_BOOLEAN (val)) {
     return FALSE;
   }
@@ -1639,7 +1639,7 @@ ms1_client_get_searchable (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_child_count:
+ * ms2_client_get_child_count:
  * @properties: a #GHhashTable
  *
  * Returns "ChildCount" property value.
@@ -1647,13 +1647,13 @@ ms1_client_get_searchable (GHashTable *properties)
  * Returns: property value
  **/
 guint
-ms1_client_get_child_count (GHashTable *properties)
+ms2_client_get_child_count (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, 0);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_CHILD_COUNT);
+  val = g_hash_table_lookup (properties, MS2_PROP_CHILD_COUNT);
   if (!val || !G_VALUE_HOLDS_UINT (val)) {
     return 0;
   }
@@ -1662,7 +1662,7 @@ ms1_client_get_child_count (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_items:
+ * ms2_client_get_items:
  * @properties: a #GHashTable
  *
  * Returns "Items" property value.
@@ -1671,13 +1671,13 @@ ms1_client_get_child_count (GHashTable *properties)
  * available
  **/
 gchar **
-ms1_client_get_items (GHashTable *properties)
+ms2_client_get_items (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_ITEMS);
+  val = g_hash_table_lookup (properties, MS2_PROP_ITEMS);
   if (!val || !G_VALUE_HOLDS_BOXED (val)) {
     return NULL;
   }
@@ -1686,7 +1686,7 @@ ms1_client_get_items (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_item_count:
+ * ms2_client_get_item_count:
  * @properties: a #GHashTable
  *
  * Returns "ItemCount" property value.
@@ -1694,13 +1694,13 @@ ms1_client_get_items (GHashTable *properties)
  * Returns: property value
  **/
 guint
-ms1_client_get_item_count (GHashTable *properties)
+ms2_client_get_item_count (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, 0);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_ITEM_COUNT);
+  val = g_hash_table_lookup (properties, MS2_PROP_ITEM_COUNT);
   if (!val || !G_VALUE_HOLDS_UINT (val)) {
     return 0;
   }
@@ -1709,7 +1709,7 @@ ms1_client_get_item_count (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_containers:
+ * ms2_client_get_containers:
  * @properties: a #GHashTable
  *
  * Returns "Containers" property value.
@@ -1718,13 +1718,13 @@ ms1_client_get_item_count (GHashTable *properties)
  * available
  **/
 gchar **
-ms1_client_get_containers (GHashTable *properties)
+ms2_client_get_containers (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, NULL);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_CONTAINERS);
+  val = g_hash_table_lookup (properties, MS2_PROP_CONTAINERS);
   if (!val || !G_VALUE_HOLDS_BOXED (val)) {
     return NULL;
   }
@@ -1733,7 +1733,7 @@ ms1_client_get_containers (GHashTable *properties)
 }
 
 /**
- * ms1_client_get_container_count:
+ * ms2_client_get_container_count:
  * @properties: a #GHhashTable
  *
  * Returns "ContainerCount" property value.
@@ -1741,13 +1741,13 @@ ms1_client_get_containers (GHashTable *properties)
  * Returns: property value
  **/
 guint
-ms1_client_get_container_count (GHashTable *properties)
+ms2_client_get_container_count (GHashTable *properties)
 {
   GValue *val;
 
   g_return_val_if_fail (properties, 0);
 
-  val = g_hash_table_lookup (properties, MS1_PROP_CONTAINER_COUNT);
+  val = g_hash_table_lookup (properties, MS2_PROP_CONTAINER_COUNT);
   if (!val || !G_VALUE_HOLDS_UINT (val)) {
     return 0;
   }
