@@ -58,6 +58,9 @@
 #define MS2_PROP_CONTAINER_COUNT "ContainerCount"
 #define MS2_PROP_SEARCHABLE      "Searchable"
 
+/* All properties */
+#define MS2_PROP_ALL "*"
+
 /* Type items */
 #define MS2_TYPE_CONTAINER "container"
 #define MS2_TYPE_ITEM      "item"

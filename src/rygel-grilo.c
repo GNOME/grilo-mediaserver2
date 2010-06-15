@@ -319,53 +319,68 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
   GList *grl_keys = NULL;
   gint i;
 
-  for (i = 0; ms_keys[i]; i++) {
-    if (g_strcmp0 (ms_keys[i], MS2_PROP_PATH) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ID);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_TITLE);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DATE) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DATE);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ALBUM) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ALBUM);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ARTIST) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ARTIST);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_GENRE) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_GENRE);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_MIME_TYPE) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_MIME);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_URLS) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_URL);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_BITRATE) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_BITRATE);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DURATION) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DURATION);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_HEIGHT) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_HEIGHT);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_WIDTH);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0) {
-      /* Add childcount to both lists. First we would try to use Grilo to get
-         childcount; if it is not supported or is unknown, then we will compute
-         it */
-      grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_CHILDCOUNT);
-      if (other_keys) {
+  /* Check if all keys are requested */
+  if (g_strcmp0 (ms_keys[0], MS2_PROP_ALL) == 0) {
+    grl_keys = grl_plugin_registry_get_metadata_keys (registry);
+    if (other_keys) {
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_CHILD_COUNT);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_PARENT);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_TYPE);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_ITEMS);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_ITEM_COUNT);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_CONTAINERS);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_CONTAINER_COUNT);
+      *other_keys = g_list_prepend (*other_keys, MS2_PROP_SEARCHABLE);
+    }
+  } else {
+    for (i = 0; ms_keys[i]; i++) {
+      if (g_strcmp0 (ms_keys[i], MS2_PROP_PATH) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ID);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_TITLE);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DATE) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DATE);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ALBUM) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ALBUM);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ARTIST) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ARTIST);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_GENRE) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_GENRE);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_MIME_TYPE) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_MIME);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_URLS) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_URL);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_BITRATE) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_BITRATE);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DURATION) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DURATION);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_HEIGHT) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_HEIGHT);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_WIDTH);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0) {
+        /* Add childcount to both lists. First we would try to use Grilo to get
+           childcount; if it is not supported or is unknown, then we will
+           compute it */
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_CHILDCOUNT);
+        if (other_keys) {
+          *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+        }
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_TYPE) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEMS) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEM_COUNT) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINERS) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINER_COUNT) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_SEARCHABLE) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       }
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_TYPE) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEMS) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEM_COUNT) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINERS) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINER_COUNT) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-    } else if (g_strcmp0 (ms_keys[i], MS2_PROP_SEARCHABLE) == 0 && other_keys) {
-      *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
     }
   }
 
