@@ -934,11 +934,9 @@ main (gint argc, gchar **argv)
   GOptionContext *context = NULL;
   gint i;
 
-  g_type_init ();
-  grl_init (&argc, &argv);
-
   context = g_option_context_new ("- run Grilo plugin as UPnP service");
   g_option_context_add_main_entries (context, entries, NULL);
+  g_option_context_add_group (context, grl_init_get_option_group ());
   g_option_context_parse (context, &argc, &argv, &error);
   g_option_context_free (context);
 
@@ -958,6 +956,8 @@ main (gint argc, gchar **argv)
   }
 
   /* Load grilo plugins */
+  grl_init (&argc, &argv);
+
   registry = grl_plugin_registry_get_instance ();
   if (!registry) {
     g_printerr ("Unable to load Grilo registry\n");
