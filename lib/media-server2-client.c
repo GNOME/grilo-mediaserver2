@@ -26,9 +26,9 @@
 #include "media-server2-private.h"
 #include "media-server2-client.h"
 
-#define IMEDIAOBJECT1_INDEX    0
-#define IMEDIAITEM1_INDEX      1
-#define IMEDIACONTAINER1_INDEX 2
+#define IMEDIAOBJECT2_INDEX    0
+#define IMEDIAITEM2_INDEX      1
+#define IMEDIACONTAINER2_INDEX 2
 
 #define MS2_CLIENT_GET_PRIVATE(o)                                       \
   G_TYPE_INSTANCE_GET_PRIVATE((o), MS2_TYPE_CLIENT, MS2ClientPrivate)
@@ -84,9 +84,9 @@ struct _MS2ClientPrivate {
 
 static guint32 signals[LAST_SIGNAL] = { 0 };
 
-static gchar *IFACES[] = { "org.gnome.UPnP.MediaObject1",
-                           "org.gnome.UPnP.MediaItem1",
-                           "org.gnome.UPnP.MediaContainer1" };
+static gchar *IFACES[] = { "org.gnome.UPnP.MediaObject2",
+                           "org.gnome.UPnP.MediaItem2",
+                           "org.gnome.UPnP.MediaContainer2" };
 
 G_DEFINE_TYPE (MS2Client, ms2_client, G_TYPE_OBJECT);
 
@@ -138,24 +138,24 @@ split_properties_by_interface (gchar **properties)
 
   prop_length = g_strv_length (properties) + 1;
   split = g_new (gchar **, 3);
-  split[IMEDIAOBJECT1_INDEX] = g_new0 (gchar *, prop_length);
-  split[IMEDIAITEM1_INDEX] = g_new0 (gchar *, prop_length);
-  split[IMEDIACONTAINER1_INDEX ] = g_new0 (gchar *, prop_length);
+  split[IMEDIAOBJECT2_INDEX] = g_new0 (gchar *, prop_length);
+  split[IMEDIAITEM2_INDEX] = g_new0 (gchar *, prop_length);
+  split[IMEDIACONTAINER2_INDEX ] = g_new0 (gchar *, prop_length);
   for (property = properties; *property; property++) {
     if (g_strcmp0 (*property, MS2_PROP_DISPLAY_NAME) == 0 ||
         g_strcmp0 (*property, MS2_PROP_PARENT) == 0 ||
         g_strcmp0 (*property, MS2_PROP_PATH) == 0 ||
         g_strcmp0 (*property, MS2_PROP_TYPE) == 0) {
-      split[IMEDIAOBJECT1_INDEX][mo_index++] = *property;
+      split[IMEDIAOBJECT2_INDEX][mo_index++] = *property;
     } else if (g_strcmp0 (*property, MS2_PROP_CHILD_COUNT) == 0 ||
                g_strcmp0 (*property, MS2_PROP_ITEMS) == 0 ||
                g_strcmp0 (*property, MS2_PROP_ITEM_COUNT) == 0 ||
                g_strcmp0 (*property, MS2_PROP_CONTAINERS) == 0 ||
                g_strcmp0 (*property, MS2_PROP_CONTAINER_COUNT) == 0 ||
                g_strcmp0 (*property, MS2_PROP_SEARCHABLE) == 0) {
-      split[IMEDIACONTAINER1_INDEX][mc_index++] = *property;
+      split[IMEDIACONTAINER2_INDEX][mc_index++] = *property;
     } else {
-      split[IMEDIAITEM1_INDEX][mi_index++] = *property;
+      split[IMEDIAITEM2_INDEX][mi_index++] = *property;
     }
   }
 
@@ -810,7 +810,7 @@ ms2_client_list_children_async (MS2Client *client,
   adata->gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
                                              client->priv->fullname,
                                              object_path,
-                                             "org.gnome.UPnP.MediaContainer1");
+                                             "org.gnome.UPnP.MediaContainer2");
 
   dbus_g_proxy_begin_call (adata->gproxy,
                            "ListChildren", list_children_reply,
@@ -884,7 +884,7 @@ ms2_client_list_children (MS2Client *client,
   gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
                                       client->priv->fullname,
                                       object_path,
-                                      "org.gnome.UPnP.MediaContainer1");
+                                      "org.gnome.UPnP.MediaContainer2");
 
   if (dbus_g_proxy_call (gproxy,
                          "ListChildren", error,
@@ -953,7 +953,7 @@ ms2_client_search_objects_async (MS2Client *client,
   adata->gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
                                              client->priv->fullname,
                                              object_path,
-                                             "org.gnome.UPnP.MediaContainer1");
+                                             "org.gnome.UPnP.MediaContainer2");
 
   dbus_g_proxy_begin_call (adata->gproxy,
                            "SearchObjects", search_objects_reply,
@@ -1031,7 +1031,7 @@ ms2_client_search_objects (MS2Client *client,
   gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
                                       client->priv->fullname,
                                       object_path,
-                                      "org.gnome.UPnP.MediaContainer1");
+                                      "org.gnome.UPnP.MediaContainer2");
 
   if (dbus_g_proxy_call (gproxy,
                          "SearchObjects", error,

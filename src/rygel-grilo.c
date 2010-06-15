@@ -311,7 +311,7 @@ get_items_and_containers (MS2Server *server,
   g_list_free (children);
 }
 
-/* Given a null-terminated array of MediaServerSpec1 properties, returns a list
+/* Given a null-terminated array of MediaServerSpec2 properties, returns a list
    with the corresponding Grilo metadata keys */
 static GList *
 get_grilo_keys (const gchar **ms_keys, GList **other_keys)

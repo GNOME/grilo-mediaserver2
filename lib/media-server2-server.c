@@ -27,9 +27,6 @@
 #include "media-server2-server.h"
 #include "media-server2-introspection.h"
 
-#define INTROSPECTION_FILE                                              \
-  "/home/jasuarez/Projects/grilo/rygel-grilo/data/media-server2.xml"
-
 #define DBUS_TYPE_G_ARRAY_OF_STRING                             \
   (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRING))
 
@@ -75,13 +72,13 @@ static const gchar searchobjects_sgn[] = { DBUS_TYPE_STRING,                  /*
 
 
 /* Properties in interfaces */
-static const gchar *mediaobject1_properties[] = { MS2_PROP_PARENT,
+static const gchar *mediaobject2_properties[] = { MS2_PROP_PARENT,
                                                   MS2_PROP_TYPE,
                                                   MS2_PROP_PATH,
                                                   MS2_PROP_DISPLAY_NAME,
                                                   NULL };
 
-static const gchar *mediaitem1_properties[] = { MS2_PROP_URLS,
+static const gchar *mediaitem2_properties[] = { MS2_PROP_URLS,
                                                 MS2_PROP_MIME_TYPE,
                                                 MS2_PROP_SIZE,
                                                 MS2_PROP_ARTIST,
@@ -102,7 +99,7 @@ static const gchar *mediaitem1_properties[] = { MS2_PROP_URLS,
                                                 MS2_PROP_ALBUM_ART,
                                                 NULL };
 
-static const gchar *mediacontainer1_properties[] = { MS2_PROP_CHILD_COUNT,
+static const gchar *mediacontainer2_properties[] = { MS2_PROP_CHILD_COUNT,
                                                      MS2_PROP_ITEMS,
                                                      MS2_PROP_ITEM_COUNT,
                                                      MS2_PROP_CONTAINERS,
@@ -298,48 +295,48 @@ is_property_valid (const gchar *interface,
   const gchar *prop_intern;
   gboolean found;
   int i;
-  static gchar **mo1_properties_intern = NULL;
-  static gchar **mi1_properties_intern = NULL;
-  static gchar **mc1_properties_intern = NULL;
+  static gchar **mo2_properties_intern = NULL;
+  static gchar **mi2_properties_intern = NULL;
+  static gchar **mc2_properties_intern = NULL;
 
-  /* Initialize MediaObject1 properties interns */
-  if (!mo1_properties_intern) {
-    mo1_properties_intern = g_new (gchar *,
-                                   g_strv_length ((gchar **) mediaobject1_properties) + 1);
-    for (i = 0; mediaobject1_properties[i]; i++) {
-      mo1_properties_intern[i] =
-        (gchar *) g_intern_static_string (mediaobject1_properties[i]);
+  /* Initialize MediaObject2 properties interns */
+  if (!mo2_properties_intern) {
+    mo2_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediaobject2_properties) + 1);
+    for (i = 0; mediaobject2_properties[i]; i++) {
+      mo2_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediaobject2_properties[i]);
     }
-    mo1_properties_intern[i] = NULL;
+    mo2_properties_intern[i] = NULL;
   }
 
-  /* Initialize MediaItem1 properties interns */
-  if (!mi1_properties_intern) {
-    mi1_properties_intern = g_new (gchar *,
-                                   g_strv_length ((gchar **) mediaitem1_properties) + 1);
-    for (i = 0; mediaitem1_properties[i]; i++) {
-      mi1_properties_intern[i] =
-        (gchar *) g_intern_static_string (mediaitem1_properties[i]);
+  /* Initialize MediaItem2 properties interns */
+  if (!mi2_properties_intern) {
+    mi2_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediaitem2_properties) + 1);
+    for (i = 0; mediaitem2_properties[i]; i++) {
+      mi2_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediaitem2_properties[i]);
     }
-    mi1_properties_intern[i] = NULL;
+    mi2_properties_intern[i] = NULL;
   }
 
-  /* Initialize MediaContainer1 properties interns */
-  if (!mc1_properties_intern) {
-    mc1_properties_intern = g_new (gchar *,
-                                   g_strv_length ((gchar **) mediacontainer1_properties) + 1);
-    for (i = 0; mediacontainer1_properties[i]; i++) {
-      mc1_properties_intern[i] =
-        (gchar *) g_intern_static_string (mediacontainer1_properties[i]);
+  /* Initialize MediaContainer2 properties interns */
+  if (!mc2_properties_intern) {
+    mc2_properties_intern = g_new (gchar *,
+                                   g_strv_length ((gchar **) mediacontainer2_properties) + 1);
+    for (i = 0; mediacontainer2_properties[i]; i++) {
+      mc2_properties_intern[i] =
+        (gchar *) g_intern_static_string (mediacontainer2_properties[i]);
     }
-    mc1_properties_intern[i] = NULL;
+    mc2_properties_intern[i] = NULL;
   }
 
   prop_intern = g_intern_string (property);
 
-  /* Check MediaObject1 interface */
-  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaObject1") == 0) {
-    found = lookup_in_strv (mo1_properties_intern, prop_intern);
+  /* Check MediaObject2 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
+    found = lookup_in_strv (mo2_properties_intern, prop_intern);
 
     if (found) {
       return TRUE;
@@ -351,9 +348,9 @@ is_property_valid (const gchar *interface,
     }
   }
 
-  /* Check MediaItem1 interface */
-  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem1") == 0) {
-    found = lookup_in_strv (mi1_properties_intern, prop_intern);
+  /* Check MediaItem2 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
+    found = lookup_in_strv (mi2_properties_intern, prop_intern);
 
     if (found) {
       return TRUE;
@@ -365,9 +362,9 @@ is_property_valid (const gchar *interface,
     }
   }
 
-  /* Check MediaContainer1 interface */
-  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
-    return lookup_in_strv (mc1_properties_intern, prop_intern);
+  /* Check MediaContainer2 interface */
+  if (!interface || g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer2") == 0) {
+    return lookup_in_strv (mc2_properties_intern, prop_intern);
   }
 
   return FALSE;
@@ -690,12 +687,12 @@ handle_get_all_message (DBusConnection *c,
                            DBUS_TYPE_STRING, &interface,
                            DBUS_TYPE_INVALID);
     /* Get what properties we should ask */
-    if (g_strcmp0 (interface, "org.gnome.UPnP.MediaObject1") == 0) {
-      prop = mediaobject1_properties;
-    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaItem1") == 0) {
-      prop = mediaitem1_properties;
-    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer1") == 0) {
-      prop = mediacontainer1_properties;
+    if (g_strcmp0 (interface, "org.gnome.UPnP.MediaObject2") == 0) {
+      prop = mediaobject2_properties;
+    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaItem2") == 0) {
+      prop = mediaitem2_properties;
+    } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer2") == 0) {
+      prop = mediacontainer2_properties;
     } else {
       return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
@@ -883,11 +880,11 @@ containers_handler (DBusConnection *c,
                                           "GetAll")) {
     return handle_get_all_message (c, m, userdata);
   } else if (dbus_message_is_method_call (m,
-                                          "org.gnome.UPnP.MediaContainer1",
+                                          "org.gnome.UPnP.MediaContainer2",
                                           "ListChildren")) {
     return handle_list_children_message (c, m, userdata);
   } else if (dbus_message_is_method_call (m,
-                                          "org.gnome.UPnP.MediaContainer1",
+                                          "org.gnome.UPnP.MediaContainer2",
                                           "SearchObjects")) {
     return handle_search_objects_message (c, m, userdata);
   } else {
@@ -1165,7 +1162,7 @@ ms2_server_updated (MS2Server *server,
   }
 
   message = dbus_message_new_signal (object_path,
-                                     "org.gnome.UPnP.MediaContainer1",
+                                     "org.gnome.UPnP.MediaContainer2",
                                      "Updated");
   dbus_connection_send (connection, message, NULL);
   dbus_message_unref (message);

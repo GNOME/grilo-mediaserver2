@@ -96,7 +96,7 @@ listen_updated_signal (DBusConnection *connection,
   gchar **path;
 
   if (dbus_message_is_signal (message,
-                              "org.gnome.UPnP.MediaContainer1",
+                              "org.gnome.UPnP.MediaContainer2",
                               "Updated")) {
     dbus_message_get_path_decomposed (message, &path);
 
@@ -160,7 +160,7 @@ create_instance ()
   /* Listen for Updated signal */
   connection = dbus_g_connection_get_connection (gconnection);
   dbus_bus_add_match (connection,
-                      "interface='org.gnome.UPnP.MediaContainer1',"
+                      "interface='org.gnome.UPnP.MediaContainer2',"
                       "member='Updated'",
                       NULL);
   dbus_connection_add_filter (connection,

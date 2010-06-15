@@ -23,13 +23,13 @@
 #ifndef _MEDIA_SERVER2_COMMON_H_
 #define _MEDIA_SERVER2_COMMON_H_
 
-/* MediaObject1 properties */
+/* MediaObject2 properties */
 #define MS2_PROP_PARENT       "Parent"
 #define MS2_PROP_TYPE         "Type"
 #define MS2_PROP_PATH         "Path"
 #define MS2_PROP_DISPLAY_NAME "DisplayName"
 
-/* MediaItem1 properties */
+/* MediaItem2 properties */
 #define MS2_PROP_URLS            "URLs"
 #define MS2_PROP_MIME_TYPE       "MIMEType"
 #define MS2_PROP_SIZE            "Size"
@@ -50,7 +50,7 @@
 #define MS2_PROP_THUMBNAIL       "Thumbnail"
 #define MS2_PROP_ALBUM_ART       "AlbumArt"
 
-/* MediaContainer1 properties */
+/* MediaContainer2 properties */
 #define MS2_PROP_CHILD_COUNT     "ChildCount"
 #define MS2_PROP_ITEMS           "Items"
 #define MS2_PROP_ITEM_COUNT      "ItemCount"
