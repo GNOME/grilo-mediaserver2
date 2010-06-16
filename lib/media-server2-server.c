@@ -107,6 +107,37 @@ static const gchar *mediacontainer2_properties[] = { MS2_PROP_CHILD_COUNT,
                                                      MS2_PROP_SEARCHABLE,
                                                      NULL };
 
+static const gchar *all_properties[] = { MS2_PROP_PARENT,
+                                         MS2_PROP_TYPE,
+                                         MS2_PROP_PATH,
+                                         MS2_PROP_DISPLAY_NAME,
+                                         MS2_PROP_URLS,
+                                         MS2_PROP_MIME_TYPE,
+                                         MS2_PROP_SIZE,
+                                         MS2_PROP_ARTIST,
+                                         MS2_PROP_ALBUM,
+                                         MS2_PROP_DATE,
+                                         MS2_PROP_GENRE,
+                                         MS2_PROP_DLNA_PROFILE,
+                                         MS2_PROP_DURATION,
+                                         MS2_PROP_BITRATE,
+                                         MS2_PROP_SAMPLE_RATE,
+                                         MS2_PROP_BITS_PER_SAMPLE,
+                                         MS2_PROP_WIDTH,
+                                         MS2_PROP_HEIGHT,
+                                         MS2_PROP_COLOR_DEPTH,
+                                         MS2_PROP_PIXEL_WIDTH,
+                                         MS2_PROP_PIXEL_HEIGHT,
+                                         MS2_PROP_THUMBNAIL,
+                                         MS2_PROP_ALBUM_ART,
+                                         MS2_PROP_CHILD_COUNT,
+                                         MS2_PROP_ITEMS,
+                                         MS2_PROP_ITEM_COUNT,
+                                         MS2_PROP_CONTAINERS,
+                                         MS2_PROP_CONTAINER_COUNT,
+                                         MS2_PROP_SEARCHABLE,
+                                         NULL };
+
 G_DEFINE_TYPE (MS2Server, ms2_server, G_TYPE_OBJECT);
 
 /******************** PRIVATE API ********************/
@@ -693,6 +724,8 @@ handle_get_all_message (DBusConnection *c,
       prop = mediaitem2_properties;
     } else if (g_strcmp0 (interface, "org.gnome.UPnP.MediaContainer2") == 0) {
       prop = mediacontainer2_properties;
+    } else if (g_strcmp0 (interface, "") == 0) {
+      prop = all_properties;
     } else {
       return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
