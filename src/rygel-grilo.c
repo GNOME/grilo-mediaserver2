@@ -40,6 +40,8 @@ static GHashTable *servers = NULL;
 static GList *providers_names = NULL;
 static GrlPluginRegistry *registry = NULL;
 
+static GrlKeyID GRL_METADATA_KEY_RYGEL_GRILO_PARENT = NULL;
+
 static gboolean count_items_containers;
 static gboolean dups;
 static gchar **args = NULL;
@@ -62,7 +64,7 @@ static GOptionEntry entries[] = {
     NULL },
   { "limit", 'l', 0,
     G_OPTION_ARG_INT, &limit,
-    "Limit max. number of children for Items/Containers ( 0 = unlimited)",
+    "Limit max. number of children for Items/Containers (0 = unlimited)",
     NULL },
   { "hard-limit", 'L', 0,
     G_OPTION_ARG_INT, &hard_limit,
@@ -955,13 +957,26 @@ main (gint argc, gchar **argv)
     limit = CLAMP (limit, 0, G_MAXINT);
   }
 
-  /* Load grilo plugins */
+  /* Initialize grilo */
   grl_init (&argc, &argv);
-
   registry = grl_plugin_registry_get_instance ();
   if (!registry) {
     g_printerr ("Unable to load Grilo registry\n");
     return -1;
+  }
+
+  /* Register a key to store parent */
+  GRL_METADATA_KEY_RYGEL_GRILO_PARENT =
+    grl_plugin_registry_register_metadata_key (registry,
+                                               g_param_spec_string ("rygel-grilo-parent",
+                                                                    "RygelGriloParent",
+                                                                    "Object path to parent container",
+                                                                    NULL,
+                                                                    G_PARAM_READWRITE));
+
+  if (!GRL_METADATA_KEY_RYGEL_GRILO_PARENT) {
+    g_error ("Unable to register Parent key");
+    return 1;
   }
 
   /* Load configuration */
