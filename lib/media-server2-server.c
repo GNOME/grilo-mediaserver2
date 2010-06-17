@@ -547,8 +547,16 @@ add_variant (DBusMessage *m,
 
   if (G_VALUE_HOLDS_STRING (v)) {
     str_value = g_value_get_string (v);
-    dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "s", &sub);
-    dbus_message_iter_append_basic (&sub, DBUS_TYPE_STRING, &str_value);
+    if (g_strcmp0 (key, "Path") == 0 ||
+        g_strcmp0 (key, "Parent") == 0 ||
+        g_strcmp0 (key, "Thumbnail") == 0 ||
+        g_strcmp0 (key, "AlbumArt") == 0) {
+      dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "o", &sub);
+      dbus_message_iter_append_basic (&sub, DBUS_TYPE_OBJECT_PATH, &str_value);
+    } else {
+      dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "s", &sub);
+      dbus_message_iter_append_basic (&sub, DBUS_TYPE_STRING, &str_value);
+    }
     dbus_message_iter_close_container (iter, &sub);
   } else if (G_VALUE_HOLDS_INT (v)) {
     int_value = g_value_get_int (v);
