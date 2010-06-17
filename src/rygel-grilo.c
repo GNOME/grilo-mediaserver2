@@ -108,6 +108,16 @@ list_children_cb (MS2Server *server,
                   gpointer data,
                   GError **error);
 
+static GList *
+search_objects_cb (MS2Server *server,
+                   const gchar *id,
+                   const gchar *query,
+                   guint offset,
+                   guint max_count,
+                   const gchar **properties,
+                   gpointer data,
+                   GError **error);
+
 /* Fix invalid characters so string can be used in a dbus name */
 static void
 sanitize (gchar *string)
@@ -477,9 +487,17 @@ fill_other_properties_table (MS2Server *server,
                count_items_containers) {
       container_count = &_container_count;
     } else if (g_strcmp0 (key->data, MS2_PROP_SEARCHABLE) == 0) {
-      ms2_server_set_searchable (server,
-                                 properties_table,
-                                 FALSE);
+      /* Only Jamendo supports search in the root level */
+      if (grl_media_get_id (media) == NULL &&
+          g_strcmp0 (grl_metadata_source_get_id (GRL_METADATA_SOURCE (source)), "grl-jamendo") == 0) {
+        ms2_server_set_searchable (server,
+                                   properties_table,
+                                   TRUE);
+      } else {
+        ms2_server_set_searchable (server,
+                                   properties_table,
+                                   FALSE);
+      }
     }
   }
 
@@ -710,6 +728,97 @@ list_children_cb (MS2Server *server,
   return children;
 }
 
+static GList *
+search_objects_cb (MS2Server *server,
+                   const gchar *id,
+                   const gchar *query,
+                   guint offset,
+                   guint max_count,
+                   const gchar **properties,
+                   gpointer data,
+                   GError **error)
+{
+  GList *objects;
+  GMatchInfo *match_info;
+  GRegex *query_regex = NULL;
+  RygelGriloData *rgdata;
+  gchar *jamendo_query;
+  gchar *track;
+
+  /* Browse is only allowed in root container */
+  if (g_strcmp0 (id, MS2_ROOT) != 0) {
+    if (error) {
+      /* FIXME: a better error should be reported */
+      *error = g_error_new (0, 0, "search is only allowed in root container");
+    }
+    return NULL;
+  }
+
+  if (!query_regex) {
+    query_regex = g_regex_new ("^" MS2_PROP_DISPLAY_NAME "[[:blank:]]+contains[[:blank:]]+\"[[:alnum:]]+\"",
+                               G_REGEX_OPTIMIZE,
+                               0, NULL);
+  }
+
+  if (!g_regex_match (query_regex, query, 0, &match_info)) {
+    if (error) {
+      /* FIXME: a better error should be reported */
+      *error = g_error_new (0, 0, "do not understand query, %s", query);
+    }
+    return NULL;
+  }
+
+  track = g_match_info_fetch (match_info, 0);
+  g_match_info_free (match_info);
+
+  jamendo_query = g_strconcat ("track=", track, NULL);
+  g_free (track);
+
+  rgdata = g_slice_new0 (RygelGriloData);
+  rgdata->server = g_object_ref (server);
+  rgdata->source = (GrlMediaSource *) data;
+  rgdata->keys = get_grilo_keys (properties, &rgdata->other_keys);
+  rgdata->parent_id = g_strdup (id);
+
+  /* Adjust limits */
+  if (offset >= hard_limit) {
+    browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
+  } else {
+    grl_media_source_query (rgdata->source,
+                            jamendo_query,
+                            rgdata->keys,
+                            offset,
+                            max_count == 0? (hard_limit - offset): CLAMP (max_count,
+                                                                          1,
+                                                                          hard_limit - offset),
+                            GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                            browse_cb,
+                            rgdata);
+  }
+
+  wait_for_result (rgdata);
+
+  if (rgdata->error) {
+    if (error) {
+      *error = rgdata->error;
+    }
+    g_list_foreach (rgdata->children, (GFunc) g_hash_table_unref, NULL);
+    g_list_free (rgdata->children);
+    objects = NULL;
+  } else {
+    objects = rgdata->children;
+  }
+
+  g_free (jamendo_query);
+  g_list_free (rgdata->keys);
+  g_list_free (rgdata->other_keys);
+  g_free (rgdata->parent_id);
+  g_object_unref (rgdata->server);
+  g_slice_free (RygelGriloData, rgdata);
+
+  return objects;
+}
+
 /* Callback invoked whenever a new source comes up */
 static void
 source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
@@ -717,6 +826,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
   GrlSupportedOps supported_ops;
   MS2Server *server;
   const gchar *source_name;
+  gchar *sanitized_source_id;
   gchar *source_id;
 
   /* Only sources that implement browse and metadata are of interest */
@@ -741,26 +851,31 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     }
 
     /* Register a new service name */
-    source_id = g_strdup (source_id);
+    sanitized_source_id = g_strdup (source_id);
 
-    g_debug ("Registering %s [%s] source", source_id, source_name);
+    g_debug ("Registering %s [%s] source", sanitized_source_id, source_name);
 
-    sanitize (source_id);
+    sanitize (sanitized_source_id);
 
-    server = ms2_server_new (source_id, GRL_MEDIA_SOURCE (user_data));
+    server = ms2_server_new (sanitized_source_id, GRL_MEDIA_SOURCE (user_data));
 
     if (!server) {
-      g_warning ("Cannot register %s", source_id);
-      g_free (source_id);
+      g_warning ("Cannot register %s", sanitized_source_id);
+      g_free (sanitized_source_id);
     } else {
       ms2_server_set_get_properties_func (server, get_properties_cb);
       ms2_server_set_list_children_func (server, list_children_cb);
+      /* Add search in Jamendo source */
+      if (g_strcmp0 (source_id, "grl-jamendo") == 0 &&
+          supported_ops & GRL_OP_QUERY) {
+        ms2_server_set_search_objects_func (server, search_objects_cb);
+      }
       /* Save reference */
       if (!dups) {
         providers_names = g_list_prepend (providers_names,
                                           g_strdup(source_name));
       }
-      g_hash_table_insert (servers, source_id, server);
+      g_hash_table_insert (servers, sanitized_source_id, server);
     }
   } else {
     g_debug ("%s source does not support either browse or metadata",
