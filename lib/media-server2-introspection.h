@@ -65,12 +65,22 @@
 #define MEDIACONTAINER2_IFACE                                           \
   "  <interface name=\"org.gnome.UPnP.MediaContainer2\">"               \
   "    <property name=\"ChildCount\"     type=\"u\"  access=\"read\"/>" \
-  "    <property name=\"Items\"          type=\"ao\" access=\"read\"/>" \
   "    <property name=\"ItemCount\"      type=\"u\"  access=\"read\"/>" \
-  "    <property name=\"Containers\"     type=\"ao\" access=\"read\"/>" \
   "    <property name=\"ContainerCount\" type=\"u\"  access=\"read\"/>" \
   "    <property name=\"Searchable\"     type=\"b\"  access=\"read\"/>" \
   "    <method name=\"ListChildren\">"                                  \
+  "      <arg name=\"offset\"  direction=\"in\"  type=\"u\"/>"          \
+  "      <arg name=\"max\"     direction=\"in\"  type=\"u\"/>"          \
+  "      <arg name=\"filter\"  direction=\"in\"  type=\"as\"/>"         \
+  "      <arg name=\"objects\" direction=\"out\" type=\"a(a{sv})\"/>"   \
+  "    </method>"                                                       \
+  "    <method name=\"ListContainers\">"                                \
+  "      <arg name=\"offset\"  direction=\"in\"  type=\"u\"/>"          \
+  "      <arg name=\"max\"     direction=\"in\"  type=\"u\"/>"          \
+  "      <arg name=\"filter\"  direction=\"in\"  type=\"as\"/>"         \
+  "      <arg name=\"objects\" direction=\"out\" type=\"a(a{sv})\"/>"   \
+  "    </method>"                                                       \
+  "    <method name=\"ListItems\">"                                     \
   "      <arg name=\"offset\"  direction=\"in\"  type=\"u\"/>"          \
   "      <arg name=\"max\"     direction=\"in\"  type=\"u\"/>"          \
   "      <arg name=\"filter\"  direction=\"in\"  type=\"as\"/>"         \

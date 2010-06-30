@@ -133,26 +133,6 @@ id_to_object_path (MS2Server *server,
   return object_path;
 }
 
-/* Returns a GPtrArray of object_paths obtained from list of hashtable
-   properties */
-static GPtrArray *
-get_object_paths (GList *items)
-{
-  GList *item;
-  GPtrArray *op;
-  gchar *path;
-
-  op = g_ptr_array_sized_new (g_list_length (items));
-  for (item = items; item; item = g_list_next (item)) {
-    path = g_strdup (ms2_client_get_path (item->data));
-    if (path) {
-      g_ptr_array_add (op, path);
-    }
-  }
-
-  return op;
-}
-
 /********************* PUBLIC API *********************/
 
 /**
@@ -777,31 +757,6 @@ ms2_server_set_child_count (MS2Server *server,
 }
 
 /**
- * ms2_server_set_items:
- * @server: a #MS2Server
- * @properties: a #GHashTable
- * @items: a list of children
- *
- * Sets the "Items" property.
- **/
-void
-ms2_server_set_items (MS2Server *server,
-                      GHashTable *properties,
-                      GList *items)
-{
-  GPtrArray *object_paths;
-
-  g_return_if_fail (properties);
-
-  if (items) {
-    object_paths = get_object_paths (items);
-    g_hash_table_insert (properties,
-                         MS2_PROP_ITEMS,
-                         ptrarray_to_value (object_paths));
-  }
-}
-
-/**
  * ms2_server_set_item_count:
  * @server: a #MS2Server
  * @properties: a #GHashTable
@@ -819,31 +774,6 @@ ms2_server_set_item_count (MS2Server *server,
   g_hash_table_insert (properties,
                        MS2_PROP_ITEM_COUNT,
                        uint_to_value (item_count));
-}
-
-/**
- * ms2_server_set_containers:
- * @server: a #MS2Server
- * @properties: a #GHashTable
- * @containers: a list of children
- *
- * Sets the "Containers" property.
- **/
-void
-ms2_server_set_containers (MS2Server *server,
-                           GHashTable *properties,
-                           GList *containers)
-{
-  GPtrArray *object_paths;
-
-  g_return_if_fail (properties);
-
-  if (containers) {
-    object_paths = get_object_paths (containers);
-    g_hash_table_insert (properties,
-                         MS2_PROP_CONTAINERS,
-                         ptrarray_to_value (object_paths));
-  }
 }
 
 /**

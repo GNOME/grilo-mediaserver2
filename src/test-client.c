@@ -7,8 +7,6 @@ static gchar *properties[] = { MS2_PROP_PATH,
                                MS2_PROP_DISPLAY_NAME,
                                MS2_PROP_PARENT,
                                MS2_PROP_CHILD_COUNT,
-                               MS2_PROP_CONTAINERS,
-                               MS2_PROP_ITEMS,
                                MS2_PROP_URLS,
                                MS2_PROP_ARTIST,
                                NULL };
@@ -52,12 +50,6 @@ test_properties ()
 
     gchar **urls = ms2_client_get_urls (result);
     g_print ("We got %d urls\n", urls? g_strv_length (urls): 0);
-
-    gchar **items = ms2_client_get_items (result);
-    g_print ("We got %d items\n", items? g_strv_length (items): 0);
-
-    gchar **containers = ms2_client_get_containers (result);
-    g_print ("We got %d containers\n", containers? g_strv_length (containers): 0);
 
     for (p = properties; *p; p++) {
       v = g_hash_table_lookup (result, *p);

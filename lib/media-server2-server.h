@@ -221,17 +221,9 @@ void ms2_server_set_child_count (MS2Server *server,
                                  GHashTable *properties,
                                  guint child_count);
 
-void ms2_server_set_items (MS2Server *server,
-                           GHashTable *properties,
-                           GList *items);
-
 void ms2_server_set_item_count (MS2Server *server,
                                 GHashTable *properties,
                                 guint item_count);
-
-void ms2_server_set_containers (MS2Server *server,
-                                GHashTable *properties,
-                                GList *containers);
 
 void ms2_server_set_container_count (MS2Server *server,
                                      GHashTable *properties,

@@ -148,9 +148,7 @@ split_properties_by_interface (gchar **properties)
         g_strcmp0 (*property, MS2_PROP_TYPE) == 0) {
       split[IMEDIAOBJECT2_INDEX][mo_index++] = *property;
     } else if (g_strcmp0 (*property, MS2_PROP_CHILD_COUNT) == 0 ||
-               g_strcmp0 (*property, MS2_PROP_ITEMS) == 0 ||
                g_strcmp0 (*property, MS2_PROP_ITEM_COUNT) == 0 ||
-               g_strcmp0 (*property, MS2_PROP_CONTAINERS) == 0 ||
                g_strcmp0 (*property, MS2_PROP_CONTAINER_COUNT) == 0 ||
                g_strcmp0 (*property, MS2_PROP_SEARCHABLE) == 0) {
       split[IMEDIACONTAINER2_INDEX][mc_index++] = *property;
@@ -178,23 +176,6 @@ gptrarray_to_glist (GPtrArray *result)
   }
 
   return g_list_reverse (list);
-}
-
-/* Converts GPtrArray in a NULL-terminated array */
-static gchar **
-gptrarray_to_strv (GPtrArray *result)
-{
-  gchar **strv;
-  gint i;
-
-  strv = g_new (gchar *, result->len + 1);
-  for (i = 0; i < result->len; i++) {
-    strv[i] = g_strdup (g_ptr_array_index (result, i));
-  }
-
-  strv[i] = NULL;
-
-  return strv;
 }
 
 /* Callback invoked when ListenChildren reply is received */
@@ -1662,30 +1643,6 @@ ms2_client_get_child_count (GHashTable *properties)
 }
 
 /**
- * ms2_client_get_items:
- * @properties: a #GHashTable
- *
- * Returns "Items" property value.
- *
- * Returns: a new @NULL-terminated array of strings or @NULL if it is not
- * available
- **/
-gchar **
-ms2_client_get_items (GHashTable *properties)
-{
-  GValue *val;
-
-  g_return_val_if_fail (properties, NULL);
-
-  val = g_hash_table_lookup (properties, MS2_PROP_ITEMS);
-  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
-    return NULL;
-  }
-
-  return gptrarray_to_strv (g_value_get_boxed (val));
-}
-
-/**
  * ms2_client_get_item_count:
  * @properties: a #GHashTable
  *
@@ -1706,30 +1663,6 @@ ms2_client_get_item_count (GHashTable *properties)
   }
 
   return g_value_get_uint (val);
-}
-
-/**
- * ms2_client_get_containers:
- * @properties: a #GHashTable
- *
- * Returns "Containers" property value.
- *
- * Returns: a new @NULL-terminated array of strings or @NULL if it is not
- * available
- **/
-gchar **
-ms2_client_get_containers (GHashTable *properties)
-{
-  GValue *val;
-
-  g_return_val_if_fail (properties, NULL);
-
-  val = g_hash_table_lookup (properties, MS2_PROP_CONTAINERS);
-  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
-    return NULL;
-  }
-
-  return gptrarray_to_strv (g_value_get_boxed (val));
 }
 
 /**

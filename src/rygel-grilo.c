@@ -185,14 +185,12 @@ unserialize_media (GrlMetadataSource *source, const gchar *serial)
 }
 
 static void
-get_items_and_containers (MS2Server *server,
-                          GrlMediaSource *source,
-                          const gchar *container_id,
-                          guint *child_count,
-                          GList **items,
-                          guint *item_count,
-                          GList **containers,
-                          guint *container_count)
+get_item_and_container_count (MS2Server *server,
+                              GrlMediaSource *source,
+                              const gchar *container_id,
+                              guint *child_count,
+                              guint *item_count,
+                              guint *container_count)
 {
   const gchar *properties[] = { MS2_PROP_PATH, MS2_PROP_TYPE, NULL };
   GList *children;
@@ -204,16 +202,8 @@ get_items_and_containers (MS2Server *server,
     *child_count = 0;
   }
 
-  if (items) {
-    *items = NULL;
-  }
-
   if (item_count) {
     *item_count = 0;
-  }
-
-  if (containers) {
-    *containers = NULL;
   }
 
   if (container_count) {
@@ -233,25 +223,12 @@ get_items_and_containers (MS2Server *server,
       if (container_count) {
         (*container_count)++;
       }
-      if (containers) {
-        *containers = g_list_prepend (*containers, child->data);
-      } else {
-        g_hash_table_unref (child->data);
-      }
     } else {
       if (item_count) {
         (*item_count)++;
       }
-      if (items) {
-        *items = g_list_prepend (*items, child->data);
-      }
     }
-  }
-  if (containers) {
-    *containers = g_list_reverse (*containers);
-  }
-  if (items) {
-    *items = g_list_reverse (*items);
+    g_hash_table_unref (child->data);
   }
   g_list_free (children);
 }
@@ -270,9 +247,7 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
     if (other_keys) {
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_CHILD_COUNT);
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_TYPE);
-      *other_keys = g_list_prepend (*other_keys, MS2_PROP_ITEMS);
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_ITEM_COUNT);
-      *other_keys = g_list_prepend (*other_keys, MS2_PROP_CONTAINERS);
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_CONTAINER_COUNT);
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_SEARCHABLE);
     }
@@ -314,11 +289,7 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
         grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_RYGEL_GRILO_PARENT);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_TYPE) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEMS) == 0 && other_keys) {
-        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEM_COUNT) == 0 && other_keys) {
-        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINERS) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINER_COUNT) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
@@ -433,10 +404,6 @@ fill_other_properties_table (MS2Server *server,
                              GList *keys,
                              GrlMedia *media)
 {
-  GList **containers = NULL;
-  GList **items = NULL;
-  GList *_containers;
-  GList *_items;
   GList *key;
   gchar *id;
   guint *child_count = NULL;
@@ -476,13 +443,9 @@ fill_other_properties_table (MS2Server *server,
           grl_media_box_get_childcount (GRL_MEDIA_BOX (media)) == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
         child_count = &_child_count;
       }
-    } else if (g_strcmp0 (key->data, MS2_PROP_ITEMS) == 0) {
-      items = &_items;
     } else if (g_strcmp0 (key->data, MS2_PROP_ITEM_COUNT) == 0 &&
                count_items_containers) {
       item_count = &_item_count;
-    } else if (g_strcmp0 (key->data, MS2_PROP_CONTAINERS) == 0) {
-      containers = &_containers;
     } else if (g_strcmp0 (key->data, MS2_PROP_CONTAINER_COUNT) == 0 &&
                count_items_containers) {
       container_count = &_container_count;
@@ -501,34 +464,22 @@ fill_other_properties_table (MS2Server *server,
     }
   }
 
-  if (child_count || items || item_count || containers || container_count) {
+  if (child_count || item_count || container_count) {
     id = serialize_media (media);
     if (id) {
-      get_items_and_containers (server,
-                                source,
-                                id,
-                                child_count,
-                                items,
-                                item_count,
-                                containers,
-                                container_count);
+      get_item_and_container_count (server,
+                                    source,
+                                    id,
+                                    child_count,
+                                    item_count,
+                                    container_count);
       g_free (id);
     }
     if (child_count) {
       ms2_server_set_child_count (server, properties_table, *child_count);
     }
-    if (items) {
-      ms2_server_set_items (server, properties_table, *items);
-      g_list_foreach (*items, (GFunc) g_hash_table_unref, NULL);
-      g_list_free (*items);
-    }
     if (item_count) {
       ms2_server_set_item_count (server, properties_table, *item_count);
-    }
-    if (containers) {
-      ms2_server_set_containers (server, properties_table, *containers);
-      g_list_foreach (*containers, (GFunc) g_hash_table_unref, NULL);
-      g_list_free (*containers);
     }
     if (container_count) {
       ms2_server_set_container_count (server, properties_table, *container_count);

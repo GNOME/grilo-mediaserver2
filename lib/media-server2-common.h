@@ -52,7 +52,6 @@
 
 /* MediaContainer2 properties */
 #define MS2_PROP_CHILD_COUNT     "ChildCount"
-#define MS2_PROP_ITEMS           "Items"
 #define MS2_PROP_ITEM_COUNT      "ItemCount"
 #define MS2_PROP_CONTAINERS      "Containers"
 #define MS2_PROP_CONTAINER_COUNT "ContainerCount"

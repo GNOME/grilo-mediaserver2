@@ -195,11 +195,7 @@ gboolean ms2_client_get_searchable (GHashTable *properties);
 
 guint ms2_client_get_child_count (GHashTable *properties);
 
-gchar **ms2_client_get_items (GHashTable *properties);
-
 guint ms2_client_get_item_count (GHashTable *properties);
-
-gchar **ms2_client_get_containers (GHashTable *properties);
 
 guint ms2_client_get_container_count (GHashTable *properties);
 
