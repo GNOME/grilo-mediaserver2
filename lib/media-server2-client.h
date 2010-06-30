@@ -120,6 +120,44 @@ GList *ms2_client_list_children (MS2Client *client,
                                  gchar **properties,
                                  GError **error);
 
+void ms2_client_list_containers_async (MS2Client *client,
+                                       const gchar *object_path,
+                                       guint offset,
+                                       guint max_count,
+                                       gchar **properties,
+                                       GAsyncReadyCallback callback,
+                                       gpointer user_data);
+
+GList *ms2_client_list_containers_finish (MS2Client *client,
+                                          GAsyncResult *res,
+                                          GError **error);
+
+GList *ms2_client_list_containers (MS2Client *client,
+                                   const gchar *object_path,
+                                   guint offset,
+                                   guint max_count,
+                                   gchar **properties,
+                                   GError **error);
+
+void ms2_client_list_items_async (MS2Client *client,
+                                  const gchar *object_path,
+                                  guint offset,
+                                  guint max_count,
+                                  gchar **properties,
+                                  GAsyncReadyCallback callback,
+                                  gpointer user_data);
+
+GList *ms2_client_list_items_finish (MS2Client *client,
+                                     GAsyncResult *res,
+                                     GError **error);
+
+GList *ms2_client_list_items (MS2Client *client,
+                              const gchar *object_path,
+                              guint offset,
+                              guint max_count,
+                              gchar **properties,
+                              GError **error);
+
 GList *ms2_client_search_objects (MS2Client *client,
                                   const gchar *object_path,
                                   const gchar *query,

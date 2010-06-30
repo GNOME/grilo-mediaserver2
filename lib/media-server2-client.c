@@ -40,7 +40,7 @@
  *                     (used only with get_properties_async())
  *   error: operation error
  *   properties: result of invoking get_properties
- *   children: result of invoking list_children
+ *   children: result of invoking list_children/containers/items
  */
 typedef struct {
   DBusGProxy *gproxy;
@@ -178,9 +178,10 @@ gptrarray_to_glist (GPtrArray *result)
   return g_list_reverse (list);
 }
 
-/* Callback invoked when ListenChildren reply is received */
+/* Callback invoked when ListenChildren/ListenContainers/ListenItems reply is
+   received */
 static void
-list_children_reply (DBusGProxy *proxy,
+list_elements_reply (DBusGProxy *proxy,
                      DBusGProxyCall *call,
                      void *user_data)
 {
@@ -292,6 +293,106 @@ get_all_reply (DBusGProxy *proxy,
     g_simple_async_result_complete (gdata->result);
     g_object_unref (gdata->result);
   }
+}
+
+/* Invoke synchronous ListFoo method */
+static GList *
+ms2_client_list_elements (MS2Client *client,
+                          const gchar *list_operation,
+                          const gchar *object_path,
+                          guint offset,
+                          guint max_count,
+                          gchar **properties,
+                          GError **error)
+{
+  DBusGProxy *gproxy;
+  GList *children = NULL;
+  GPtrArray *result = NULL;
+
+  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
+  g_return_val_if_fail (properties, NULL);
+
+  gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                      client->priv->fullname,
+                                      object_path,
+                                      "org.gnome.UPnP.MediaContainer2");
+
+  if (dbus_g_proxy_call (gproxy,
+                         list_operation, error,
+                         G_TYPE_UINT, offset,
+                         G_TYPE_UINT, max_count,
+                         G_TYPE_STRV, properties,
+                         G_TYPE_INVALID,
+                         dbus_g_type_get_collection ("GPtrArray",
+                                                     dbus_g_type_get_map ("GHashTable",
+                                                                          G_TYPE_STRING,
+                                                                          G_TYPE_VALUE)), &result,
+                         G_TYPE_INVALID)) {
+    children = gptrarray_to_glist (result);
+    g_ptr_array_free (result, TRUE);
+  }
+
+  g_object_unref (gproxy);
+
+  return children;
+}
+
+/* Invoke asynchronous ListFoo method */
+static void
+ms2_client_list_elements_async (MS2Client *client,
+                                const gchar *list_operation,
+                                const gchar *object_path,
+                                guint offset,
+                                guint max_count,
+                                gchar **properties,
+                                GAsyncReadyCallback callback,
+                                gpointer user_data)
+{
+  AsyncData *adata;
+  GSimpleAsyncResult *res;
+
+  g_return_if_fail (MS2_IS_CLIENT (client));
+
+  res = g_simple_async_result_new (G_OBJECT (client),
+                                   callback,
+                                   user_data,
+                                   ms2_client_list_elements_async);
+  adata = g_slice_new0 (AsyncData);
+  g_simple_async_result_set_op_res_gpointer (res,
+                                             adata,
+                                             (GDestroyNotify) free_async_data);
+  adata->gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
+                                             client->priv->fullname,
+                                             object_path,
+                                             "org.gnome.UPnP.MediaContainer2");
+
+  dbus_g_proxy_begin_call (adata->gproxy,
+                           list_operation, list_elements_reply,
+                           res, g_object_unref,
+                           G_TYPE_UINT, offset,
+                           G_TYPE_UINT, max_count,
+                           G_TYPE_STRV, properties,
+                           G_TYPE_INVALID);
+}
+
+/* Finishes asynchronous ListFoo method */
+static GList *
+ms2_client_list_elements_finish (MS2Client *client,
+                                 GAsyncResult *res,
+                                 GError **error)
+{
+  AsyncData *adata;
+
+  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
+                        ms2_client_list_elements_async, NULL);
+
+  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
+
+  if (error) {
+    *error = adata->error;
+  }
+
+  return adata->children;
 }
 
 /* Dispose function */
@@ -775,31 +876,14 @@ ms2_client_list_children_async (MS2Client *client,
                                 GAsyncReadyCallback callback,
                                 gpointer user_data)
 {
-  AsyncData *adata;
-  GSimpleAsyncResult *res;
-
-  g_return_if_fail (MS2_IS_CLIENT (client));
-
-  res = g_simple_async_result_new (G_OBJECT (client),
-                                   callback,
-                                   user_data,
-                                   ms2_client_list_children_async);
-  adata = g_slice_new0 (AsyncData);
-  g_simple_async_result_set_op_res_gpointer (res,
-                                             adata,
-                                             (GDestroyNotify) free_async_data);
-  adata->gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
-                                             client->priv->fullname,
-                                             object_path,
-                                             "org.gnome.UPnP.MediaContainer2");
-
-  dbus_g_proxy_begin_call (adata->gproxy,
-                           "ListChildren", list_children_reply,
-                           res, g_object_unref,
-                           G_TYPE_UINT, offset,
-                           G_TYPE_UINT, max_count,
-                           G_TYPE_STRV, properties,
-                           G_TYPE_INVALID);
+  ms2_client_list_elements_async (client,
+                                  "ListChildren",
+                                  object_path,
+                                  offset,
+                                  max_count,
+                                  properties,
+                                  callback,
+                                  user_data);
 }
 
 /**
@@ -818,18 +902,7 @@ ms2_client_list_children_finish (MS2Client *client,
                                  GAsyncResult *res,
                                  GError **error)
 {
-  AsyncData *adata;
-
-  g_return_val_if_fail (g_simple_async_result_get_source_tag (G_SIMPLE_ASYNC_RESULT (res)) ==
-                        ms2_client_list_children_async, NULL);
-
-  adata = g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res));
-
-  if (error) {
-    *error = adata->error;
-  }
-
-  return adata->children;
+  return ms2_client_list_elements_finish (client, res, error);
 }
 
 /**
@@ -855,36 +928,191 @@ ms2_client_list_children (MS2Client *client,
                           gchar **properties,
                           GError **error)
 {
-  DBusGProxy *gproxy;
-  GList *children = NULL;
-  GPtrArray *result = NULL;
+  return ms2_client_list_elements (client,
+                                   "ListChildren",
+                                   object_path,
+                                   offset,
+                                   max_count,
+                                   properties,
+                                   error);
+}
 
-  g_return_val_if_fail (MS2_IS_CLIENT (client), NULL);
-  g_return_val_if_fail (properties, NULL);
+/**
+ * ms2_client_list_containers_async:
+ * @client: a #MS2Client
+ * @object_path: container identifier to get containers from
+ * @offset: number of containers to skip
+ * @max_count: maximum number of containers to return, or 0 for no limit
+ * @properties: @NULL-terminated array of properties to request for each container
+ * @callback: a #GAsyncReadyCallback to call when request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Starts an asynchronous list containers.
+ *
+ * For more details, see ms2_client_list_containers(), which is the synchronous
+ * version of this call.
+ *
+ * When the containers have been obtained, @callback will be called with
+ * @user_data. To finish the operation, call ms2_client_list_containers_finish()
+ * with the #GAsyncResult returned by the @callback.
+ **/
+void
+ms2_client_list_containers_async (MS2Client *client,
+                                  const gchar *object_path,
+                                  guint offset,
+                                  guint max_count,
+                                  gchar **properties,
+                                  GAsyncReadyCallback callback,
+                                  gpointer user_data)
+{
+  ms2_client_list_elements_async (client,
+                                  "ListContainers",
+                                  object_path,
+                                  offset,
+                                  max_count,
+                                  properties,
+                                  callback,
+                                  user_data);
+}
 
-  gproxy = dbus_g_proxy_new_for_name (client->priv->bus,
-                                      client->priv->fullname,
-                                      object_path,
-                                      "org.gnome.UPnP.MediaContainer2");
+/**
+ * ms2_client_list_containers_finish:
+ * @client: a #MS2Client
+ * @res: a #GAsyncResult
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Finishes an asynchronous listing containers operation.
+ *
+ * Returns: a new #GList of #GHashTAble. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
+GList *
+ms2_client_list_containers_finish (MS2Client *client,
+                                   GAsyncResult *res,
+                                   GError **error)
+{
+  return ms2_client_list_elements_finish (client, res, error);
+}
 
-  if (dbus_g_proxy_call (gproxy,
-                         "ListChildren", error,
-                         G_TYPE_UINT, offset,
-                         G_TYPE_UINT, max_count,
-                         G_TYPE_STRV, properties,
-                         G_TYPE_INVALID,
-                         dbus_g_type_get_collection ("GPtrArray",
-                                                     dbus_g_type_get_map ("GHashTable",
-                                                                          G_TYPE_STRING,
-                                                                          G_TYPE_VALUE)), &result,
-                         G_TYPE_INVALID)) {
-    children = gptrarray_to_glist (result);
-    g_ptr_array_free (result, TRUE);
-  }
+/**
+ * ms2_client_list_containers:
+ * @client: a #MS2Client
+ * @object_path: container identifier to get containers from
+ * @offset: number of containers to skip
+ * @max_count: maximum number of containers to return, or 0 for no limit
+ * @properties: @NULL-terminated array of properties to request for each container
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Gets the list of containers directly under the container id. Each container
+ * consist of a hash table of <prop_id, prop_gvalue> pairs.
+ *
+ * Returns: a new #GList of #GHashTable. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
+GList *
+ms2_client_list_containers (MS2Client *client,
+                          const gchar *object_path,
+                          guint offset,
+                          guint max_count,
+                          gchar **properties,
+                          GError **error)
+{
+  return ms2_client_list_elements (client,
+                                   "ListContainers",
+                                   object_path,
+                                   offset,
+                                   max_count,
+                                   properties,
+                                   error);
+}
 
-  g_object_unref (gproxy);
+/**
+ * ms2_client_list_items_async:
+ * @client: a #MS2Client
+ * @object_path: container identifier to get items from
+ * @offset: number of items to skip
+ * @max_count: maximum number of items to return, or 0 for no limit
+ * @properties: @NULL-terminated array of properties to request for each item
+ * @callback: a #GAsyncReadyCallback to call when request is satisfied
+ * @user_data: the data to pass to callback function
+ *
+ * Starts an asynchronous list items.
+ *
+ * For more details, see ms2_client_list_items(), which is the synchronous
+ * version of this call.
+ *
+ * When the items have been obtained, @callback will be called with
+ * @user_data. To finish the operation, call ms2_client_list_items_finish() with
+ * the #GAsyncResult returned by the @callback.
+ **/
+void
+ms2_client_list_items_async (MS2Client *client,
+                             const gchar *object_path,
+                             guint offset,
+                             guint max_count,
+                             gchar **properties,
+                             GAsyncReadyCallback callback,
+                             gpointer user_data)
+{
+  ms2_client_list_elements_async (client,
+                                  "ListItems",
+                                  object_path,
+                                  offset,
+                                  max_count,
+                                  properties,
+                                  callback,
+                                  user_data);
+}
 
-  return children;
+/**
+ * ms2_client_list_items_finish:
+ * @client: a #MS2Client
+ * @res: a #GAsyncResult
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Finishes an asynchronous listing items operation.
+ *
+ * Returns: a new #GList of #GHashTAble. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
+GList *
+ms2_client_list_items_finish (MS2Client *client,
+                              GAsyncResult *res,
+                              GError **error)
+{
+  return ms2_client_list_elements_finish (client, res, error);
+}
+
+/**
+ * ms2_client_list_items:
+ * @client: a #MS2Client
+ * @object_path: container identifier to get items from
+ * @offset: number of items to skip
+ * @max_count: maximum number of items to return, or 0 for no limit
+ * @properties: @NULL-terminated array of properties to request for each item
+ * @error: a #GError location to store the error ocurring, or @NULL to ignore
+ *
+ * Gets the list of items directly under the container id. Each item consist of
+ * a hash table of <prop_id, prop_gvalue> pairs.
+ *
+ * Returns: a new #GList of #GHashTable. To free it, free first each element
+ * (g_hash_table_unref()) and finally the list itself (g_list_free())
+ **/
+GList *
+ms2_client_list_items (MS2Client *client,
+                       const gchar *object_path,
+                       guint offset,
+                       guint max_count,
+                       gchar **properties,
+                       GError **error)
+{
+  return ms2_client_list_elements (client,
+                                   "ListItems",
+                                   object_path,
+                                   offset,
+                                   max_count,
+                                   properties,
+                                   error);
 }
 
 /**
