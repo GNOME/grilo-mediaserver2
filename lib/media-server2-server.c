@@ -760,9 +760,10 @@ handle_get_all_message (DBusConnection *c,
   }
 }
 
-/* ListChildren message handler */
+/* ListFoo message handler */
 static DBusHandlerResult
-handle_list_children_message (DBusConnection *c,
+handle_list_elements_message (ListType list_type,
+                              DBusConnection *c,
                               DBusMessage *m,
                               void *userdata)
 {
@@ -791,7 +792,7 @@ handle_list_children_message (DBusConnection *c,
       }
       children = server->priv->list_children (server,
                                               id,
-                                              LIST_ALL,
+                                              list_type,
                                               offset,
                                               max_count? max_count: G_MAXUINT,
                                               (const gchar **) filter,
@@ -918,7 +919,15 @@ containers_handler (DBusConnection *c,
   } else if (dbus_message_is_method_call (m,
                                           "org.gnome.UPnP.MediaContainer2",
                                           "ListChildren")) {
-    return handle_list_children_message (c, m, userdata);
+    return handle_list_elements_message (LIST_ALL, c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.gnome.UPnP.MediaContainer2",
+                                          "ListContainers")) {
+    return handle_list_elements_message (LIST_CONTAINERS, c, m, userdata);
+  } else if (dbus_message_is_method_call (m,
+                                          "org.gnome.UPnP.MediaContainer2",
+                                          "ListItems")) {
+    return handle_list_elements_message (LIST_ITEMS, c, m, userdata);
   } else if (dbus_message_is_method_call (m,
                                           "org.gnome.UPnP.MediaContainer2",
                                           "SearchObjects")) {
