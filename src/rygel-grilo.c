@@ -90,6 +90,10 @@ typedef struct {
   gboolean updated;
   GList *other_keys;
   gchar *parent_id;
+  guint offset;
+  guint count;
+  guint operation_id;
+  ListType list_type;
 } RygelGriloData;
 
 static GHashTable *
@@ -102,6 +106,7 @@ get_properties_cb (MS2Server *server,
 static GList *
 list_children_cb (MS2Server *server,
                   const gchar *id,
+                  ListType list_type,
                   guint offset,
                   guint max_count,
                   const gchar **properties,
@@ -211,7 +216,9 @@ get_item_and_container_count (MS2Server *server,
   }
 
   children =
-    list_children_cb (server, container_id, 0, (guint) limit, properties, source, NULL);
+    list_children_cb (server, container_id,
+                      LIST_ALL, 0, (guint) limit,
+                      properties, source, NULL);
 
   /* Separate containers from items */
   for (child = children; child; child = g_list_next (child)) {
@@ -526,6 +533,7 @@ browse_cb (GrlMediaSource *source,
 {
   GHashTable *prop_table;
   RygelGriloData *rgdata = (RygelGriloData *) user_data;
+  gboolean add_media = FALSE;
 
   if (error) {
     rgdata->error = g_error_copy (error);
@@ -534,6 +542,19 @@ browse_cb (GrlMediaSource *source,
   }
 
   if (media) {
+    if ((rgdata->list_type == LIST_ITEMS && !GRL_IS_MEDIA_BOX (media)) ||
+        (rgdata->list_type == LIST_CONTAINERS && GRL_IS_MEDIA_BOX (media))) {
+      if (rgdata->offset == 0) {
+        add_media = TRUE;
+      } else {
+        rgdata->offset--;
+      }
+    } else if (rgdata->list_type == LIST_ALL) {
+      add_media = TRUE;
+    }
+  }
+
+  if (add_media) {
     if (rgdata->parent_id) {
       grl_media_set_rygel_grilo_parent (media,
                                         rgdata->parent_id);
@@ -549,11 +570,14 @@ browse_cb (GrlMediaSource *source,
                                  rgdata->other_keys,
                                  media);
     rgdata->children = g_list_prepend (rgdata->children, prop_table);
+    rgdata->count--;
   }
 
   if (!remaining) {
     rgdata->children = g_list_reverse (rgdata->children);
     rgdata->updated = TRUE;
+  } else if (!rgdata->count) {
+    grl_media_source_cancel (source, rgdata->operation_id);
   }
 }
 
@@ -623,6 +647,7 @@ get_properties_cb (MS2Server *server,
 static GList *
 list_children_cb (MS2Server *server,
                   const gchar *id,
+                  ListType list_type,
                   guint offset,
                   guint max_count,
                   const gchar **properties,
@@ -638,22 +663,46 @@ list_children_cb (MS2Server *server,
   rgdata->source = (GrlMediaSource *) data;
   rgdata->keys = get_grilo_keys (properties, &rgdata->other_keys);
   rgdata->parent_id = g_strdup (id);
+  rgdata->offset = offset;
+  rgdata->list_type = list_type;
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
 
   /* Adjust limits */
   if (offset >= hard_limit) {
     browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
   } else {
-    grl_media_source_browse (rgdata->source,
-                             media,
-                             rgdata->keys,
-                             offset,
-                             max_count == 0? (hard_limit - offset): CLAMP (max_count,
-                                                                           1,
-                                                                           hard_limit - offset),
-                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
-                             browse_cb,
-                             rgdata);
+    /* TIP: as Grilo is not able to split containers and items, in this case we
+       will ask for all elements and then remove unneeded children in callback */
+    switch (list_type) {
+    case LIST_ALL:
+      rgdata->count = max_count == 0? (hard_limit - offset): CLAMP (max_count,
+                                                                    1,
+                                                                    hard_limit - offset),
+        rgdata->operation_id = grl_media_source_browse (rgdata->source,
+                                                        media,
+                                                        rgdata->keys,
+                                                        offset,
+                                                        rgdata->count,
+                                                        GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                                                        browse_cb,
+                                                        rgdata);
+      break;
+    case LIST_CONTAINERS:
+    case LIST_ITEMS:
+      rgdata->count = max_count == 0? hard_limit: max_count;
+      rgdata->operation_id = grl_media_source_browse (rgdata->source,
+                                                      media,
+                                                      rgdata->keys,
+                                                      0,
+                                                      hard_limit,
+                                                      GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                                                      browse_cb,
+                                                      rgdata);
+      break;
+    default:
+      /* Protection. It should never be reached, unless ListType is extended */
+      browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
+    }
   }
 
   wait_for_result (rgdata);
@@ -730,6 +779,7 @@ search_objects_cb (MS2Server *server,
   rgdata->source = (GrlMediaSource *) data;
   rgdata->keys = get_grilo_keys (properties, &rgdata->other_keys);
   rgdata->parent_id = g_strdup (id);
+  rgdata->list_type = LIST_ALL;
 
   /* Adjust limits */
   if (offset >= hard_limit) {

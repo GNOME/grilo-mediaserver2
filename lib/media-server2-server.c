@@ -791,6 +791,7 @@ handle_list_children_message (DBusConnection *c,
       }
       children = server->priv->list_children (server,
                                               id,
+                                              LIST_ALL,
                                               offset,
                                               max_count? max_count: G_MAXUINT,
                                               (const gchar **) filter,

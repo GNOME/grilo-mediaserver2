@@ -72,6 +72,12 @@ struct _MS2ServerClass {
   GObjectClass parent_class;
 };
 
+typedef enum {
+  LIST_ALL,
+  LIST_CONTAINERS,
+  LIST_ITEMS
+} ListType;
+
 typedef GHashTable * (*GetPropertiesFunc) (MS2Server *server,
                                            const gchar *id,
                                            const gchar **properties,
@@ -80,6 +86,7 @@ typedef GHashTable * (*GetPropertiesFunc) (MS2Server *server,
 
 typedef GList * (*ListChildrenFunc) (MS2Server *server,
                                      const gchar *id,
+                                     ListType list_type,
                                      guint offset,
                                      guint max_count,
                                      const gchar **properties,
