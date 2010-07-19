@@ -1010,7 +1010,7 @@ main (gint argc, gchar **argv)
 
   /* Initialize grilo */
   grl_init (&argc, &argv);
-  registry = grl_plugin_registry_get_instance ();
+  registry = grl_plugin_registry_get_default ();
   if (!registry) {
     g_printerr ("Unable to load Grilo registry\n");
     return -1;
