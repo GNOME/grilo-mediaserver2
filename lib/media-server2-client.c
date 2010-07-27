@@ -1289,11 +1289,11 @@ ms2_client_get_path (GHashTable *properties)
   g_return_val_if_fail (properties, NULL);
 
   val = g_hash_table_lookup (properties, MS2_PROP_PATH);
-  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
     return NULL;
   }
 
-  return g_value_get_string (val);
+  return g_value_get_boxed (val);
 }
 
 /**
@@ -1312,11 +1312,11 @@ ms2_client_get_parent (GHashTable *properties)
   g_return_val_if_fail (properties, NULL);
 
   val = g_hash_table_lookup (properties, MS2_PROP_PARENT);
-  if (!val || !G_VALUE_HOLDS_STRING (val)) {
+  if (!val || !G_VALUE_HOLDS_BOXED (val)) {
     return NULL;
   }
 
-  return g_value_get_string (val);
+  return g_value_get_boxed (val);
 }
 
 /**
