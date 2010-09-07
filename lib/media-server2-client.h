@@ -207,7 +207,7 @@ const gchar *ms2_client_get_album_art (GHashTable *properties);
 
 const gchar *ms2_client_get_genre (GHashTable *properties);
 
-gint  ms2_client_get_size (GHashTable *properties);
+gint64  ms2_client_get_size (GHashTable *properties);
 
 gint  ms2_client_get_duration (GHashTable *properties);
 

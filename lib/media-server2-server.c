@@ -174,6 +174,19 @@ int_to_value (gint number)
   return val;
 }
 
+/* Puts an int64 in a gvalue */
+static GValue *
+int64_to_value (gint64 number)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_INT64);
+  g_value_set_int64 (val, number);
+
+  return val;
+}
+
 /* Puts an uint in a gvalue */
 static GValue *
 uint_to_value (guint number)
@@ -239,24 +252,30 @@ properties_lookup_with_default (GHashTable *properties,
   GValue *propvalue;
   const gchar *intern_property;
   static gchar **int_type_properties = NULL;
+  static gchar **int64_type_properties = NULL;
   static gchar **uint_type_properties = NULL;
   static gchar **bool_type_properties = NULL;
   static gchar **gptrarray_type_properties = NULL;
 
   /* Initialize data */
   if (!int_type_properties) {
-    int_type_properties = g_new (gchar *, 11);
-    int_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_SIZE);
-    int_type_properties[1] = (gchar *) g_intern_static_string (MS2_PROP_DURATION);
-    int_type_properties[2] = (gchar *) g_intern_static_string (MS2_PROP_BITRATE);
-    int_type_properties[3] = (gchar *) g_intern_static_string (MS2_PROP_SAMPLE_RATE);
-    int_type_properties[4] = (gchar *) g_intern_static_string (MS2_PROP_BITS_PER_SAMPLE);
-    int_type_properties[5] = (gchar *) g_intern_static_string (MS2_PROP_WIDTH);
-    int_type_properties[6] = (gchar *) g_intern_static_string (MS2_PROP_HEIGHT);
-    int_type_properties[7] = (gchar *) g_intern_static_string (MS2_PROP_COLOR_DEPTH);
-    int_type_properties[8] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_WIDTH);
-    int_type_properties[9] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_HEIGHT);
-    int_type_properties[10] = NULL;
+    int_type_properties = g_new (gchar *, 10);
+    int_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_DURATION);
+    int_type_properties[1] = (gchar *) g_intern_static_string (MS2_PROP_BITRATE);
+    int_type_properties[2] = (gchar *) g_intern_static_string (MS2_PROP_SAMPLE_RATE);
+    int_type_properties[3] = (gchar *) g_intern_static_string (MS2_PROP_BITS_PER_SAMPLE);
+    int_type_properties[4] = (gchar *) g_intern_static_string (MS2_PROP_WIDTH);
+    int_type_properties[5] = (gchar *) g_intern_static_string (MS2_PROP_HEIGHT);
+    int_type_properties[6] = (gchar *) g_intern_static_string (MS2_PROP_COLOR_DEPTH);
+    int_type_properties[7] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_WIDTH);
+    int_type_properties[8] = (gchar *) g_intern_static_string (MS2_PROP_PIXEL_HEIGHT);
+    int_type_properties[9] = NULL;
+  }
+
+  if (!int64_type_properties) {
+    int64_type_properties = g_new (gchar *, 2);
+    int64_type_properties[0] = (gchar *) g_intern_static_string (MS2_PROP_SIZE);
+    int64_type_properties[1] = NULL;
   }
 
   if (!uint_type_properties) {
@@ -298,6 +317,8 @@ properties_lookup_with_default (GHashTable *properties,
   intern_property = g_intern_string (property);
   if (lookup_in_strv (int_type_properties, intern_property)) {
     ret_value = int_to_value (MS2_UNKNOWN_INT);
+  } else if (lookup_in_strv (int64_type_properties, intern_property)) {
+    ret_value = int64_to_value (MS2_UNKNOWN_INT);
   } else if (lookup_in_strv (uint_type_properties, intern_property)) {
     ret_value = uint_to_value (MS2_UNKNOWN_UINT);
   } else if (lookup_in_strv (bool_type_properties, intern_property)) {
@@ -532,6 +553,7 @@ add_variant (DBusMessage *m,
   const gchar *str_value;
   gboolean bool_value;
   gint int_value;
+  gint int64_value;
   guint uint_value;
 
   if (!iter) {
@@ -556,6 +578,11 @@ add_variant (DBusMessage *m,
     int_value = g_value_get_int (v);
     dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "i", &sub);
     dbus_message_iter_append_basic (&sub, DBUS_TYPE_INT32, &int_value);
+    dbus_message_iter_close_container (iter, &sub);
+  } else if (G_VALUE_HOLDS_INT64 (v)) {
+    int64_value = g_value_get_int64 (v);
+    dbus_message_iter_open_container (iter, DBUS_TYPE_VARIANT, "i", &sub);
+    dbus_message_iter_append_basic (&sub, DBUS_TYPE_INT64, &int64_value);
     dbus_message_iter_close_container (iter, &sub);
   } else if (G_VALUE_HOLDS_UINT (v)) {
     uint_value = g_value_get_uint (v);

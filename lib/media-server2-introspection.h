@@ -43,7 +43,7 @@
   "  <interface name=\"org.gnome.UPnP.MediaItem2\">"                    \
   "    <property name=\"URLs\"           type=\"as\" access=\"read\"/>" \
   "    <property name=\"MIMEType\"       type=\"s\"  access=\"read\"/>" \
-  "    <property name=\"Size\"           type=\"i\"  access=\"read\"/>" \
+  "    <property name=\"Size\"           type=\"x\"  access=\"read\"/>" \
   "    <property name=\"Artist\"         type=\"s\"  access=\"read\"/>" \
   "    <property name=\"Album\"          type=\"s\"  access=\"read\"/>" \
   "    <property name=\"Date\"           type=\"s\"  access=\"read\"/>" \

@@ -66,6 +66,19 @@ int_to_value (gint number)
   return val;
 }
 
+/* Puts an int64 in a gvalue */
+static GValue *
+int64_to_value (gint64 number)
+{
+  GValue *val = NULL;
+
+  val = g_new0 (GValue, 1);
+  g_value_init (val, G_TYPE_INT64);
+  g_value_set_int64 (val, number);
+
+  return val;
+}
+
 /* Puts an uint in a gvalue */
 static GValue *
 uint_to_value (guint number)
@@ -494,13 +507,13 @@ ms2_server_set_genre (MS2Server *server,
 void
 ms2_server_set_size (MS2Server *server,
                      GHashTable *properties,
-                     gint size)
+                     gint64 size)
 {
   g_return_if_fail (properties);
 
   g_hash_table_insert (properties,
                        MS2_PROP_SIZE,
-                       int_to_value (size));
+                       int64_to_value (size));
 }
 
 /**

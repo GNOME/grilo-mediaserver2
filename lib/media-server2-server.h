@@ -178,7 +178,7 @@ void ms2_server_set_album_art (MS2Server *server,
 
 void ms2_server_set_size (MS2Server *server,
                           GHashTable *properties,
-                          gint size);
+                          gint64 size);
 
 void ms2_server_set_duration (MS2Server *server,
                               GHashTable *properties,

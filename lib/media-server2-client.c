@@ -1578,7 +1578,7 @@ ms2_client_get_genre (GHashTable *properties)
  *
  * Returns: property value or -1 if it is not available
  **/
-gint
+gint64
 ms2_client_get_size (GHashTable *properties)
 {
   GValue *val;
@@ -1586,11 +1586,11 @@ ms2_client_get_size (GHashTable *properties)
   g_return_val_if_fail (properties, -1);
 
   val = g_hash_table_lookup (properties, MS2_PROP_SIZE);
-  if (!val || !G_VALUE_HOLDS_INT (val)) {
+  if (!val || !G_VALUE_HOLDS_INT64 (val)) {
     return -1;
   }
 
-  return g_value_get_int (val);
+  return g_value_get_int64 (val);
 }
 
 /**
