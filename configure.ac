@@ -45,6 +45,22 @@ fi
 AM_CONDITIONAL([DEBUG], [test "x$enable_debug" = "xyes"])
 
 # ----------------------------------------------------------
+# UNINSTALLED SUPPORT
+# ----------------------------------------------------------
+
+AC_ARG_ENABLE(uninstalled,
+        AC_HELP_STRING([--enable-uninstalled],
+                [run uninstalled (default: no)]),,
+        [enable_uninstalled=no])
+
+if test "x$enable_uninstalled" = "xyes"; then
+        AC_MSG_WARN("Configuring for running uninstalled!")
+        GRL_API_VERSION=uninstalled
+else
+        GRL_API_VERSION=0.1
+fi
+
+# ----------------------------------------------------------
 # DEPENDENCIES
 # ----------------------------------------------------------
 
@@ -57,7 +73,7 @@ PKG_CHECK_MODULES(DEPS, 		\
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
-PKG_CHECK_MODULES(GRL_DEP, grilo-0.1)
+PKG_CHECK_MODULES(GRL_DEP, grilo-${GRL_API_VERSION} >= 0.1.6)
 
 AC_SUBST(GRL_DEP_CFLAGS)
 AC_SUBST(GRL_DEP_LIBS)
