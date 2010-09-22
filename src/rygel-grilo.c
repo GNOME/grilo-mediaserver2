@@ -457,9 +457,9 @@ fill_other_properties_table (MS2Server *server,
                count_items_containers) {
       container_count = &_container_count;
     } else if (g_strcmp0 (key->data, MS2_PROP_SEARCHABLE) == 0) {
-      /* Only Jamendo supports search in the root level */
+      /* Only supports search in the root level */
       if (grl_media_get_id (media) == NULL &&
-          g_strcmp0 (grl_metadata_source_get_id (GRL_METADATA_SOURCE (source)), "grl-jamendo") == 0) {
+          grl_metadata_source_supported_operations (GRL_METADATA_SOURCE (source)) & GRL_OP_SEARCH) {
         ms2_server_set_searchable (server,
                                    properties_table,
                                    TRUE);
@@ -739,11 +739,7 @@ search_objects_cb (MS2Server *server,
                    GError **error)
 {
   GList *objects;
-  GMatchInfo *match_info;
-  GRegex *query_regex = NULL;
   RygelGriloData *rgdata;
-  gchar *jamendo_query;
-  gchar *track;
 
   /* Browse is only allowed in root container */
   if (g_strcmp0 (id, MS2_ROOT) != 0) {
@@ -753,26 +749,6 @@ search_objects_cb (MS2Server *server,
     }
     return NULL;
   }
-
-  if (!query_regex) {
-    query_regex = g_regex_new ("^" MS2_PROP_DISPLAY_NAME "[[:blank:]]+contains[[:blank:]]+\"[[:alnum:]]+\"",
-                               G_REGEX_OPTIMIZE,
-                               0, NULL);
-  }
-
-  if (!g_regex_match (query_regex, query, 0, &match_info)) {
-    if (error) {
-      /* FIXME: a better error should be reported */
-      *error = g_error_new (0, 0, "do not understand query, %s", query);
-    }
-    return NULL;
-  }
-
-  track = g_match_info_fetch (match_info, 0);
-  g_match_info_free (match_info);
-
-  jamendo_query = g_strconcat ("track=", track, NULL);
-  g_free (track);
 
   rgdata = g_slice_new0 (RygelGriloData);
   rgdata->server = g_object_ref (server);
@@ -785,16 +761,16 @@ search_objects_cb (MS2Server *server,
   if (offset >= hard_limit) {
     browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
   } else {
-    grl_media_source_query (rgdata->source,
-                            jamendo_query,
-                            rgdata->keys,
-                            offset,
-                            max_count == 0? (hard_limit - offset): CLAMP (max_count,
-                                                                          1,
-                                                                          hard_limit - offset),
-                            GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
-                            browse_cb,
-                            rgdata);
+    grl_media_source_search (rgdata->source,
+                             query,
+                             rgdata->keys,
+                             offset,
+                             max_count == 0? (hard_limit - offset): CLAMP (max_count,
+                                                                           1,
+                                                                           hard_limit - offset),
+                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                             browse_cb,
+                             rgdata);
   }
 
   wait_for_result (rgdata);
@@ -810,7 +786,6 @@ search_objects_cb (MS2Server *server,
     objects = rgdata->children;
   }
 
-  g_free (jamendo_query);
   g_list_free (rgdata->keys);
   g_list_free (rgdata->other_keys);
   g_free (rgdata->parent_id);
@@ -866,9 +841,8 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
     } else {
       ms2_server_set_get_properties_func (server, get_properties_cb);
       ms2_server_set_list_children_func (server, list_children_cb);
-      /* Add search in Jamendo source */
-      if (g_strcmp0 (source_id, "grl-jamendo") == 0 &&
-          supported_ops & GRL_OP_QUERY) {
+      /* Add search  */
+      if (supported_ops & GRL_OP_SEARCH) {
         ms2_server_set_search_objects_func (server, search_objects_cb);
       }
       /* Save reference */
