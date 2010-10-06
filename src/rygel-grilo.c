@@ -50,7 +50,6 @@ static gboolean dups;
 static gchar **args = NULL;
 static gchar *conffile = NULL;
 static gint limit = 0;
-static gint hard_limit = 0;
 
 static GOptionEntry entries[] = {
   { "config-file", 'c', 0,
@@ -67,11 +66,7 @@ static GOptionEntry entries[] = {
     NULL },
   { "limit", 'l', 0,
     G_OPTION_ARG_INT, &limit,
-    "Limit max. number of children for Items/Containers (0 = unlimited)",
-    NULL },
-  { "hard-limit", 'L', 0,
-    G_OPTION_ARG_INT, &hard_limit,
-    "Limit max. number of children for everything (0 = unlimited)",
+    "Limit max. number of children (0 = unlimited)",
     NULL },
   { G_OPTION_REMAINING, '\0', 0,
     G_OPTION_ARG_FILENAME_ARRAY, &args,
@@ -668,16 +663,16 @@ list_children_cb (MS2Server *server,
   media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
 
   /* Adjust limits */
-  if (offset >= hard_limit) {
+  if (offset >= limit) {
     browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
   } else {
     /* TIP: as Grilo is not able to split containers and items, in this case we
        will ask for all elements and then remove unneeded children in callback */
     switch (list_type) {
     case LIST_ALL:
-      rgdata->count = max_count == 0? (hard_limit - offset): CLAMP (max_count,
-                                                                    1,
-                                                                    hard_limit - offset),
+      rgdata->count = max_count == 0? (limit - offset): CLAMP (max_count,
+                                                               1,
+                                                               limit - offset),
         rgdata->operation_id = grl_media_source_browse (rgdata->source,
                                                         media,
                                                         rgdata->keys,
@@ -689,12 +684,12 @@ list_children_cb (MS2Server *server,
       break;
     case LIST_CONTAINERS:
     case LIST_ITEMS:
-      rgdata->count = max_count == 0? hard_limit: max_count;
+      rgdata->count = max_count == 0? limit: max_count;
       rgdata->operation_id = grl_media_source_browse (rgdata->source,
                                                       media,
                                                       rgdata->keys,
                                                       0,
-                                                      hard_limit,
+                                                      limit,
                                                       GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                                                       browse_cb,
                                                       rgdata);
@@ -758,16 +753,16 @@ search_objects_cb (MS2Server *server,
   rgdata->list_type = LIST_ALL;
 
   /* Adjust limits */
-  if (offset >= hard_limit) {
+  if (offset >= limit) {
     browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
   } else {
     grl_media_source_search (rgdata->source,
                              query,
                              rgdata->keys,
                              offset,
-                             max_count == 0? (hard_limit - offset): CLAMP (max_count,
-                                                                           1,
-                                                                           hard_limit - offset),
+                             max_count == 0? (limit - offset): CLAMP (max_count,
+                                                                      1,
+                                                                      limit - offset),
                              GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                              browse_cb,
                              rgdata);
@@ -974,12 +969,9 @@ main (gint argc, gchar **argv)
   }
 
   /* Adjust limits */
-  hard_limit = CLAMP (hard_limit, 0, G_MAXINT);
-  if (hard_limit > 0) {
-    limit = hard_limit;
-  } else {
-    hard_limit = G_MAXINT;
-    limit = CLAMP (limit, 0, G_MAXINT);
+  limit = CLAMP (limit, 0, G_MAXINT);
+  if (limit == 0) {
+    limit = G_MAXINT;
   }
 
   /* Initialize grilo */
