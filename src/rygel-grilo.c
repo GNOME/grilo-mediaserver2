@@ -940,7 +940,7 @@ load_config ()
         g_free (value);
       }
     }
-    grl_plugin_registry_add_config (registry, config);
+    grl_plugin_registry_add_config (registry, config, NULL);
     g_strfreev (keys);
   }
 
@@ -989,7 +989,8 @@ main (gint argc, gchar **argv)
                                                                     "RygelGriloParent",
                                                                     "Object path to parent container",
                                                                     NULL,
-                                                                    G_PARAM_READWRITE));
+                                                                    G_PARAM_READWRITE),
+                                               NULL);
 
   if (!GRL_METADATA_KEY_RYGEL_GRILO_PARENT) {
     g_error ("Unable to register Parent key");
@@ -1012,10 +1013,10 @@ main (gint argc, gchar **argv)
                     G_CALLBACK (source_removed_cb), NULL);
 
   if (!args || !args[0]) {
-    grl_plugin_registry_load_all (registry);
+    grl_plugin_registry_load_all (registry, NULL);
   } else {
     for (i = 0; args[i]; i++) {
-      grl_plugin_registry_load (registry, args[i]);
+      grl_plugin_registry_load (registry, args[i], NULL);
     }
   }
 
