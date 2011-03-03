@@ -886,66 +886,31 @@ static void
 load_config ()
 {
   GError *error = NULL;
-  GKeyFile *keyfile;
-  GrlConfig *config;
   gboolean load_success;
-  gchar **key;
-  gchar **keys;
-  gchar **plugin;
-  gchar **plugins;
-  gchar **search_paths;
-  gchar *value;
-
-  keyfile = g_key_file_new ();
+  gchar *config_file;
 
   /* Try first user defined config file */
   if (conffile){
-    load_success = g_key_file_load_from_file (keyfile,
-                                              conffile,
-                                              G_KEY_FILE_NONE,
-                                              &error);
+    load_success = grl_plugin_registry_add_config_from_file (registry,
+                                                             conffile,
+                                                             &error);
   } else {
-    search_paths = g_new0 (gchar *, 3);
-    search_paths[0] = g_build_filename (g_get_user_config_dir (),
-                                        "rygel-grilo",
-                                        NULL);
-    search_paths[1] = g_strdup (SYSCONFDIR);
-    load_success = g_key_file_load_from_dirs (keyfile,
-                                              RYGEL_GRILO_CONFIG_FILE,
-                                              (const gchar **) search_paths,
-                                              NULL,
-                                              G_KEY_FILE_NONE,
-                                              &error);
-    g_strfreev (search_paths);
+    config_file = g_build_filename (g_get_user_config_dir (),
+                                    "rygel-grilo",
+                                    RYGEL_GRILO_CONFIG_FILE,
+                                    NULL);
+    load_success = grl_plugin_registry_add_config_from_file (registry,
+                                                             config_file,
+                                                             &error);
+    g_free (config_file);
   }
 
   if (!load_success) {
     g_warning ("Unable to load configuration. %s", error->message);
     g_error_free (error);
-    g_key_file_free (keyfile);
-    return;
   }
 
-  /* Look up for defined plugins */
-  plugins = g_key_file_get_groups (keyfile, NULL);
-  for (plugin = plugins; *plugin; plugin++) {
-    config = grl_config_new (*plugin, NULL);
-
-    /* Look up for keys in this plugin */
-    keys = g_key_file_get_keys (keyfile, *plugin, NULL, NULL);
-    for (key = keys; *key; key++) {
-      value = g_key_file_get_string (keyfile, *plugin, *key, NULL);
-      if (value) {
-        grl_config_set_string (config, *key, value);
-        g_free (value);
-      }
-    }
-    grl_plugin_registry_add_config (registry, config, NULL);
-    g_strfreev (keys);
-  }
-
-  g_strfreev (plugins);
-  g_key_file_free (keyfile);
+  return;
 }
 
 /* Main program */
