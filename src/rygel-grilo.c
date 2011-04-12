@@ -317,7 +317,7 @@ fill_properties_table (MS2Server *server,
 
   for (prop = keys; prop; prop = g_list_next (prop)) {
     if (prop->data == GRL_METADATA_KEY_ID ||
-        grl_data_key_is_known (GRL_DATA (media), prop->data)) {
+        grl_data_has_key (GRL_DATA (media), prop->data)) {
       if (prop->data == GRL_METADATA_KEY_ID) {
         id = serialize_media (media);
         if (id) {
