@@ -45,7 +45,6 @@ static GrlPluginRegistry *registry = NULL;
 
 static GrlKeyID GRL_METADATA_KEY_RYGEL_GRILO_PARENT = NULL;
 
-static gboolean count_items_containers;
 static gboolean dups;
 static gchar **args = NULL;
 static gchar *conffile = NULL;
@@ -55,10 +54,6 @@ static GOptionEntry entries[] = {
   { "config-file", 'c', 0,
     G_OPTION_ARG_STRING, &conffile,
     "Use this config file",
-    NULL },
-  { "count-items-containers", 'C', 0,
-    G_OPTION_ARG_NONE, &count_items_containers,
-    "Compute ItemCount and ContainerCount",
     NULL },
   { "allow-duplicates", 'D', 0,
     G_OPTION_ARG_NONE, &dups,
@@ -184,57 +179,6 @@ unserialize_media (GrlMetadataSource *source, const gchar *serial)
   return media;
 }
 
-static void
-get_item_and_container_count (MS2Server *server,
-                              GrlMediaSource *source,
-                              const gchar *container_id,
-                              guint *child_count,
-                              guint *item_count,
-                              guint *container_count)
-{
-  const gchar *properties[] = { MS2_PROP_PATH, MS2_PROP_TYPE, NULL };
-  GList *children;
-  GList *child;
-  MS2ItemType type;
-
-  /* Initialize values */
-  if (child_count) {
-    *child_count = 0;
-  }
-
-  if (item_count) {
-    *item_count = 0;
-  }
-
-  if (container_count) {
-    *container_count = 0;
-  }
-
-  children =
-    list_children_cb (server, container_id,
-                      LIST_ALL, 0, (guint) limit,
-                      properties, source, NULL);
-
-  /* Separate containers from items */
-  for (child = children; child; child = g_list_next (child)) {
-    if (child_count) {
-      (*child_count)++;
-    }
-    type = ms2_client_get_item_type (child->data);
-    if (type == MS2_ITEM_TYPE_CONTAINER) {
-      if (container_count) {
-        (*container_count)++;
-      }
-    } else {
-      if (item_count) {
-        (*item_count)++;
-      }
-    }
-    g_hash_table_unref (child->data);
-  }
-  g_list_free (children);
-}
-
 /* Given a null-terminated array of MediaServerSpec2 properties, returns a list
    with the corresponding Grilo metadata keys */
 static GList *
@@ -279,21 +223,15 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
         grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_HEIGHT);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
         grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_WIDTH);
-      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0) {
-        /* Add childcount to both lists. First we would try to use Grilo to get
-           childcount; if it is not supported or is unknown, then we will
-           compute it */
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_CHILDCOUNT);
-        if (other_keys) {
-          *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
-        }
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0) {
         grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_RYGEL_GRILO_PARENT);
-      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_TYPE) == 0 && other_keys) {
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEM_COUNT) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CONTAINER_COUNT) == 0 && other_keys) {
+        *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
+      } else if (g_strcmp0 (ms_keys[i], MS2_PROP_TYPE) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_SEARCHABLE) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
@@ -313,7 +251,6 @@ fill_properties_table (MS2Server *server,
   GList *prop;
   gchar *id;
   gchar *urls[2] = { 0 };
-  gint childcount;
 
   for (prop = keys; prop; prop = g_list_next (prop)) {
     if (prop->data == GRL_METADATA_KEY_ID ||
@@ -372,18 +309,6 @@ fill_properties_table (MS2Server *server,
                               properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
-      } else if (prop->data == GRL_METADATA_KEY_CHILDCOUNT) {
-        if (GRL_IS_MEDIA_BOX (media)) {
-          childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
-          childcount = MIN (childcount, limit);
-        } else {
-          childcount = 0;
-        }
-        if (childcount != GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
-          ms2_server_set_child_count (server,
-                                      properties_table,
-                                      (guint) childcount);
-        }
       } else if (prop->data == GRL_METADATA_KEY_RYGEL_GRILO_PARENT) {
         if (grl_media_get_id (media) == NULL) {
           ms2_server_set_parent (server,
@@ -407,13 +332,17 @@ fill_other_properties_table (MS2Server *server,
                              GrlMedia *media)
 {
   GList *key;
-  gchar *id;
-  guint *child_count = NULL;
-  guint *container_count = NULL;
-  guint *item_count = NULL;
-  guint _child_count;
-  guint _container_count;
-  guint _item_count;
+  gint childcount;
+
+  /* Compute childcount */
+  if (GRL_IS_MEDIA_BOX (media)) {
+    childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
+    if (childcount == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
+      childcount = limit;
+    }
+  } else {
+    childcount = 0;
+  }
 
   for (key = keys; key; key = g_list_next (key)) {
     if (g_strcmp0 (key->data, MS2_PROP_TYPE) == 0) {
@@ -439,18 +368,11 @@ fill_other_properties_table (MS2Server *server,
                                   MS2_ITEM_TYPE_UNKNOWN);
       }
     } else if (g_strcmp0 (key->data, MS2_PROP_CHILD_COUNT) == 0) {
-      /* First check if childcount was obtained from Grilo; if not, then compute
-         it by hand */
-      if (GRL_IS_MEDIA_BOX (media) &&
-          grl_media_box_get_childcount (GRL_MEDIA_BOX (media)) == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
-        child_count = &_child_count;
-      }
-    } else if (g_strcmp0 (key->data, MS2_PROP_ITEM_COUNT) == 0 &&
-               count_items_containers) {
-      item_count = &_item_count;
-    } else if (g_strcmp0 (key->data, MS2_PROP_CONTAINER_COUNT) == 0 &&
-               count_items_containers) {
-      container_count = &_container_count;
+      ms2_server_set_child_count (server, properties_table, childcount);
+    } else if (g_strcmp0 (key->data, MS2_PROP_ITEM_COUNT) == 0) {
+      ms2_server_set_item_count (server, properties_table, childcount);
+    } else if (g_strcmp0 (key->data, MS2_PROP_CONTAINER_COUNT) == 0) {
+      ms2_server_set_container_count (server, properties_table, childcount);
     } else if (g_strcmp0 (key->data, MS2_PROP_SEARCHABLE) == 0) {
       /* Only supports search in the root level */
       if (grl_media_get_id (media) == NULL &&
@@ -463,28 +385,6 @@ fill_other_properties_table (MS2Server *server,
                                    properties_table,
                                    FALSE);
       }
-    }
-  }
-
-  if (child_count || item_count || container_count) {
-    id = serialize_media (media);
-    if (id) {
-      get_item_and_container_count (server,
-                                    source,
-                                    id,
-                                    child_count,
-                                    item_count,
-                                    container_count);
-      g_free (id);
-    }
-    if (child_count) {
-      ms2_server_set_child_count (server, properties_table, *child_count);
-    }
-    if (item_count) {
-      ms2_server_set_item_count (server, properties_table, *item_count);
-    }
-    if (container_count) {
-      ms2_server_set_container_count (server, properties_table, *container_count);
     }
   }
 }
