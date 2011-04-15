@@ -3,22 +3,23 @@
 #
 # Author: Juan A. Suarez Romero <jasuarez@igalia.com>
 #
-# Copyright (C) 2010 Igalia S.L.
-
-bin_PROGRAMS = rygel-grilo test-client
-
-rygel_grilo_SOURCES =	\
-	rygel-grilo.c
+# Copyright (C) 2010, 2011 Igalia S.L. All rights reserved.
 
 
-rygel_grilo_CFLAGS =			\
+bin_PROGRAMS = grilo-ms2 test-client
+
+grilo_ms2_SOURCES =	\
+	grilo-mediaserver2.c
+
+
+grilo_ms2_CFLAGS =			\
 	$(DEPS_CFLAGS)			\
 	$(GRL_DEP_CFLAGS)		\
 	-DPREFIX=$(prefix)		\
 	-DSYSCONFDIR=\"$(sysconfdir)\"	\
         -I$(top_srcdir)/lib
 
-rygel_grilo_LDADD =	\
+grilo_ms2_LDADD =	\
 	-ldl -lpthread	\
 	$(DEPS_LIBS)	\
 	$(GRL_DEP_LIBS)	\

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Igalia S.L.
+ * Copyright (C) 2010, 2011 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -28,22 +28,22 @@
 #include <media-server2-server.h>
 #include <media-server2-client.h>
 
-#define RYGEL_GRILO_CONFIG_FILE "rygel-grilo.conf"
+#define GRILO_MS2_CONFIG_FILE "grilo-mediaserver2.conf"
 
-#define grl_media_set_rygel_grilo_parent(media, parent) \
-  grl_data_set_string(GRL_DATA(media),                  \
-    GRL_METADATA_KEY_RYGEL_GRILO_PARENT,\
+#define grl_media_set_grilo_ms2_parent(media, parent)           \
+  grl_data_set_string(GRL_DATA(media),                          \
+                      GRL_METADATA_KEY_GRILO_MS2_PARENT,        \
                       (parent))
 
-#define grl_media_get_rygel_grilo_parent(media)                 \
+#define grl_media_get_grilo_ms2_parent(media)                   \
   grl_data_get_string(GRL_DATA(media),                          \
-                      GRL_METADATA_KEY_RYGEL_GRILO_PARENT)
+                      GRL_METADATA_KEY_GRILO_MS2_PARENT)
 
 static GHashTable *servers = NULL;
 static GList *providers_names = NULL;
 static GrlPluginRegistry *registry = NULL;
 
-static GrlKeyID GRL_METADATA_KEY_RYGEL_GRILO_PARENT = NULL;
+static GrlKeyID GRL_METADATA_KEY_GRILO_MS2_PARENT = NULL;
 
 static gboolean dups;
 static gchar **args = NULL;
@@ -84,7 +84,7 @@ typedef struct {
   guint count;
   guint operation_id;
   ListType list_type;
-} RygelGriloData;
+} GriloMs2Data;
 
 static GHashTable *
 get_properties_cb (MS2Server *server,
@@ -140,7 +140,7 @@ serialize_media (GrlMedia *media)
 
   if (!serialize_keys) {
     serialize_keys =
-      grl_metadata_key_list_new (GRL_METADATA_KEY_RYGEL_GRILO_PARENT,
+      grl_metadata_key_list_new (GRL_METADATA_KEY_GRILO_MS2_PARENT,
                                  NULL);
   }
 
@@ -169,9 +169,9 @@ unserialize_media (GrlMetadataSource *source, const gchar *serial)
 
     /* Set parent to itself */
     /* parent_serial = grl_media_serialize (media); */
-    /* grl_media_set_rygel_grilo_parent (media, parent_serial); */
+    /* grl_media_set_grilo_ms2_parent (media, parent_serial); */
     /* g_free (parent_serial); */
-    grl_media_set_rygel_grilo_parent (media, MS2_ROOT);
+    grl_media_set_grilo_ms2_parent (media, MS2_ROOT);
   } else {
     media = grl_media_unserialize (serial);
   }
@@ -224,7 +224,7 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
         grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_WIDTH);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_RYGEL_GRILO_PARENT);
+        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_GRILO_MS2_PARENT);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEM_COUNT) == 0 && other_keys) {
@@ -309,7 +309,7 @@ fill_properties_table (MS2Server *server,
                               properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
-      } else if (prop->data == GRL_METADATA_KEY_RYGEL_GRILO_PARENT) {
+      } else if (prop->data == GRL_METADATA_KEY_GRILO_MS2_PARENT) {
         if (grl_media_get_id (media) == NULL) {
           ms2_server_set_parent (server,
                                  properties_table,
@@ -317,7 +317,7 @@ fill_properties_table (MS2Server *server,
         } else {
           ms2_server_set_parent (server,
                                  properties_table,
-                                 grl_media_get_rygel_grilo_parent (media));
+                                 grl_media_get_grilo_ms2_parent (media));
         }
       }
     }
@@ -396,27 +396,27 @@ metadata_cb (GrlMediaSource *source,
              gpointer user_data,
              const GError *error)
 {
-  RygelGriloData *rgdata = (RygelGriloData *) user_data;
+  GriloMs2Data *grdata = (GriloMs2Data *) user_data;
 
   if (error) {
-    rgdata->error = g_error_copy (error);
-    rgdata->updated = TRUE;
+    grdata->error = g_error_copy (error);
+    grdata->updated = TRUE;
     return;
   }
 
-  rgdata->properties = ms2_server_new_properties_hashtable ();
-  fill_properties_table (rgdata->server,
-                         rgdata->properties,
-                         rgdata->keys,
+  grdata->properties = ms2_server_new_properties_hashtable ();
+  fill_properties_table (grdata->server,
+                         grdata->properties,
+                         grdata->keys,
                          media);
 
-  fill_other_properties_table (rgdata->server,
+  fill_other_properties_table (grdata->server,
                                source,
-                               rgdata->properties,
-                               rgdata->other_keys,
+                               grdata->properties,
+                               grdata->other_keys,
                                media);
 
-  rgdata->updated = TRUE;
+  grdata->updated = TRUE;
 }
 
 static void
@@ -428,65 +428,65 @@ browse_cb (GrlMediaSource *source,
            const GError *error)
 {
   GHashTable *prop_table;
-  RygelGriloData *rgdata = (RygelGriloData *) user_data;
+  GriloMs2Data *grdata = (GriloMs2Data *) user_data;
   gboolean add_media = FALSE;
 
   if (error) {
-    rgdata->error = g_error_copy (error);
-    rgdata->updated = TRUE;
+    grdata->error = g_error_copy (error);
+    grdata->updated = TRUE;
     return;
   }
 
   if (media) {
-    if ((rgdata->list_type == LIST_ITEMS && !GRL_IS_MEDIA_BOX (media)) ||
-        (rgdata->list_type == LIST_CONTAINERS && GRL_IS_MEDIA_BOX (media))) {
-      if (rgdata->offset == 0) {
+    if ((grdata->list_type == LIST_ITEMS && !GRL_IS_MEDIA_BOX (media)) ||
+        (grdata->list_type == LIST_CONTAINERS && GRL_IS_MEDIA_BOX (media))) {
+      if (grdata->offset == 0) {
         add_media = TRUE;
       } else {
-        rgdata->offset--;
+        grdata->offset--;
       }
-    } else if (rgdata->list_type == LIST_ALL) {
+    } else if (grdata->list_type == LIST_ALL) {
       add_media = TRUE;
     }
   }
 
   if (add_media) {
-    if (rgdata->parent_id) {
-      grl_media_set_rygel_grilo_parent (media,
-                                        rgdata->parent_id);
+    if (grdata->parent_id) {
+      grl_media_set_grilo_ms2_parent (media,
+                                      grdata->parent_id);
     }
     prop_table = ms2_server_new_properties_hashtable ();
-    fill_properties_table (rgdata->server,
+    fill_properties_table (grdata->server,
                            prop_table,
-                           rgdata->keys,
+                           grdata->keys,
                            media);
-    fill_other_properties_table (rgdata->server,
+    fill_other_properties_table (grdata->server,
                                  source,
                                  prop_table,
-                                 rgdata->other_keys,
+                                 grdata->other_keys,
                                  media);
-    rgdata->children = g_list_prepend (rgdata->children, prop_table);
-    rgdata->count--;
+    grdata->children = g_list_prepend (grdata->children, prop_table);
+    grdata->count--;
   }
 
   if (!remaining) {
-    rgdata->children = g_list_reverse (rgdata->children);
-    rgdata->updated = TRUE;
-  } else if (!rgdata->count) {
+    grdata->children = g_list_reverse (grdata->children);
+    grdata->updated = TRUE;
+  } else if (!grdata->count) {
     grl_metadata_source_cancel (GRL_METADATA_SOURCE (source),
-                                rgdata->operation_id);
+                                grdata->operation_id);
   }
 }
 
 static void
-wait_for_result (RygelGriloData *rgdata)
+wait_for_result (GriloMs2Data *grdata)
 {
   GMainLoop *mainloop;
   GMainContext *mainloop_context;
 
   mainloop = g_main_loop_new (NULL, TRUE);
   mainloop_context = g_main_loop_get_context (mainloop);
-  while (!rgdata->updated) {
+  while (!grdata->updated) {
     g_main_context_iteration (mainloop_context, TRUE);
   }
 
@@ -502,41 +502,41 @@ get_properties_cb (MS2Server *server,
 {
   GHashTable *properties_table = NULL;
   GrlMedia *media;
-  RygelGriloData *rgdata;
+  GriloMs2Data *grdata;
 
-  rgdata = g_slice_new0 (RygelGriloData);
-  rgdata->server = g_object_ref (server);
-  rgdata->source = (GrlMediaSource *) data;
-  rgdata->keys = get_grilo_keys (properties, &rgdata->other_keys);
-  media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
+  grdata = g_slice_new0 (GriloMs2Data);
+  grdata->server = g_object_ref (server);
+  grdata->source = (GrlMediaSource *) data;
+  grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
+  media = unserialize_media (GRL_METADATA_SOURCE (grdata->source), id);
 
-  if (rgdata->keys) {
-    grl_media_source_metadata (rgdata->source,
+  if (grdata->keys) {
+    grl_media_source_metadata (grdata->source,
                                media,
-                               rgdata->keys,
+                               grdata->keys,
                                GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                                metadata_cb,
-                               rgdata);
+                               grdata);
   } else {
-    metadata_cb (rgdata->source, 0, media, rgdata, NULL);
+    metadata_cb (grdata->source, 0, media, grdata, NULL);
   }
 
-  wait_for_result (rgdata);
+  wait_for_result (grdata);
 
-  if (rgdata->error) {
+  if (grdata->error) {
     if (error) {
-      *error = rgdata->error;
+      *error = grdata->error;
     }
   } else {
-    properties_table = rgdata->properties;
+    properties_table = grdata->properties;
   }
 
   g_object_unref (media);
-  g_list_free (rgdata->keys);
-  g_list_free (rgdata->other_keys);
-  g_free (rgdata->parent_id);
-  g_object_unref (rgdata->server);
-  g_slice_free (RygelGriloData, rgdata);
+  g_list_free (grdata->keys);
+  g_list_free (grdata->other_keys);
+  g_free (grdata->parent_id);
+  g_object_unref (grdata->server);
+  g_slice_free (GriloMs2Data, grdata);
 
   return properties_table;
 }
@@ -553,74 +553,74 @@ list_children_cb (MS2Server *server,
 {
   GList *children;
   GrlMedia *media;
-  RygelGriloData *rgdata;
+  GriloMs2Data *grdata;
 
-  rgdata = g_slice_new0 (RygelGriloData);
-  rgdata->server = g_object_ref (server);
-  rgdata->source = (GrlMediaSource *) data;
-  rgdata->keys = get_grilo_keys (properties, &rgdata->other_keys);
-  rgdata->parent_id = g_strdup (id);
-  rgdata->offset = offset;
-  rgdata->list_type = list_type;
-  media = unserialize_media (GRL_METADATA_SOURCE (rgdata->source), id);
+  grdata = g_slice_new0 (GriloMs2Data);
+  grdata->server = g_object_ref (server);
+  grdata->source = (GrlMediaSource *) data;
+  grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
+  grdata->parent_id = g_strdup (id);
+  grdata->offset = offset;
+  grdata->list_type = list_type;
+  media = unserialize_media (GRL_METADATA_SOURCE (grdata->source), id);
 
   /* Adjust limits */
   if (offset >= limit) {
-    browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
+    browse_cb (grdata->source, 0, NULL, 0, grdata, NULL);
   } else {
     /* TIP: as Grilo is not able to split containers and items, in this case we
        will ask for all elements and then remove unneeded children in callback */
     switch (list_type) {
     case LIST_ALL:
-      rgdata->count = max_count == 0? (limit - offset): CLAMP (max_count,
+      grdata->count = max_count == 0? (limit - offset): CLAMP (max_count,
                                                                1,
                                                                limit - offset),
-        rgdata->operation_id = grl_media_source_browse (rgdata->source,
+        grdata->operation_id = grl_media_source_browse (grdata->source,
                                                         media,
-                                                        rgdata->keys,
+                                                        grdata->keys,
                                                         offset,
-                                                        rgdata->count,
+                                                        grdata->count,
                                                         GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                                                         browse_cb,
-                                                        rgdata);
+                                                        grdata);
       break;
     case LIST_CONTAINERS:
     case LIST_ITEMS:
-      rgdata->count = max_count == 0? limit: max_count;
-      rgdata->operation_id = grl_media_source_browse (rgdata->source,
+      grdata->count = max_count == 0? limit: max_count;
+      grdata->operation_id = grl_media_source_browse (grdata->source,
                                                       media,
-                                                      rgdata->keys,
+                                                      grdata->keys,
                                                       0,
                                                       limit,
                                                       GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                                                       browse_cb,
-                                                      rgdata);
+                                                      grdata);
       break;
     default:
       /* Protection. It should never be reached, unless ListType is extended */
-      browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
+      browse_cb (grdata->source, 0, NULL, 0, grdata, NULL);
     }
   }
 
-  wait_for_result (rgdata);
+  wait_for_result (grdata);
 
-  if (rgdata->error) {
+  if (grdata->error) {
     if (error) {
-      *error = rgdata->error;
+      *error = grdata->error;
     }
-    g_list_foreach (rgdata->children, (GFunc) g_hash_table_unref, NULL);
-    g_list_free (rgdata->children);
+    g_list_foreach (grdata->children, (GFunc) g_hash_table_unref, NULL);
+    g_list_free (grdata->children);
     children = NULL;
   } else {
-    children = rgdata->children;
+    children = grdata->children;
   }
 
   g_object_unref (media);
-  g_list_free (rgdata->keys);
-  g_list_free (rgdata->other_keys);
-  g_free (rgdata->parent_id);
-  g_object_unref (rgdata->server);
-  g_slice_free (RygelGriloData, rgdata);
+  g_list_free (grdata->keys);
+  g_list_free (grdata->other_keys);
+  g_free (grdata->parent_id);
+  g_object_unref (grdata->server);
+  g_slice_free (GriloMs2Data, grdata);
 
   return children;
 }
@@ -636,7 +636,7 @@ search_objects_cb (MS2Server *server,
                    GError **error)
 {
   GList *objects;
-  RygelGriloData *rgdata;
+  GriloMs2Data *grdata;
 
   /* Browse is only allowed in root container */
   if (g_strcmp0 (id, MS2_ROOT) != 0) {
@@ -647,47 +647,47 @@ search_objects_cb (MS2Server *server,
     return NULL;
   }
 
-  rgdata = g_slice_new0 (RygelGriloData);
-  rgdata->server = g_object_ref (server);
-  rgdata->source = (GrlMediaSource *) data;
-  rgdata->keys = get_grilo_keys (properties, &rgdata->other_keys);
-  rgdata->parent_id = g_strdup (id);
-  rgdata->list_type = LIST_ALL;
+  grdata = g_slice_new0 (GriloMs2Data);
+  grdata->server = g_object_ref (server);
+  grdata->source = (GrlMediaSource *) data;
+  grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
+  grdata->parent_id = g_strdup (id);
+  grdata->list_type = LIST_ALL;
 
   /* Adjust limits */
   if (offset >= limit) {
-    browse_cb (rgdata->source, 0, NULL, 0, rgdata, NULL);
+    browse_cb (grdata->source, 0, NULL, 0, grdata, NULL);
   } else {
-    grl_media_source_search (rgdata->source,
+    grl_media_source_search (grdata->source,
                              query,
-                             rgdata->keys,
+                             grdata->keys,
                              offset,
                              max_count == 0? (limit - offset): CLAMP (max_count,
                                                                       1,
                                                                       limit - offset),
                              GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                              browse_cb,
-                             rgdata);
+                             grdata);
   }
 
-  wait_for_result (rgdata);
+  wait_for_result (grdata);
 
-  if (rgdata->error) {
+  if (grdata->error) {
     if (error) {
-      *error = rgdata->error;
+      *error = grdata->error;
     }
-    g_list_foreach (rgdata->children, (GFunc) g_hash_table_unref, NULL);
-    g_list_free (rgdata->children);
+    g_list_foreach (grdata->children, (GFunc) g_hash_table_unref, NULL);
+    g_list_free (grdata->children);
     objects = NULL;
   } else {
-    objects = rgdata->children;
+    objects = grdata->children;
   }
 
-  g_list_free (rgdata->keys);
-  g_list_free (rgdata->other_keys);
-  g_free (rgdata->parent_id);
-  g_object_unref (rgdata->server);
-  g_slice_free (RygelGriloData, rgdata);
+  g_list_free (grdata->keys);
+  g_list_free (grdata->other_keys);
+  g_free (grdata->parent_id);
+  g_object_unref (grdata->server);
+  g_slice_free (GriloMs2Data, grdata);
 
   return objects;
 }
@@ -798,8 +798,8 @@ load_config ()
                                                              &error);
   } else {
     config_file = g_build_filename (g_get_user_config_dir (),
-                                    "rygel-grilo",
-                                    RYGEL_GRILO_CONFIG_FILE,
+                                    "grilo-mediaserver2",
+                                    GRILO_MS2_CONFIG_FILE,
                                     NULL);
     load_success = grl_plugin_registry_add_config_from_file (registry,
                                                              config_file,
@@ -850,16 +850,16 @@ main (gint argc, gchar **argv)
   }
 
   /* Register a key to store parent */
-  GRL_METADATA_KEY_RYGEL_GRILO_PARENT =
+  GRL_METADATA_KEY_GRILO_MS2_PARENT =
     grl_plugin_registry_register_metadata_key (registry,
-                                               g_param_spec_string ("rygel-grilo-parent",
-                                                                    "RygelGriloParent",
+                                               g_param_spec_string ("grilo-mediaserver2-parent",
+                                                                    "GriloMediaServer2Parent",
                                                                     "Object path to parent container",
                                                                     NULL,
                                                                     G_PARAM_READWRITE),
                                                NULL);
 
-  if (!GRL_METADATA_KEY_RYGEL_GRILO_PARENT) {
+  if (!GRL_METADATA_KEY_GRILO_MS2_PARENT) {
     g_error ("Unable to register Parent key");
     return 1;
   }
