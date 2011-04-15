@@ -728,6 +728,7 @@ ms2_client_get_properties_finish (MS2Client *client,
   /* If there was an error, just return NULL to avoid partially-filled table */
   if (adata->error) {
     g_hash_table_unref (adata->properties);
+    adata->properties = NULL;
     adata->children = NULL;
   }
 
