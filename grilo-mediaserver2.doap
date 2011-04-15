@@ -4,13 +4,13 @@
          xmlns:gnome="http://api.gnome.org/doap-extensions#"
          xmlns="http://usefulinc.com/ns/doap#">
 
-  <name xml:lang="en">rygel-grilo</name>
-  <shortdesc xml:lang="en">An implementation of the provider side of Rygel's Media Server Specification based on the Grilo framework.</shortdesc>
+  <name xml:lang="en">grilo-mediaserver2</name>
+  <shortdesc xml:lang="en">An implementation of the provider side of Rygel's Media Server Specification (version 2) based on the Grilo framework.</shortdesc>
 
   <homepage
   rdf:resource="http://live.gnome.org/Grilo" />
   <download-page
-  rdf:resource="http://download.gnome.org/sources/rygel-grilo/"/>
+  rdf:resource="http://download.gnome.org/sources/grilo-mediaserver2/"/>
 
   <maintainer>
     <foaf:Person>
