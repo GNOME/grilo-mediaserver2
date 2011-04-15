@@ -3,35 +3,35 @@
 #
 # Author: Juan A. Suarez Romero <jasuarez@igalia.com>
 #
-# Copyright (C) 2010 Igalia S.L.
+# Copyright (C) 2010, 2011 Igalia S.L.
 
 INCLUDES = @DEPS_CFLAGS@
 
-rygel-grilo-%-glue.h: $(top_srcdir)/data/%1.xml
+grilo-ms-%-glue.h: $(top_srcdir)/data/%1.xml
 	$(DBUSBINDINGTOOL)			\
 	--mode=glib-server			\
 	--output=$@				\
-	--prefix=rygel_grilo_$(subst -,_,$*)	\
+	--prefix=grilo_ms_$(subst -,_,$*)	\
 	$^
 
-bin_PROGRAMS = rygel-grilo
+bin_PROGRAMS = grilo-ms
 
-rygel_grilo_SOURCES =				\
-	rygel-grilo.c				\
-	rygel-grilo-media-object-glue.h		\
-	rygel-grilo-media-object.h		\
-	rygel-grilo-media-object.c		\
-	rygel-grilo-media-container-glue.h	\
-	rygel-grilo-media-container.h		\
-	rygel-grilo-media-container.c		\
-	rygel-grilo-media-item-glue.h		\
-	rygel-grilo-media-item.h		\
-	rygel-grilo-media-item.c
+grilo_ms_SOURCES =				\
+	grilo-ms.c				\
+	grilo-ms-media-object-glue.h		\
+	grilo-ms-media-object.h			\
+	grilo-ms-media-object.c			\
+	grilo-ms-media-container-glue.h		\
+	grilo-ms-media-container.h		\
+	grilo-ms-media-container.c		\
+	grilo-ms-media-item-glue.h		\
+	grilo-ms-media-item.h			\
+	grilo-ms-media-item.c
 
-rygel_grilo_CFLAGS =	\
+grilo_ms_CFLAGS =	\
 	-DPREFIX=$(prefix)
 
-rygel_grilo_LDADD =	\
+grilo_ms_LDADD =	\
 	-ldl -lpthread	\
 	@DEPS_LIBS@
 

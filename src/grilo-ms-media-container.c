@@ -1,4 +1,4 @@
-/* (C) 2010 Igalia S.L.
+/* (C) 2010, 2011 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -21,19 +21,19 @@
 
 #include <dbus/dbus-glib.h>
 #include <string.h>
-#include "rygel-grilo-media-container.h"
-#include "rygel-grilo-media-container-glue.h"
-#include "rygel-grilo-media-item.h"
+#include "grilo-ms-media-container.h"
+#include "grilo-ms-media-container-glue.h"
+#include "grilo-ms-media-item.h"
 
 #define DEFAULT_LIMIT 50
 
 #define DBUS_TYPE_G_ARRAY_OF_OBJECT_PATH                                \
   (dbus_g_type_get_collection ("GPtrArray", DBUS_TYPE_G_OBJECT_PATH))
 
-#define RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE(o)                      \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), RYGEL_GRILO_MEDIA_CONTAINER_TYPE, RygelGriloMediaContainerPrivate)
+#define GRILO_MS_MEDIA_CONTAINER_GET_PRIVATE(o)                         \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), GRILO_MS_MEDIA_CONTAINER_TYPE, GriloMsMediaContainerPrivate)
 
-typedef void (*RetryCb) (RygelGriloMediaContainer *obj,
+typedef void (*RetryCb) (GriloMsMediaContainer *obj,
                          gchar *property,
                          DBusGMethodInvocation *context);
 
@@ -53,14 +53,14 @@ typedef enum {
 } BrowseStatus;
 
 /*
- * Private RygelGriloMediaCointainer structure
+ * Private GriloMsMediaCointainer structure
  *   item_count: number of children items of this container
  *   container_count: number of children containers of this container
- *   items: list of RygelGriloMediaItem children
- *   containers: list of RygelGriloMediaContainer children
+ *   items: list of GriloMsMediaItem children
+ *   containers: list of GriloMsMediaContainer children
  *   browse_status: status of browse operation
  */
-struct _RygelGriloMediaContainerPrivate {
+struct _GriloMsMediaContainerPrivate {
   guint item_count;
   guint container_count;
   GList *items;
@@ -68,9 +68,9 @@ struct _RygelGriloMediaContainerPrivate {
   BrowseStatus browse_status;
 };
 
-G_DEFINE_TYPE (RygelGriloMediaContainer, rygel_grilo_media_container, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
+G_DEFINE_TYPE (GriloMsMediaContainer, grilo_ms_media_container, GRILO_MS_MEDIA_OBJECT_TYPE);
 
-/* Frees a RygelGrilo object registered in dbus_path */
+/* Frees a GriloMs object registered in dbus_path */
 static void
 free_child (gchar *dbus_path)
 {
@@ -102,30 +102,30 @@ browse_result_cb (GrlMediaSource *source,
                   gpointer user_data,
                   const GError *error)
 {
-  RygelGriloMediaContainer *container =
-    (RygelGriloMediaContainer *) user_data;
-  RygelGriloMediaContainer *child_container;
-  RygelGriloMediaItem *child_item;
+  GriloMsMediaContainer *container =
+    (GriloMsMediaContainer *) user_data;
+  GriloMsMediaContainer *child_container;
+  GriloMsMediaItem *child_item;
 
   if (media) {
     if (GRL_IS_MEDIA_BOX (media)) {
       child_container =
-        rygel_grilo_media_container_new_with_parent (RYGEL_GRILO_MEDIA_OBJECT (container),
-                                                     media);
+        grilo_ms_media_container_new_with_parent (GRILO_MS_MEDIA_OBJECT (container),
+                                                  media);
       if (child_container) {
         container->priv->containers =
           g_list_prepend (container->priv->containers,
-                          g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (child_container))));
+                          g_strdup (grilo_ms_media_object_get_dbus_path (GRILO_MS_MEDIA_OBJECT (child_container))));
         container->priv->container_count++;
       }
     } else {
       child_item =
-        rygel_grilo_media_item_new (RYGEL_GRILO_MEDIA_OBJECT (container),
-                                    media);
+        grilo_ms_media_item_new (GRILO_MS_MEDIA_OBJECT (container),
+                                 media);
       if (child_item) {
         container->priv->items =
           g_list_prepend (container->priv->items,
-                          g_strdup (rygel_grilo_media_object_get_dbus_path (RYGEL_GRILO_MEDIA_OBJECT (child_item))));
+                          g_strdup (grilo_ms_media_object_get_dbus_path (GRILO_MS_MEDIA_OBJECT (child_item))));
         container->priv->item_count++;
       }
     }
@@ -142,7 +142,7 @@ browse_result_cb (GrlMediaSource *source,
 /*  Synchronous function that wrappes a grilo browse; when browse finish, it
     sets the right properties and returns */
 static void
-browse_grilo_media (RygelGriloMediaContainer *container)
+browse_grilo_media (GriloMsMediaContainer *container)
 {
   GMainContext *mainloop_context;
   GMainLoop *mainloop;
@@ -188,7 +188,7 @@ browse_grilo_media (RygelGriloMediaContainer *container)
                              media,
                              keys,
                              0,
-                             RYGEL_GRILO_MEDIA_CONTAINER_GET_CLASS (container)->limit,
+                             GRILO_MS_MEDIA_CONTAINER_GET_CLASS (container)->limit,
                              GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
                              browse_result_cb,
                              container);
@@ -206,7 +206,7 @@ browse_grilo_media (RygelGriloMediaContainer *container)
 
 /* Convert a GList in a GPtrArray */
 static GPtrArray *
-rygel_grilo_media_container_get_elements (GList *elements)
+grilo_ms_media_container_get_elements (GList *elements)
 {
   GList *p;
   GPtrArray *pelements = NULL;
@@ -221,29 +221,29 @@ rygel_grilo_media_container_get_elements (GList *elements)
   return pelements;
 }
 
-/* Returns an array with the RygelGriloMediaItem children */
+/* Returns an array with the GriloMsMediaItem children */
 static GPtrArray *
-rygel_grilo_media_container_get_items (RygelGriloMediaContainer *obj)
+grilo_ms_media_container_get_items (GriloMsMediaContainer *obj)
 {
-  return rygel_grilo_media_container_get_elements (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->items);
+  return grilo_ms_media_container_get_elements (GRILO_MS_MEDIA_CONTAINER_GET_PRIVATE (obj)->items);
 }
 
-/* Returns an array with the RygelGriloMediaContainer children */
+/* Returns an array with the GriloMsMediaContainer children */
 static GPtrArray *
-rygel_grilo_media_container_get_containers (RygelGriloMediaContainer *obj)
+grilo_ms_media_container_get_containers (GriloMsMediaContainer *obj)
 {
-  return rygel_grilo_media_container_get_elements (RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (obj)->containers);
+  return grilo_ms_media_container_get_elements (GRILO_MS_MEDIA_CONTAINER_GET_PRIVATE (obj)->containers);
 }
 
 /* Gets a property value */
 static void
-rygel_grilo_media_container_get_property (GObject *object,
-                                          guint prop_id,
-                                          GValue *value,
-                                          GParamSpec *pspec)
+grilo_ms_media_container_get_property (GObject *object,
+                                       guint prop_id,
+                                       GValue *value,
+                                       GParamSpec *pspec)
 {
-  RygelGriloMediaContainer *self =
-    RYGEL_GRILO_MEDIA_CONTAINER (object);
+  GriloMsMediaContainer *self =
+    GRILO_MS_MEDIA_CONTAINER (object);
 
   browse_grilo_media (self);
   switch (prop_id) {
@@ -255,11 +255,11 @@ rygel_grilo_media_container_get_property (GObject *object,
     break;
   case PROP_ITEMS:
     g_value_take_boxed (value,
-                        rygel_grilo_media_container_get_items (self));
+                        grilo_ms_media_container_get_items (self));
     break;
   case PROP_CONTAINERS:
     g_value_take_boxed (value,
-                        rygel_grilo_media_container_get_containers (self));
+                        grilo_ms_media_container_get_containers (self));
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -269,13 +269,13 @@ rygel_grilo_media_container_get_property (GObject *object,
 
 /* Sets a property */
 static void
-rygel_grilo_media_container_set_property (GObject *object,
-                                          guint prop_id,
-                                          const GValue *value,
-                                          GParamSpec *pspec)
+grilo_ms_media_container_set_property (GObject *object,
+                                       guint prop_id,
+                                       const GValue *value,
+                                       GParamSpec *pspec)
 {
-  RygelGriloMediaContainer *self =
-    RYGEL_GRILO_MEDIA_CONTAINER (object);
+  GriloMsMediaContainer *self =
+    GRILO_MS_MEDIA_CONTAINER (object);
 
   switch (prop_id) {
   case PROP_ITEM_COUNT:
@@ -290,12 +290,12 @@ rygel_grilo_media_container_set_property (GObject *object,
   }
 }
 
-/* Dispose a RygelGriloMediaContainer, freeing also the children */
+/* Dispose a GriloMsMediaContainer, freeing also the children */
 static void
-rygel_grilo_media_container_dispose (GObject *object)
+grilo_ms_media_container_dispose (GObject *object)
 {
-  RygelGriloMediaContainer *self =
-    RYGEL_GRILO_MEDIA_CONTAINER (object);
+  GriloMsMediaContainer *self =
+    GRILO_MS_MEDIA_CONTAINER (object);
 
   /* Free children */
   g_list_foreach (self->priv->containers, (GFunc) free_child, NULL);
@@ -304,20 +304,20 @@ rygel_grilo_media_container_dispose (GObject *object)
   g_list_foreach (self->priv->items, (GFunc) free_child, NULL);
   g_list_free (self->priv->items);
 
-  G_OBJECT_CLASS (rygel_grilo_media_container_parent_class)->dispose (object);
+  G_OBJECT_CLASS (grilo_ms_media_container_parent_class)->dispose (object);
 }
 
 /* Class init function */
 static void
-rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
+grilo_ms_media_container_class_init (GriloMsMediaContainerClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (RygelGriloMediaContainerPrivate));
+  g_type_class_add_private (klass, sizeof (GriloMsMediaContainerPrivate));
 
-  object_class->get_property = rygel_grilo_media_container_get_property;
-  object_class->set_property = rygel_grilo_media_container_set_property;
-  object_class->dispose = rygel_grilo_media_container_dispose;
+  object_class->get_property = grilo_ms_media_container_get_property;
+  object_class->set_property = grilo_ms_media_container_set_property;
+  object_class->dispose = grilo_ms_media_container_dispose;
 
   g_object_class_install_property (object_class,
                                    PROP_ITEMS,
@@ -356,19 +356,19 @@ rygel_grilo_media_container_class_init (RygelGriloMediaContainerClass *klass)
   klass->limit = DEFAULT_LIMIT;
 
   /* Register introspection */
-  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
-                                   &dbus_glib_rygel_grilo_media_container_object_info);
+  dbus_g_object_type_install_info (GRILO_MS_MEDIA_CONTAINER_TYPE,
+                                   &dbus_glib_grilo_ms_media_container_object_info);
 }
 
 /* Object init function */
 static void
-rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
+grilo_ms_media_container_init (GriloMsMediaContainer *server)
 {
-  server->priv = RYGEL_GRILO_MEDIA_CONTAINER_GET_PRIVATE (server);
+  server->priv = GRILO_MS_MEDIA_CONTAINER_GET_PRIVATE (server);
 }
 
 /**
- * rygel_grilo_media_container_new_root:
+ * grilo_ms_media_container_new_root:
  * @dbus_path: dbus path where object is registered
  * @media: grilo media object being wrapped
  * @limit: up to how many children each container will have
@@ -376,28 +376,28 @@ rygel_grilo_media_container_init (RygelGriloMediaContainer *server)
  * Creates a new container that will be the root of all containers. Usually it
  * wraps the root of a grilo source.
  *
- * Returns: a new RygelGriloMediaContainer
+ * Returns: a new GriloMsMediaContainer
  **/
-RygelGriloMediaContainer *
-rygel_grilo_media_container_new_root (const gchar *dbus_path,
-                                      GrlMedia *media,
-                                      gint limit)
+GriloMsMediaContainer *
+grilo_ms_media_container_new_root (const gchar *dbus_path,
+                                   GrlMedia *media,
+                                   gint limit)
 {
-  RygelGriloMediaContainer *obj;
-  RygelGriloMediaContainerClass *klass;
+  GriloMsMediaContainer *obj;
+  GriloMsMediaContainerClass *klass;
 
   g_return_val_if_fail (dbus_path, NULL);
   g_return_val_if_fail (media, NULL);
 
-  obj = g_object_new (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
+  obj = g_object_new (GRILO_MS_MEDIA_CONTAINER_TYPE,
                       "parent", dbus_path,
                       "dbus-path", dbus_path,
                       "grl-media", media,
                       NULL);
-  klass = RYGEL_GRILO_MEDIA_CONTAINER_GET_CLASS (obj);
+  klass = GRILO_MS_MEDIA_CONTAINER_GET_CLASS (obj);
   klass->limit = limit;
 
-  if (rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj))) {
+  if (grilo_ms_media_object_dbus_register (GRILO_MS_MEDIA_OBJECT (obj))) {
     return obj;
   } else {
     g_object_unref (obj);
@@ -407,41 +407,41 @@ rygel_grilo_media_container_new_root (const gchar *dbus_path,
 
 
 /**
- * rygel_grilo_media_container_new_with_parent:
+ * grilo_ms_media_container_new_with_parent:
  * @parent: parent object
  * @media: grilo media object to be wrapped
  *
  * Creates a new container that is child of another container.
  *
- * Returns: a new RygelGriloMediaContainer registered on dbus, or @NULL
+ * Returns: a new GriloMsMediaContainer registered on dbus, or @NULL
  * otherwise
  **/
-RygelGriloMediaContainer *
-rygel_grilo_media_container_new_with_parent (RygelGriloMediaObject *parent,
-                                             GrlMedia *media)
+GriloMsMediaContainer *
+grilo_ms_media_container_new_with_parent (GriloMsMediaObject *parent,
+                                          GrlMedia *media)
 {
-  RygelGriloMediaContainer *obj;
-  RygelGriloMediaObjectClass *klass;
+  GriloMsMediaContainer *obj;
+  GriloMsMediaObjectClass *klass;
   gchar *dbus_path;
 
   g_return_val_if_fail (parent, NULL);
   g_return_val_if_fail (media, NULL);
 
-  klass = RYGEL_GRILO_MEDIA_OBJECT_GET_CLASS (parent);
+  klass = GRILO_MS_MEDIA_OBJECT_GET_CLASS (parent);
   dbus_path = g_strdup_printf ("%s/%u",
-                               rygel_grilo_media_object_get_dbus_path (parent),
+                               grilo_ms_media_object_get_dbus_path (parent),
                                klass->index);
 
   obj =
-    g_object_new (RYGEL_GRILO_MEDIA_CONTAINER_TYPE,
-                  "parent", rygel_grilo_media_object_get_dbus_path (parent),
+    g_object_new (GRILO_MS_MEDIA_CONTAINER_TYPE,
+                  "parent", grilo_ms_media_object_get_dbus_path (parent),
                   "dbus-path", dbus_path,
                   "grl-media", media,
                   "parent-media", parent,
                   NULL);
 
   g_free (dbus_path);
-  if (rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj))) {
+  if (grilo_ms_media_object_dbus_register (GRILO_MS_MEDIA_OBJECT (obj))) {
     klass->index++;
     return obj;
   } else {

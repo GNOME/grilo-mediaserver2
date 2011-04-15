@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Igalia S.L.
+ * Copyright (C) 2010, 2011 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -24,10 +24,10 @@
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
 
-#include "rygel-grilo-media-container.h"
+#include "grilo-ms-media-container.h"
 
 #undef G_LOG_DOMAIN
-#define G_LOG_DOMAIN "rygel-grilo"
+#define G_LOG_DOMAIN "grilo-ms"
 
 #define ENTRY_POINT_SERVICE "org.gnome.UPnP.MediaServer1"
 #define ENTRY_POINT_PATH    "/org/gnome/UPnP/MediaServer1"
@@ -119,7 +119,7 @@ get_root_cb (GrlMediaSource *source,
              gpointer user_data,
              const GError *error)
 {
-  RygelGriloMediaContainer *rg;
+  GriloMsMediaContainer *gmc;
   const gchar *name;
   gchar *dbus_path = (gchar *) user_data;
 
@@ -129,9 +129,9 @@ get_root_cb (GrlMediaSource *source,
     return;
   }
 
-  rg = rygel_grilo_media_container_new_root (dbus_path, media, limit);
-  if (rg) {
-    g_hash_table_insert (registered_sources, dbus_path, rg);
+  gmc = grilo_ms_media_container_new_root (dbus_path, media, limit);
+  if (gmc) {
+    g_hash_table_insert (registered_sources, dbus_path, gmc);
     contents_provided =
       g_list_prepend (contents_provided,
                       g_strdup (grl_metadata_source_get_name (GRL_METADATA_SOURCE (source))));

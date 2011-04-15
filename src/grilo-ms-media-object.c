@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Igalia S.L.
+ * Copyright (C) 2010, 2011 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -22,11 +22,11 @@
 
 #include <dbus/dbus-glib.h>
 #include <string.h>
-#include "rygel-grilo-media-object.h"
-#include "rygel-grilo-media-object-glue.h"
+#include "grilo-ms-media-object.h"
+#include "grilo-ms-media-object-glue.h"
 
-#define RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE(o)                         \
-  G_TYPE_INSTANCE_GET_PRIVATE((o), RYGEL_GRILO_MEDIA_OBJECT_TYPE, RygelGriloMediaObjectPrivate)
+#define GRILO_MS_MEDIA_OBJECT_GET_PRIVATE(o)                            \
+  G_TYPE_INSTANCE_GET_PRIVATE((o), GRILO_MS_MEDIA_OBJECT_TYPE, GriloMsMediaObjectPrivate)
 
 enum {
   PROP_0,
@@ -39,32 +39,32 @@ enum {
 };
 
 /*
- * Private RygelGriloMediaObject
+ * Private GriloMsMediaObject
  *   dbus_path...: dbus path name where object is registered
  *   parent_path.: dbus path name where parent object is registered
  *   parent_media: parent object
  *   grl_media...: grilo media object being wrapped
  */
-struct _RygelGriloMediaObjectPrivate {
+struct _GriloMsMediaObjectPrivate {
   gchar *dbus_path;
   gchar *parent_path;
-  RygelGriloMediaObject *parent_media;
+  GriloMsMediaObject *parent_media;
   GrlMedia *grl_media;
 };
 
-G_DEFINE_TYPE (RygelGriloMediaObject, rygel_grilo_media_object, G_TYPE_OBJECT);
+G_DEFINE_TYPE (GriloMsMediaObject, grilo_ms_media_object, G_TYPE_OBJECT);
 
-/* Function to get a property from a RygelGriloMediaObject object */
+/* Function to get a property from a GriloMsMediaObject object */
 static void
-rygel_grilo_media_object_get_property (GObject *object,
-                                       guint prop_id,
-                                       GValue *value,
-                                       GParamSpec *pspec)
+grilo_ms_media_object_get_property (GObject *object,
+                                    guint prop_id,
+                                    GValue *value,
+                                    GParamSpec *pspec)
 {
   GrlMediaPlugin *source;
   GrlPluginRegistry *registry;
-  RygelGriloMediaObject *self =
-    RYGEL_GRILO_MEDIA_OBJECT (object);
+  GriloMsMediaObject *self =
+    GRILO_MS_MEDIA_OBJECT (object);
   const gchar *name;
   const gchar *source_id;
 
@@ -105,15 +105,15 @@ rygel_grilo_media_object_get_property (GObject *object,
   }
 }
 
-/* Function to set a property from a RygelGriloMediaObject object */
+/* Function to set a property from a GriloMsMediaObject object */
 static void
-rygel_grilo_media_object_set_property (GObject *object,
-                                       guint prop_id,
-                                       const GValue *value,
-                                       GParamSpec *pspec)
+grilo_ms_media_object_set_property (GObject *object,
+                                    guint prop_id,
+                                    const GValue *value,
+                                    GParamSpec *pspec)
 {
-  RygelGriloMediaObject *self =
-    RYGEL_GRILO_MEDIA_OBJECT (object);
+  GriloMsMediaObject *self =
+    GRILO_MS_MEDIA_OBJECT (object);
 
   switch (prop_id) {
   case PROP_PARENT:
@@ -134,33 +134,33 @@ rygel_grilo_media_object_set_property (GObject *object,
   }
 }
 
-/* Dispose a RygelGriloMediaObject and its resources */
+/* Dispose a GriloMsMediaObject and its resources */
 static void
-rygel_grilo_media_object_dispose (GObject *object)
+grilo_ms_media_object_dispose (GObject *object)
 {
-  RygelGriloMediaObject *self =
-    RYGEL_GRILO_MEDIA_OBJECT (object);
+  GriloMsMediaObject *self =
+    GRILO_MS_MEDIA_OBJECT (object);
 
   g_free (self->priv->parent_path);
   g_free (self->priv->dbus_path);
   g_object_unref (self->priv->grl_media);
 
-  G_OBJECT_CLASS (rygel_grilo_media_object_parent_class)->dispose (object);
+  G_OBJECT_CLASS (grilo_ms_media_object_parent_class)->dispose (object);
 }
 
 /* Class init function */
 static void
-rygel_grilo_media_object_class_init (RygelGriloMediaObjectClass *klass)
+grilo_ms_media_object_class_init (GriloMsMediaObjectClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (RygelGriloMediaObjectPrivate));
+  g_type_class_add_private (klass, sizeof (GriloMsMediaObjectPrivate));
 
   klass->index = 1;
 
-  object_class->get_property = rygel_grilo_media_object_get_property;
-  object_class->set_property = rygel_grilo_media_object_set_property;
-  object_class->dispose = rygel_grilo_media_object_dispose;
+  object_class->get_property = grilo_ms_media_object_get_property;
+  object_class->set_property = grilo_ms_media_object_set_property;
+  object_class->dispose = grilo_ms_media_object_dispose;
 
   g_object_class_install_property (object_class,
                                    PROP_PARENT,
@@ -205,47 +205,47 @@ rygel_grilo_media_object_class_init (RygelGriloMediaObjectClass *klass)
                                    g_param_spec_object ("parent-media",
                                                         "ParentMedia",
                                                         "MediaObject parent",
-                                                        RYGEL_GRILO_MEDIA_OBJECT_TYPE,
+                                                        GRILO_MS_MEDIA_OBJECT_TYPE,
                                                         G_PARAM_READABLE |
                                                         G_PARAM_WRITABLE |
                                                         G_PARAM_CONSTRUCT_ONLY));
 
   /* Register introspection */
-  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_OBJECT_TYPE,
-                                   &dbus_glib_rygel_grilo_media_object_object_info);
+  dbus_g_object_type_install_info (GRILO_MS_MEDIA_OBJECT_TYPE,
+                                   &dbus_glib_grilo_ms_media_object_object_info);
 }
 
 /* Object init function */
 static void
-rygel_grilo_media_object_init (RygelGriloMediaObject *obj)
+grilo_ms_media_object_init (GriloMsMediaObject *obj)
 {
-  obj->priv = RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj);
+  obj->priv = GRILO_MS_MEDIA_OBJECT_GET_PRIVATE (obj);
 }
 
 /**
- * rygel_grilo_media_object_get_dbus_path:
- * @obj: a RygelGrilo object
+ * grilo_ms_media_object_get_dbus_path:
+ * @obj: a GriloMs object
  *
  * Returns the path where the object is registered in dbus. Value shouldn't be modified.
  *
  * Returns: a dbus_path
  **/
 const gchar *
-rygel_grilo_media_object_get_dbus_path (RygelGriloMediaObject *obj)
+grilo_ms_media_object_get_dbus_path (GriloMsMediaObject *obj)
 {
-  return RYGEL_GRILO_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
+  return GRILO_MS_MEDIA_OBJECT_GET_PRIVATE (obj)->dbus_path;
 }
 
 /**
- * rygel_grilo_media_object_dbus_register:
- * @obj: a RygelGrilo object
+ * grilo_ms_media_object_dbus_register:
+ * @obj: a GriloMs object
  *
  * Registers the object in dbus.
  *
  * Returns: @TRUE if object was registered
  **/
 gboolean
-rygel_grilo_media_object_dbus_register (RygelGriloMediaObject *obj)
+grilo_ms_media_object_dbus_register (GriloMsMediaObject *obj)
 {
   DBusGConnection *connection;
   GError *error = NULL;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Igalia S.L.
+ * Copyright (C) 2010, 2011 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -42,14 +42,14 @@ enum {
   LAST_PROP
 };
 
-G_DEFINE_TYPE (RygelGriloMediaItem, rygel_grilo_media_item, RYGEL_GRILO_MEDIA_OBJECT_TYPE);
+G_DEFINE_TYPE (GriloMsMediaItem, grilo_ms_media_item, GRILO_MS_MEDIA_OBJECT_TYPE);
 
 /* Gets the a property */
 static void
-rygel_grilo_media_item_get_property (GObject *object,
-                                     guint prop_id,
-                                     GValue *value,
-                                     GParamSpec *pspec)
+grilo_ms_media_item_get_property (GObject *object,
+                                  guint prop_id,
+                                  GValue *value,
+                                  GParamSpec *pspec)
 {
   GPtrArray *pa;
   GrlMedia *media;
@@ -125,21 +125,21 @@ rygel_grilo_media_item_get_property (GObject *object,
   }
 }
 
-/* Dispose a RygelGriloMediaItem object */
+/* Dispose a GriloMsMediaItem object */
 static void
-rygel_grilo_media_item_dispose (GObject *object)
+grilo_ms_media_item_dispose (GObject *object)
 {
-  G_OBJECT_CLASS (rygel_grilo_media_item_parent_class)->dispose (object);
+  G_OBJECT_CLASS (grilo_ms_media_item_parent_class)->dispose (object);
 }
 
 /* Class init function */
 static void
-rygel_grilo_media_item_class_init (RygelGriloMediaItemClass *klass)
+grilo_ms_media_item_class_init (GriloMsMediaItemClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->get_property = rygel_grilo_media_item_get_property;
-  object_class->dispose = rygel_grilo_media_item_dispose;
+  object_class->get_property = grilo_ms_media_item_get_property;
+  object_class->dispose = grilo_ms_media_item_dispose;
 
   g_object_class_install_property (object_class,
                                    PROP_URLS,
@@ -223,52 +223,52 @@ rygel_grilo_media_item_class_init (RygelGriloMediaItemClass *klass)
 
 
   /* Register introspection */
-  dbus_g_object_type_install_info (RYGEL_GRILO_MEDIA_ITEM_TYPE,
-                                   &dbus_glib_rygel_grilo_media_item_object_info);
+  dbus_g_object_type_install_info (GRILO_MS_MEDIA_ITEM_TYPE,
+                                   &dbus_glib_grilo_ms_media_item_object_info);
 }
 
 /* Object init function */
 static void
-rygel_grilo_media_item_init (RygelGriloMediaItem *obj)
+grilo_ms_media_item_init (GriloMsMediaItem *obj)
 {
 }
 
 /**
- * rygel_grilo_media_item_new:
+ * grilo_ms_media_item_new:
  * @parent: the parent
  * @media: the grilo media element that is being wrapped
  *
- * Creates a new RygelGriloMediaItem that wraps the grilo media, and register it
+ * Creates a new GriloMsMediaItem that wraps the grilo media, and register it
  * in dbus.
  *
- * Returns: a new RygelGriloMediaItem registered on dbus, or @NULL otherwise
+ * Returns: a new GriloMsMediaItem registered on dbus, or @NULL otherwise
  **/
-RygelGriloMediaItem *
-rygel_grilo_media_item_new (RygelGriloMediaObject *parent,
-                            GrlMedia *media)
+GriloMsMediaItem *
+grilo_ms_media_item_new (GriloMsMediaObject *parent,
+                         GrlMedia *media)
 {
-  RygelGriloMediaItem *obj;
-  RygelGriloMediaObjectClass *klass;
+  GriloMsMediaItem *obj;
+  GriloMsMediaObjectClass *klass;
   gchar *dbus_path;
 
   g_return_val_if_fail (parent, NULL);
   g_return_val_if_fail (media, NULL);
 
-  klass = RYGEL_GRILO_MEDIA_OBJECT_GET_CLASS (parent);
+  klass = GRILO_MS_MEDIA_OBJECT_GET_CLASS (parent);
   dbus_path = g_strdup_printf ("%s/%u",
-                               rygel_grilo_media_object_get_dbus_path (parent),
+                               grilo_ms_media_object_get_dbus_path (parent),
                                klass->index);
 
   obj =
-    g_object_new (RYGEL_GRILO_MEDIA_ITEM_TYPE,
-                  "parent", rygel_grilo_media_object_get_dbus_path (parent),
+    g_object_new (GRILO_MS_MEDIA_ITEM_TYPE,
+                  "parent", grilo_ms_media_object_get_dbus_path (parent),
                   "dbus-path", dbus_path,
                   "grl-media", media,
                   "parent-media", parent,
                   NULL);
 
   g_free (dbus_path);
-  if (rygel_grilo_media_object_dbus_register (RYGEL_GRILO_MEDIA_OBJECT (obj))) {
+  if (grilo_ms_media_object_dbus_register (GRILO_MS_MEDIA_OBJECT (obj))) {
     klass->index++;
     return obj;
   } else {

@@ -3,9 +3,9 @@
 #
 # Author: Juan A. Suarez Romero <jasuarez@igalia.com>
 #
-# Copyright (C) 2010 Igalia S.L. All rights reserved.
+# Copyright (C) 2010, 2011 Igalia S.L. All rights reserved.
 
-configdir = $(datadir)/rygel-grilo
+configdir = $(datadir)/grilo-mediaserver
 
 config_DATA =			\
 	media-container1.xml	\
