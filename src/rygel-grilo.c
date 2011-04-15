@@ -391,6 +391,7 @@ fill_other_properties_table (MS2Server *server,
 
 static void
 metadata_cb (GrlMediaSource *source,
+             guint operation_id,
              GrlMedia *media,
              gpointer user_data,
              const GError *error)
@@ -472,7 +473,8 @@ browse_cb (GrlMediaSource *source,
     rgdata->children = g_list_reverse (rgdata->children);
     rgdata->updated = TRUE;
   } else if (!rgdata->count) {
-    grl_media_source_cancel (source, rgdata->operation_id);
+    grl_metadata_source_cancel (GRL_METADATA_SOURCE (source),
+                                rgdata->operation_id);
   }
 }
 
@@ -516,7 +518,7 @@ get_properties_cb (MS2Server *server,
                                metadata_cb,
                                rgdata);
   } else {
-    metadata_cb (rgdata->source, media, rgdata, NULL);
+    metadata_cb (rgdata->source, 0, media, rgdata, NULL);
   }
 
   wait_for_result (rgdata);
