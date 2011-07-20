@@ -473,8 +473,7 @@ browse_cb (GrlMediaSource *source,
     grdata->children = g_list_reverse (grdata->children);
     grdata->updated = TRUE;
   } else if (!grdata->count) {
-    grl_metadata_source_cancel (GRL_METADATA_SOURCE (source),
-                                grdata->operation_id);
+    grl_operation_cancel (grdata->operation_id);
   }
 }
 
