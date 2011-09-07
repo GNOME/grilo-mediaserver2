@@ -8,7 +8,9 @@
 m4_define([prj_name],    [grilo-mediaserver2])
 m4_define([prj_version], [0.1])
 
-AC_INIT([prj_name], [prj_version])
+AC_INIT([prj_name],
+        [prj_version],
+        [http://bugzilla.gnome.org/enter_bug.cgi?product=grilo;component=grilo-mediaserver2])
 
 AM_INIT_AUTOMAKE([foreign])
 
