@@ -353,7 +353,7 @@ fill_other_properties_table (MS2Server *server,
   if (GRL_IS_MEDIA_BOX (media)) {
     childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
     if (childcount == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
-      childcount = limit;
+      childcount = G_MAXINT;
     }
   } else {
     childcount = 0;
