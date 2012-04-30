@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2011 Igalia S.L.
+ * Copyright (C) 2010-2012 Igalia S.L.
  *
  * Authors: Juan A. Suarez Romero <jasuarez@igalia.com>
  *
@@ -43,7 +43,7 @@ static GHashTable *servers = NULL;
 static GList *providers_names = NULL;
 static GrlPluginRegistry *registry = NULL;
 
-static GrlKeyID GRL_METADATA_KEY_GRILO_MS2_PARENT = NULL;
+static GrlKeyID GRL_METADATA_KEY_GRILO_MS2_PARENT = GRL_METADATA_KEY_INVALID;
 
 static gboolean dups;
 static gchar **args = NULL;
@@ -76,12 +76,12 @@ typedef struct {
   GList *children;
   GList *keys;
   GrlMediaSource *source;
+  GrlOperationOptions *options;
   MS2Server *server;
   gboolean updated;
   GList *other_keys;
   gchar *parent_id;
   guint offset;
-  guint count;
   guint operation_id;
   ListType list_type;
 } GriloMs2Data;
@@ -200,31 +200,44 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
   } else {
     for (i = 0; ms_keys[i]; i++) {
       if (g_strcmp0 (ms_keys[i], MS2_PROP_PATH) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ID);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ID));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DISPLAY_NAME) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_TITLE);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_TITLE));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DATE) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DATE);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_PUBLICATION_DATE));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ALBUM) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ALBUM);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ALBUM));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ARTIST) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_ARTIST);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_ARTIST));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_GENRE) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_GENRE);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_GENRE));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_MIME_TYPE) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_MIME);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_MIME));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_URLS) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_URL);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_URL));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_BITRATE) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_BITRATE);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_BITRATE));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_DURATION) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_DURATION);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_DURATION));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_HEIGHT) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_HEIGHT);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_HEIGHT));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_WIDTH) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_WIDTH);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_WIDTH));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_PARENT) == 0) {
-        grl_keys = g_list_prepend (grl_keys, GRL_METADATA_KEY_GRILO_MS2_PARENT);
+        grl_keys = g_list_prepend (grl_keys,
+                                   GRLKEYID_TO_POINTER (GRL_METADATA_KEY_GRILO_MS2_PARENT));
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_CHILD_COUNT) == 0 && other_keys) {
         *other_keys = g_list_prepend (*other_keys, (gchar *) ms_keys[i]);
       } else if (g_strcmp0 (ms_keys[i], MS2_PROP_ITEM_COUNT) == 0 && other_keys) {
@@ -249,13 +262,15 @@ fill_properties_table (MS2Server *server,
                        GrlMedia *media)
 {
   GList *prop;
+  GrlKeyID key;
   gchar *id;
   gchar *urls[2] = { 0 };
 
   for (prop = keys; prop; prop = g_list_next (prop)) {
-    if (prop->data == GRL_METADATA_KEY_ID ||
-        grl_data_has_key (GRL_DATA (media), prop->data)) {
-      if (prop->data == GRL_METADATA_KEY_ID) {
+    key = GRLPOINTER_TO_KEYID (prop->data);
+    if (key == GRL_METADATA_KEY_ID ||
+        grl_data_has_key (GRL_DATA (media), key)) {
+      if (key == GRL_METADATA_KEY_ID) {
         id = serialize_media (media);
         if (id) {
           ms2_server_set_path (server,
@@ -264,52 +279,52 @@ fill_properties_table (MS2Server *server,
                                GRL_IS_MEDIA_BOX (media));
           g_free (id);
         }
-      } else if (prop->data == GRL_METADATA_KEY_TITLE) {
+      } else if (key == GRL_METADATA_KEY_TITLE) {
         ms2_server_set_display_name (server,
                                      properties_table,
                                      grl_media_get_title (media));
-      } else if (prop->data == GRL_METADATA_KEY_ALBUM) {
+      } else if (key == GRL_METADATA_KEY_ALBUM) {
         ms2_server_set_album (server,
                               properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_ALBUM));
-      } else if (prop->data == GRL_METADATA_KEY_ARTIST) {
+      } else if (key == GRL_METADATA_KEY_ARTIST) {
         ms2_server_set_artist (server,
                                properties_table,
                                grl_data_get_string (GRL_DATA (media),
                                                     GRL_METADATA_KEY_ARTIST));
-      } else if (prop->data == GRL_METADATA_KEY_GENRE) {
+      } else if (key == GRL_METADATA_KEY_GENRE) {
         ms2_server_set_genre (server,
                               properties_table,
                               grl_data_get_string (GRL_DATA (media),
                                                    GRL_METADATA_KEY_GENRE));
-      } else if (prop->data == GRL_METADATA_KEY_MIME) {
+      } else if (key == GRL_METADATA_KEY_MIME) {
         ms2_server_set_mime_type (server,
                                   properties_table,
                                   grl_media_get_mime (media));
-      } else if (prop->data == GRL_METADATA_KEY_URL) {
+      } else if (key == GRL_METADATA_KEY_URL) {
         urls[0] = (gchar *) grl_media_get_url (media);
         ms2_server_set_urls (server, properties_table, urls);
-      } else if (prop->data == GRL_METADATA_KEY_BITRATE) {
+      } else if (key == GRL_METADATA_KEY_BITRATE) {
         ms2_server_set_bitrate (server,
                                 properties_table,
                                 grl_data_get_int (GRL_DATA (media),
                                                   GRL_METADATA_KEY_BITRATE));
-      } else if (prop->data == GRL_METADATA_KEY_DURATION) {
+      } else if (key == GRL_METADATA_KEY_DURATION) {
         ms2_server_set_duration (server,
                                  properties_table,
                                  grl_media_get_duration (media));
-      } else if (prop->data == GRL_METADATA_KEY_HEIGHT) {
+      } else if (key == GRL_METADATA_KEY_HEIGHT) {
         ms2_server_set_height (server,
                                properties_table,
                                grl_data_get_int (GRL_DATA (media),
                                                  GRL_METADATA_KEY_HEIGHT));
-      } else if (prop->data == GRL_METADATA_KEY_WIDTH) {
+      } else if (key == GRL_METADATA_KEY_WIDTH) {
         ms2_server_set_width (server,
                               properties_table,
                               grl_data_get_int (GRL_DATA (media),
                                                 GRL_METADATA_KEY_WIDTH));
-      } else if (prop->data == GRL_METADATA_KEY_GRILO_MS2_PARENT) {
+      } else if (key == GRL_METADATA_KEY_GRILO_MS2_PARENT) {
         if (grl_media_get_id (media) == NULL) {
           ms2_server_set_parent (server,
                                  properties_table,
@@ -466,13 +481,14 @@ browse_cb (GrlMediaSource *source,
                                  grdata->other_keys,
                                  media);
     grdata->children = g_list_prepend (grdata->children, prop_table);
-    grdata->count--;
+    grl_operation_options_set_count (grdata->options,
+                                     grl_operation_options_get_count (grdata->options) -1);
   }
 
   if (!remaining) {
     grdata->children = g_list_reverse (grdata->children);
     grdata->updated = TRUE;
-  } else if (!grdata->count) {
+  } else if (grl_operation_options_get_count (grdata->options) == 0) {
     grl_operation_cancel (grdata->operation_id);
   }
 }
@@ -506,14 +522,19 @@ get_properties_cb (MS2Server *server,
   grdata = g_slice_new0 (GriloMs2Data);
   grdata->server = g_object_ref (server);
   grdata->source = (GrlMediaSource *) data;
+  grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
+
+  grl_operation_options_set_flags (grdata->options,
+                                   GRL_RESOLVE_FULL |
+                                   GRL_RESOLVE_IDLE_RELAY);
   media = unserialize_media (GRL_METADATA_SOURCE (grdata->source), id);
 
   if (grdata->keys) {
     grl_media_source_metadata (grdata->source,
                                media,
                                grdata->keys,
-                               GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                               grdata->options,
                                metadata_cb,
                                grdata);
   } else {
@@ -535,6 +556,7 @@ get_properties_cb (MS2Server *server,
   g_list_free (grdata->other_keys);
   g_free (grdata->parent_id);
   g_object_unref (grdata->server);
+  g_object_unref (grdata->options);
   g_slice_free (GriloMs2Data, grdata);
 
   return properties_table;
@@ -553,14 +575,21 @@ list_children_cb (MS2Server *server,
   GList *children;
   GrlMedia *media;
   GriloMs2Data *grdata;
+  gint count;
 
   grdata = g_slice_new0 (GriloMs2Data);
   grdata->server = g_object_ref (server);
   grdata->source = (GrlMediaSource *) data;
+  grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
   grdata->parent_id = g_strdup (id);
   grdata->offset = offset;
   grdata->list_type = list_type;
+
+  grl_operation_options_set_flags (grdata->options,
+                                   GRL_RESOLVE_FULL |
+                                   GRL_RESOLVE_IDLE_RELAY);
+
   media = unserialize_media (GRL_METADATA_SOURCE (grdata->source), id);
 
   /* Adjust limits */
@@ -571,27 +600,27 @@ list_children_cb (MS2Server *server,
        will ask for all elements and then remove unneeded children in callback */
     switch (list_type) {
     case LIST_ALL:
-      grdata->count = max_count == 0? (limit - offset): CLAMP (max_count,
-                                                               1,
-                                                               limit - offset),
-        grdata->operation_id = grl_media_source_browse (grdata->source,
-                                                        media,
-                                                        grdata->keys,
-                                                        offset,
-                                                        grdata->count,
-                                                        GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
-                                                        browse_cb,
-                                                        grdata);
-      break;
-    case LIST_CONTAINERS:
-    case LIST_ITEMS:
-      grdata->count = max_count == 0? limit: max_count;
+      count = max_count == 0? (limit - offset): CLAMP (max_count,
+                                                       1,
+                                                       limit - offset);
+      grl_operation_options_set_count (grdata->options, count);
+      grl_operation_options_set_skip (grdata->options, offset);
       grdata->operation_id = grl_media_source_browse (grdata->source,
                                                       media,
                                                       grdata->keys,
-                                                      0,
-                                                      limit,
-                                                      GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                                                      grdata->options,
+                                                      browse_cb,
+                                                      grdata);
+      break;
+    case LIST_CONTAINERS:
+    case LIST_ITEMS:
+      count = max_count == 0? limit: max_count;
+      grl_operation_options_set_count  (grdata->options, count);
+      grl_operation_options_set_skip (grdata->options, 0);
+      grdata->operation_id = grl_media_source_browse (grdata->source,
+                                                      media,
+                                                      grdata->keys,
+                                                      grdata->options,
                                                       browse_cb,
                                                       grdata);
       break;
@@ -619,6 +648,7 @@ list_children_cb (MS2Server *server,
   g_list_free (grdata->other_keys);
   g_free (grdata->parent_id);
   g_object_unref (grdata->server);
+  g_object_unref (grdata->options);
   g_slice_free (GriloMs2Data, grdata);
 
   return children;
@@ -636,6 +666,7 @@ search_objects_cb (MS2Server *server,
 {
   GList *objects;
   GriloMs2Data *grdata;
+  gint count;
 
   /* Browse is only allowed in root container */
   if (g_strcmp0 (id, MS2_ROOT) != 0) {
@@ -649,22 +680,28 @@ search_objects_cb (MS2Server *server,
   grdata = g_slice_new0 (GriloMs2Data);
   grdata->server = g_object_ref (server);
   grdata->source = (GrlMediaSource *) data;
+  grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
   grdata->parent_id = g_strdup (id);
   grdata->list_type = LIST_ALL;
+
+  grl_operation_options_set_flags (grdata->options,
+                                   GRL_RESOLVE_FULL |
+                                   GRL_RESOLVE_IDLE_RELAY);
 
   /* Adjust limits */
   if (offset >= limit) {
     browse_cb (grdata->source, 0, NULL, 0, grdata, NULL);
   } else {
+    count = max_count == 0? (limit - offset): CLAMP (max_count,
+                                                     1,
+                                                     limit - offset);
+    grl_operation_options_set_count (grdata->options, count);
+    grl_operation_options_set_skip (grdata->options, offset);
     grl_media_source_search (grdata->source,
                              query,
                              grdata->keys,
-                             offset,
-                             max_count == 0? (limit - offset): CLAMP (max_count,
-                                                                      1,
-                                                                      limit - offset),
-                             GRL_RESOLVE_FULL | GRL_RESOLVE_IDLE_RELAY,
+                             grdata->options,
                              browse_cb,
                              grdata);
   }
@@ -686,6 +723,7 @@ search_objects_cb (MS2Server *server,
   g_list_free (grdata->other_keys);
   g_free (grdata->parent_id);
   g_object_unref (grdata->server);
+  g_object_unref (grdata->options);
   g_slice_free (GriloMs2Data, grdata);
 
   return objects;
@@ -858,7 +896,7 @@ main (gint argc, gchar **argv)
                                                                     G_PARAM_READWRITE),
                                                NULL);
 
-  if (!GRL_METADATA_KEY_GRILO_MS2_PARENT) {
+  if (GRL_METADATA_KEY_GRILO_MS2_PARENT == GRL_METADATA_KEY_INVALID) {
     g_error ("Unable to register Parent key");
     return 1;
   }
