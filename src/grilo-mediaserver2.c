@@ -419,6 +419,13 @@ metadata_cb (GrlMediaSource *source,
     return;
   }
 
+  /* Special case: for root media, if there is no title use the source's name */
+  if (grl_media_get_id (media) == NULL &&
+      !grl_data_has_key (GRL_DATA (media), GRL_METADATA_KEY_TITLE)) {
+    grl_media_set_title (media,
+                         grl_metadata_source_get_name (GRL_METADATA_SOURCE (source)));
+  }
+
   grdata->properties = ms2_server_new_properties_hashtable ();
   fill_properties_table (grdata->server,
                          grdata->properties,
