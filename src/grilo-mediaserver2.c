@@ -41,7 +41,7 @@
 
 static GHashTable *servers = NULL;
 static GList *providers_names = NULL;
-static GrlPluginRegistry *registry = NULL;
+static GrlRegistry *registry = NULL;
 
 static GrlKeyID GRL_METADATA_KEY_GRILO_MS2_PARENT = GRL_METADATA_KEY_INVALID;
 
@@ -75,7 +75,7 @@ typedef struct {
   GHashTable *properties;
   GList *children;
   GList *keys;
-  GrlMediaSource *source;
+  GrlSource *source;
   GrlOperationOptions *options;
   MS2Server *server;
   gboolean updated;
@@ -157,7 +157,7 @@ serialize_media (GrlMedia *media)
 }
 
 static GrlMedia *
-unserialize_media (GrlMetadataSource *source, const gchar *serial)
+unserialize_media (GrlSource *source, const gchar *serial)
 {
   GrlMedia *media;
   /* gchar *parent_serial; */
@@ -165,7 +165,7 @@ unserialize_media (GrlMetadataSource *source, const gchar *serial)
   if (g_strcmp0 (serial, MS2_ROOT) == 0) {
     /* Root container must be built from scratch */
     media = grl_media_box_new ();
-    grl_media_set_source (media, grl_metadata_source_get_id (source));
+    grl_media_set_source (media, grl_source_get_id (source));
 
     /* Set parent to itself */
     /* parent_serial = grl_media_serialize (media); */
@@ -189,7 +189,7 @@ get_grilo_keys (const gchar **ms_keys, GList **other_keys)
 
   /* Check if all keys are requested */
   if (g_strcmp0 (ms_keys[0], MS2_PROP_ALL) == 0) {
-    grl_keys = grl_plugin_registry_get_metadata_keys (registry);
+    grl_keys = grl_registry_get_metadata_keys (registry);
     if (other_keys) {
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_CHILD_COUNT);
       *other_keys = g_list_prepend (*other_keys, MS2_PROP_TYPE);
@@ -341,7 +341,7 @@ fill_properties_table (MS2Server *server,
 
 static void
 fill_other_properties_table (MS2Server *server,
-                             GrlMediaSource *source,
+                             GrlSource *source,
                              GHashTable *properties_table,
                              GList *keys,
                              GrlMedia *media)
@@ -391,7 +391,7 @@ fill_other_properties_table (MS2Server *server,
     } else if (g_strcmp0 (key->data, MS2_PROP_SEARCHABLE) == 0) {
       /* Only supports search in the root level */
       if (grl_media_get_id (media) == NULL &&
-          grl_metadata_source_supported_operations (GRL_METADATA_SOURCE (source)) & GRL_OP_SEARCH) {
+          grl_source_supported_operations (source) & GRL_OP_SEARCH) {
         ms2_server_set_searchable (server,
                                    properties_table,
                                    TRUE);
@@ -405,11 +405,11 @@ fill_other_properties_table (MS2Server *server,
 }
 
 static void
-metadata_cb (GrlMediaSource *source,
-             guint operation_id,
-             GrlMedia *media,
-             gpointer user_data,
-             const GError *error)
+resolve_cb (GrlSource *source,
+            guint operation_id,
+            GrlMedia *media,
+            gpointer user_data,
+            const GError *error)
 {
   GriloMs2Data *grdata = (GriloMs2Data *) user_data;
 
@@ -423,7 +423,7 @@ metadata_cb (GrlMediaSource *source,
   if (grl_media_get_id (media) == NULL &&
       !grl_data_has_key (GRL_DATA (media), GRL_METADATA_KEY_TITLE)) {
     grl_media_set_title (media,
-                         grl_metadata_source_get_name (GRL_METADATA_SOURCE (source)));
+                         grl_source_get_name (source));
   }
 
   grdata->properties = ms2_server_new_properties_hashtable ();
@@ -442,7 +442,7 @@ metadata_cb (GrlMediaSource *source,
 }
 
 static void
-browse_cb (GrlMediaSource *source,
+browse_cb (GrlSource *source,
            guint browse_id,
            GrlMedia *media,
            guint remaining,
@@ -528,24 +528,24 @@ get_properties_cb (MS2Server *server,
 
   grdata = g_slice_new0 (GriloMs2Data);
   grdata->server = g_object_ref (server);
-  grdata->source = (GrlMediaSource *) data;
+  grdata->source = (GrlSource *) data;
   grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
 
   grl_operation_options_set_flags (grdata->options,
                                    GRL_RESOLVE_FULL |
                                    GRL_RESOLVE_IDLE_RELAY);
-  media = unserialize_media (GRL_METADATA_SOURCE (grdata->source), id);
+  media = unserialize_media (grdata->source, id);
 
   if (grdata->keys) {
-    grl_media_source_metadata (grdata->source,
-                               media,
-                               grdata->keys,
-                               grdata->options,
-                               metadata_cb,
-                               grdata);
+    grl_source_resolve (grdata->source,
+                        media,
+                        grdata->keys,
+                        grdata->options,
+                        resolve_cb,
+                        grdata);
   } else {
-    metadata_cb (grdata->source, 0, media, grdata, NULL);
+    resolve_cb (grdata->source, 0, media, grdata, NULL);
   }
 
   wait_for_result (grdata);
@@ -586,7 +586,7 @@ list_children_cb (MS2Server *server,
 
   grdata = g_slice_new0 (GriloMs2Data);
   grdata->server = g_object_ref (server);
-  grdata->source = (GrlMediaSource *) data;
+  grdata->source = (GrlSource *) data;
   grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
   grdata->parent_id = g_strdup (id);
@@ -597,7 +597,7 @@ list_children_cb (MS2Server *server,
                                    GRL_RESOLVE_FULL |
                                    GRL_RESOLVE_IDLE_RELAY);
 
-  media = unserialize_media (GRL_METADATA_SOURCE (grdata->source), id);
+  media = unserialize_media (grdata->source, id);
 
   /* Adjust limits */
   if (offset >= limit) {
@@ -612,24 +612,24 @@ list_children_cb (MS2Server *server,
                                                        limit - offset);
       grl_operation_options_set_count (grdata->options, count);
       grl_operation_options_set_skip (grdata->options, offset);
-      grdata->operation_id = grl_media_source_browse (grdata->source,
-                                                      media,
-                                                      grdata->keys,
-                                                      grdata->options,
-                                                      browse_cb,
-                                                      grdata);
+      grdata->operation_id = grl_source_browse (grdata->source,
+                                                media,
+                                                grdata->keys,
+                                                grdata->options,
+                                                browse_cb,
+                                                grdata);
       break;
     case LIST_CONTAINERS:
     case LIST_ITEMS:
       count = max_count == 0? limit: max_count;
       grl_operation_options_set_count  (grdata->options, count);
       grl_operation_options_set_skip (grdata->options, 0);
-      grdata->operation_id = grl_media_source_browse (grdata->source,
-                                                      media,
-                                                      grdata->keys,
-                                                      grdata->options,
-                                                      browse_cb,
-                                                      grdata);
+      grdata->operation_id = grl_source_browse (grdata->source,
+                                                media,
+                                                grdata->keys,
+                                                grdata->options,
+                                                browse_cb,
+                                                grdata);
       break;
     default:
       /* Protection. It should never be reached, unless ListType is extended */
@@ -686,7 +686,7 @@ search_objects_cb (MS2Server *server,
 
   grdata = g_slice_new0 (GriloMs2Data);
   grdata->server = g_object_ref (server);
-  grdata->source = (GrlMediaSource *) data;
+  grdata->source = (GrlSource *) data;
   grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
   grdata->parent_id = g_strdup (id);
@@ -705,12 +705,12 @@ search_objects_cb (MS2Server *server,
                                                      limit - offset);
     grl_operation_options_set_count (grdata->options, count);
     grl_operation_options_set_skip (grdata->options, offset);
-    grl_media_source_search (grdata->source,
-                             query,
-                             grdata->keys,
-                             grdata->options,
-                             browse_cb,
-                             grdata);
+    grl_source_search (grdata->source,
+                       query,
+                       grdata->keys,
+                       grdata->options,
+                       browse_cb,
+                       grdata);
   }
 
   wait_for_result (grdata);
@@ -738,7 +738,9 @@ search_objects_cb (MS2Server *server,
 
 /* Callback invoked whenever a new source comes up */
 static void
-source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
+source_added_cb (GrlRegistry *registry,
+                 GrlSource *source,
+                 gpointer user_data)
 {
   GrlSupportedOps supported_ops;
   MS2Server *server;
@@ -746,19 +748,19 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
   gchar *sanitized_source_id;
   gchar *source_id;
 
-  /* Only sources that implement browse and metadata are of interest */
+  /* Only sources that implement browse and resolve are of interest */
   supported_ops =
-    grl_metadata_source_supported_operations (GRL_METADATA_SOURCE (user_data));
+    grl_source_supported_operations (source);
   if (supported_ops & GRL_OP_BROWSE &&
-      supported_ops & GRL_OP_METADATA) {
+      supported_ops & GRL_OP_RESOLVE) {
 
     source_id =
-      (gchar *) grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data));
+      (gchar *) grl_source_get_id (source);
 
     /* Check if there is already another provider with the same name */
     if (!dups) {
       source_name =
-        grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data));
+        grl_source_get_name (source);
       if (g_list_find_custom (providers_names,
                               source_name,
                               (GCompareFunc) g_strcmp0)) {
@@ -774,7 +776,7 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
 
     sanitize (sanitized_source_id);
 
-    server = ms2_server_new (sanitized_source_id, GRL_MEDIA_SOURCE (user_data));
+    server = ms2_server_new (sanitized_source_id, source);
 
     if (!server) {
       g_warning ("Cannot register %s", sanitized_source_id);
@@ -794,23 +796,25 @@ source_added_cb (GrlPluginRegistry *registry, gpointer user_data)
       g_hash_table_insert (servers, sanitized_source_id, server);
     }
   } else {
-    g_debug ("%s source does not support either browse or metadata",
-             grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+    g_debug ("%s source does not support either browse or resolve",
+             grl_source_get_id (source));
   }
 }
 
 /* Callback invoked whenever a source goes away */
 static void
-source_removed_cb (GrlPluginRegistry *registry, gpointer user_data)
+source_removed_cb (GrlRegistry *registry,
+                   GrlSource *source,
+                   gpointer user_data)
 {
   GList *entry;
   const gchar *source_name;
   gchar *source_id;
 
   source_name =
-    grl_metadata_source_get_name (GRL_METADATA_SOURCE (user_data));
+    grl_source_get_name (source);
   source_id =
-    g_strdup (grl_metadata_source_get_id (GRL_METADATA_SOURCE (user_data)));
+    g_strdup (grl_source_get_id (source));
 
   if (!dups) {
     entry = g_list_find_custom (providers_names,
@@ -837,17 +841,17 @@ load_config ()
 
   /* Try first user defined config file */
   if (conffile){
-    load_success = grl_plugin_registry_add_config_from_file (registry,
-                                                             conffile,
-                                                             &error);
+    load_success = grl_registry_add_config_from_file (registry,
+                                                      conffile,
+                                                      &error);
   } else {
     config_file = g_build_filename (g_get_user_config_dir (),
                                     "grilo-mediaserver2",
                                     GRILO_MS2_CONFIG_FILE,
                                     NULL);
-    load_success = grl_plugin_registry_add_config_from_file (registry,
-                                                             config_file,
-                                                             &error);
+    load_success = grl_registry_add_config_from_file (registry,
+                                                      config_file,
+                                                      &error);
     g_free (config_file);
   }
 
@@ -887,7 +891,7 @@ main (gint argc, gchar **argv)
 
   /* Initialize grilo */
   grl_init (&argc, &argv);
-  registry = grl_plugin_registry_get_default ();
+  registry = grl_registry_get_default ();
   if (!registry) {
     g_printerr ("Unable to load Grilo registry\n");
     return -1;
@@ -895,13 +899,13 @@ main (gint argc, gchar **argv)
 
   /* Register a key to store parent */
   GRL_METADATA_KEY_GRILO_MS2_PARENT =
-    grl_plugin_registry_register_metadata_key (registry,
-                                               g_param_spec_string ("grilo-mediaserver2-parent",
-                                                                    "GriloMediaServer2Parent",
-                                                                    "Object path to parent container",
-                                                                    NULL,
-                                                                    G_PARAM_READWRITE),
-                                               NULL);
+    grl_registry_register_metadata_key (registry,
+                                        g_param_spec_string ("grilo-mediaserver2-parent",
+                                                             "GriloMediaServer2Parent",
+                                                             "Object path to parent container",
+                                                             NULL,
+                                                             G_PARAM_READWRITE),
+                                        NULL);
 
   if (GRL_METADATA_KEY_GRILO_MS2_PARENT == GRL_METADATA_KEY_INVALID) {
     g_error ("Unable to register Parent key");
@@ -924,10 +928,10 @@ main (gint argc, gchar **argv)
                     G_CALLBACK (source_removed_cb), NULL);
 
   if (!args || !args[0]) {
-    grl_plugin_registry_load_all (registry, NULL);
+    grl_registry_load_all_plugins (registry, NULL);
   } else {
     for (i = 0; args[i]; i++) {
-      grl_plugin_registry_load (registry, args[i], NULL);
+      grl_registry_load_plugin (registry, args[i], NULL);
     }
   }
 
