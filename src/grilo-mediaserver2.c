@@ -263,6 +263,7 @@ fill_properties_table (MS2Server *server,
 {
   GList *prop;
   GrlKeyID key;
+  const gchar *title;
   gchar *id;
   gchar *urls[2] = { 0 };
 
@@ -280,9 +281,14 @@ fill_properties_table (MS2Server *server,
           g_free (id);
         }
       } else if (key == GRL_METADATA_KEY_TITLE) {
+        /* Ensure we always insert a valid title */
+        title = grl_media_get_title (media);
+        if (!title) {
+          title = "Unknown";
+        }
         ms2_server_set_display_name (server,
                                      properties_table,
-                                     grl_media_get_title (media));
+                                     title);
       } else if (key == GRL_METADATA_KEY_ALBUM) {
         ms2_server_set_album (server,
                               properties_table,
