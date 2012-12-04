@@ -424,7 +424,9 @@ int main (int argc, char **argv)
 {
   GMainLoop *mainloop;
 
+#if !GLIB_CHECK_VERSION(2,35,0)
   g_type_init ();
+#endif
 
   if (1) test_properties ();
   if (0) test_properties_async ();
