@@ -16,7 +16,7 @@ AM_INIT_AUTOMAKE([foreign])
 
 AC_CONFIG_SRCDIR([src])
 
-AM_CONFIG_HEADER(src/config.h)
+AC_CONFIG_HEADERS([src/config.h])
 
 AC_PROG_CC
 AC_PROG_INSTALL
