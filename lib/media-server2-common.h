@@ -76,7 +76,7 @@
 #define MS2_UNKNOWN_STR ""
 
 /* Root category */
-#define MS2_ROOT ""
+#define MS2_ROOT "GrlMediaServer2RootCategory"
 
 /* Type items definition */
 typedef enum {
