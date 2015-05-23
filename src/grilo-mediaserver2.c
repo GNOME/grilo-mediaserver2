@@ -538,9 +538,9 @@ get_properties_cb (MS2Server *server,
   grdata->options = grl_operation_options_new (NULL);
   grdata->keys = get_grilo_keys (properties, &grdata->other_keys);
 
-  grl_operation_options_set_flags (grdata->options,
-                                   GRL_RESOLVE_FULL |
-                                   GRL_RESOLVE_IDLE_RELAY);
+  grl_operation_options_set_resolution_flags (grdata->options,
+                                              GRL_RESOLVE_FULL |
+                                              GRL_RESOLVE_IDLE_RELAY);
   media = unserialize_media (grdata->source, id);
 
   if (grdata->keys) {
@@ -599,9 +599,9 @@ list_children_cb (MS2Server *server,
   grdata->offset = offset;
   grdata->list_type = list_type;
 
-  grl_operation_options_set_flags (grdata->options,
-                                   GRL_RESOLVE_FULL |
-                                   GRL_RESOLVE_IDLE_RELAY);
+  grl_operation_options_set_resolution_flags (grdata->options,
+                                              GRL_RESOLVE_FULL |
+                                              GRL_RESOLVE_IDLE_RELAY);
 
   media = unserialize_media (grdata->source, id);
 
@@ -698,9 +698,9 @@ search_objects_cb (MS2Server *server,
   grdata->parent_id = g_strdup (id);
   grdata->list_type = LIST_ALL;
 
-  grl_operation_options_set_flags (grdata->options,
-                                   GRL_RESOLVE_FULL |
-                                   GRL_RESOLVE_IDLE_RELAY);
+  grl_operation_options_set_resolution_flags (grdata->options,
+                                              GRL_RESOLVE_FULL |
+                                              GRL_RESOLVE_IDLE_RELAY);
 
   /* Adjust limits */
   if (offset >= limit) {
