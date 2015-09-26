@@ -30,7 +30,7 @@ AM_MAINTAINER_MODE
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-CFLAGS="$CFLAGS -Wall -Werror -Wmissing-prototypes -Wmissing-declarations -std=c99"
+CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wmissing-declarations -std=c99"
 
 # ----------------------------------------------------------
 # DEBUG SUPPORT
