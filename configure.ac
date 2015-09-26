@@ -6,7 +6,7 @@
 # Copyright (C) 2010-2012 Igalia S.L.. All rights reserved.
 
 m4_define([prj_name],    [grilo-mediaserver2])
-m4_define([prj_version], [0.2])
+m4_define([prj_version], [0.3])
 
 AC_INIT([prj_name],
         [prj_version],
@@ -59,7 +59,7 @@ if test "x$enable_uninstalled" = "xyes"; then
         AC_MSG_WARN("Configuring for running uninstalled!")
         GRL_API_VERSION=uninstalled
 else
-        GRL_API_VERSION=0.2
+        GRL_API_VERSION=0.3
 fi
 
 # ----------------------------------------------------------
@@ -75,7 +75,7 @@ PKG_CHECK_MODULES(DEPS, \
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
-PKG_CHECK_MODULES(GRL_DEP, grilo-${GRL_API_VERSION} >= 0.2.12)
+PKG_CHECK_MODULES(GRL_DEP, grilo-${GRL_API_VERSION})
 
 AC_SUBST(GRL_DEP_CFLAGS)
 AC_SUBST(GRL_DEP_LIBS)
