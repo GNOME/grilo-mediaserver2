@@ -164,7 +164,7 @@ unserialize_media (GrlSource *source, const gchar *serial)
 
   if (g_strcmp0 (serial, MS2_ROOT) == 0) {
     /* Root container must be built from scratch */
-    media = grl_media_box_new ();
+    media = grl_media_container_new ();
     grl_media_set_source (media, grl_source_get_id (source));
 
     /* Set parent to itself */
@@ -277,7 +277,7 @@ fill_properties_table (MS2Server *server,
           ms2_server_set_path (server,
                                properties_table,
                                id,
-                               GRL_IS_MEDIA_BOX (media));
+                               grl_media_is_container (media));
           g_free (id);
         }
       } else if (key == GRL_METADATA_KEY_TITLE) {
@@ -356,8 +356,8 @@ fill_other_properties_table (MS2Server *server,
   gint childcount;
 
   /* Compute childcount */
-  if (GRL_IS_MEDIA_BOX (media)) {
-    childcount = grl_media_box_get_childcount (GRL_MEDIA_BOX (media));
+  if (grl_media_is_container (media)) {
+    childcount = grl_media_get_childcount (media);
     if (childcount == GRL_METADATA_KEY_CHILDCOUNT_UNKNOWN) {
       childcount = G_MAXINT;
     }
@@ -367,19 +367,19 @@ fill_other_properties_table (MS2Server *server,
 
   for (key = keys; key; key = g_list_next (key)) {
     if (g_strcmp0 (key->data, MS2_PROP_TYPE) == 0) {
-      if (GRL_IS_MEDIA_BOX (media)) {
+      if (grl_media_is_container (media)) {
         ms2_server_set_item_type (server,
                                   properties_table,
                                   MS2_ITEM_TYPE_CONTAINER);
-      } else if (GRL_IS_MEDIA_IMAGE (media)) {
+      } else if (grl_media_is_image (media)) {
         ms2_server_set_item_type (server,
                                   properties_table,
                                   MS2_ITEM_TYPE_IMAGE);
-      } else if (GRL_IS_MEDIA_AUDIO (media)) {
+      } else if (grl_media_is_audio (media)) {
         ms2_server_set_item_type (server,
                                   properties_table,
                                   MS2_ITEM_TYPE_AUDIO);
-      } else if (GRL_IS_MEDIA_VIDEO (media)) {
+      } else if (grl_media_is_video (media)) {
         ms2_server_set_item_type (server,
                                   properties_table,
                                   MS2_ITEM_TYPE_VIDEO);
@@ -466,8 +466,8 @@ browse_cb (GrlSource *source,
   }
 
   if (media) {
-    if ((grdata->list_type == LIST_ITEMS && !GRL_IS_MEDIA_BOX (media)) ||
-        (grdata->list_type == LIST_CONTAINERS && GRL_IS_MEDIA_BOX (media))) {
+    if ((grdata->list_type == LIST_ITEMS && !grl_media_is_container (media)) ||
+        (grdata->list_type == LIST_CONTAINERS && grl_media_is_container (media))) {
       if (grdata->offset == 0) {
         add_media = TRUE;
       } else {
@@ -911,6 +911,7 @@ main (gint argc, gchar **argv)
                                                              "Object path to parent container",
                                                              NULL,
                                                              G_PARAM_READWRITE),
+                                        GRL_METADATA_KEY_INVALID,
                                         NULL);
 
   if (GRL_METADATA_KEY_GRILO_MS2_PARENT == GRL_METADATA_KEY_INVALID) {
@@ -934,7 +935,7 @@ main (gint argc, gchar **argv)
                     G_CALLBACK (source_removed_cb), NULL);
 
   if (!args || !args[0]) {
-    grl_registry_load_all_plugins (registry, NULL);
+    grl_registry_load_all_plugins (registry, TRUE, NULL);
   } else {
     for (i = 0; args[i]; i++) {
       grl_registry_load_plugin (registry, args[i], NULL);
